@@ -157,6 +157,6 @@ async function mostrarHistorico(phone) {
 // ---------------------------------------------------------------
 // Sobe o servidor
 // ---------------------------------------------------------------
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Bot Economizei rodando na porta ${PORT}`);
 });
