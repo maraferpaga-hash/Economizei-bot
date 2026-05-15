@@ -1,0 +1,2237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#16a34a" />
+  <meta name="robots" content="index, follow" />
+  <title>Economizei — A planilha que se preenche sozinha. Só no WhatsApp.</title>
+  <meta name="description" content="Não deixa o mercado te passar a perna. Manda a foto do cupom no WhatsApp — a IA registra tudo e te avisa antes do mês fugir do controle. Beta gratuito." />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Economizei — Controle seus gastos pelo WhatsApp" />
+  <meta property="og:description" content="Manda a foto do cupom. A IA registra tudo e te avisa quando você está gastando mais que o normal. Beta gratuito, sem app, sem cadastro." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://economizei.space" />
+  <meta property="og:locale" content="pt_BR" />
+  <meta property="og:site_name" content="Economizei" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Economizei — Controle seus gastos pelo WhatsApp" />
+  <meta name="twitter:description" content="Manda a foto do cupom. A IA registra tudo e te avisa quando o mês foge do controle." />
+
+  <!-- Favicon SVG inline (verde Economizei) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='20' height='20' rx='5' fill='%2316a34a'/%3E%3Cpath d='M8 12l3 3 5-6' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+
+  <!-- Fontes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* ===== Paleta Economizei — Confiável e Brasileiro ===== */
+      --green: #16a34a;
+      --green-dark: #15803d;
+      --green-deeper: #14532d;
+      --green-light: #dcfce7;
+      --green-50: #f0fdf4;
+
+      --accent: #fef3c7;          /* amarelo-creme — Beta Fundador, destaques */
+      --accent-dark: #fde68a;
+      --accent-text: #92400e;
+
+      --text: #1c1917;            /* grafite quente */
+      --text-muted: #57534e;
+      --text-soft: #78716c;
+
+      --border: #e7e5e4;
+      --border-soft: #f5f5f4;
+
+      --bg: #ffffff;
+      --bg-warm: #fafaf9;         /* off-white quente */
+      --bg-tinted: #f5f5f4;
+
+      /* Alias retrocompatível enquanto reformulamos por etapas */
+      --bg-gray: var(--bg-warm);
+
+      --radius: 10px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+
+      --shadow-soft: 0 4px 20px rgba(28, 25, 23, 0.06);
+      --shadow-md: 0 12px 40px rgba(28, 25, 23, 0.08);
+      --shadow-lg: 0 24px 64px rgba(28, 25, 23, 0.14);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    img, svg { max-width: 100%; display: block; }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ===== TIPOGRAFIA ===== */
+    h1, h2, h3 {
+      font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+      color: var(--text);
+    }
+    h1 { font-size: clamp(2rem, 5.4vw, 3.25rem); font-weight: 800; line-height: 1.08; letter-spacing: -0.028em; }
+    h2 { font-size: clamp(1.5rem, 4vw, 2.125rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+    h3 { font-size: 1.125rem; font-weight: 700; letter-spacing: -0.01em; }
+
+    /* ===== SISTEMA DE ÍCONES ===== */
+    .icon {
+      width: 1em;
+      height: 1em;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .icon-filled { fill: currentColor; stroke: none; }
+
+    /* ===== LAYOUT ===== */
+    .container {
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    section { padding: 64px 0; }
+
+    /* ===== NAV ===== */
+    nav {
+      position: sticky;
+      top: 0;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      padding: 14px 0;
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-logo-mark {
+      width: 30px;
+      height: 30px;
+      background: var(--green);
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+    }
+    .nav-logo-mark .icon { width: 17px; height: 17px; stroke-width: 2.25; }
+
+    .nav-cta {
+      background: var(--text);
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.875rem;
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-cta:hover { background: #292524; }
+    .nav-cta:active { transform: scale(0.97); }
+    .nav-cta .icon { width: 14px; height: 14px; stroke-width: 2.5; }
+
+    /* ===== BOTÕES ===== */
+    .btn {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 14px 28px;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      text-align: center;
+    }
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--green);
+      color: #fff;
+      width: 100%;
+    }
+    .btn-primary:hover { background: var(--green-dark); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--green-dark);
+      border: 2px solid var(--green);
+      width: 100%;
+    }
+    .btn-outline:hover { background: var(--green-light); }
+
+    /* ===== HERO ===== */
+    #hero {
+      position: relative;
+      overflow: hidden;
+      padding: 72px 0 88px;
+      background:
+        radial-gradient(ellipse 80% 60% at 90% 0%, rgba(254, 243, 199, 0.45) 0%, transparent 60%),
+        linear-gradient(170deg, var(--green-50) 0%, var(--bg) 55%);
+    }
+
+    /* Fita Beta Fundador — canto superior direito */
+    .hero-ribbon {
+      position: absolute;
+      top: 36px;
+      right: -64px;
+      width: 240px;
+      transform: rotate(45deg);
+      background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%);
+      color: var(--accent-text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 9px 0;
+      line-height: 1.35;
+      box-shadow: 0 8px 20px rgba(146, 64, 14, 0.22);
+      z-index: 5;
+      pointer-events: none;
+    }
+    .hero-ribbon strong { font-weight: 800; }
+    .hero-ribbon small {
+      display: block;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      opacity: 0.85;
+      margin-top: 1px;
+    }
+
+    .hero-inner {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 48px;
+    }
+
+    @media (min-width: 900px) {
+      .hero-inner {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 64px;
+      }
+    }
+
+    .hero-text { flex: 1; max-width: 560px; }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      color: var(--green-deeper);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+      letter-spacing: 0.01em;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
+    }
+    .hero-badge .icon { width: 14px; height: 14px; color: var(--green); stroke-width: 2.25; }
+
+    .hero-text h1 { margin-bottom: 22px; }
+    .hero-text h1 .accent {
+      background: linear-gradient(120deg, var(--green) 0%, var(--green-dark) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 36px;
+      max-width: 500px;
+      line-height: 1.55;
+    }
+
+    .hero-cta-group { display: flex; flex-direction: column; gap: 20px; }
+
+    .btn-hero {
+      max-width: 380px;
+      padding: 16px 28px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.02rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 10px 24px rgba(22, 163, 74, 0.28);
+    }
+    .btn-hero:hover { box-shadow: 0 14px 32px rgba(22, 163, 74, 0.34); }
+    .btn-hero .icon { width: 18px; height: 18px; stroke-width: 2.5; transition: transform 0.15s; }
+    .btn-hero:hover .icon { transform: translateX(3px); }
+
+    .hero-trust {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .hero-trust span { display: inline-flex; align-items: center; gap: 6px; }
+    .hero-trust .icon {
+      width: 14px;
+      height: 14px;
+      color: var(--green);
+      stroke-width: 2.75;
+    }
+
+    /* ===== MOCKUP WHATSAPP ===== */
+    .hero-mockup-wrap {
+      flex-shrink: 0;
+      width: 100%;
+      max-width: 340px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .hero-mockup {
+      background: #0b141a;
+      border-radius: 32px;
+      padding: 22px 16px 18px;
+      box-shadow: var(--shadow-lg);
+      border: 8px solid #1f2937;
+      position: relative;
+    }
+    .hero-mockup::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 6px;
+      background: #0b141a;
+      border-radius: 0 0 8px 8px;
+    }
+
+    .mockup-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 6px 4px 14px;
+      border-bottom: 1px solid #1f2937;
+    }
+    .mockup-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .mockup-avatar .icon { width: 22px; height: 22px; stroke-width: 2; }
+    .mockup-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .mockup-name { color: #f3f4f6; font-weight: 600; font-size: 0.92rem; }
+    .mockup-status {
+      color: #86efac;
+      font-size: 0.72rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .mockup-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+      50% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+    }
+
+    .mockup-body { display: flex; flex-direction: column; gap: 4px; }
+    .mockup-row { display: flex; }
+    .mockup-row-left { justify-content: flex-start; }
+    .mockup-row-right { justify-content: flex-end; }
+
+    .mockup-bubble {
+      padding: 10px 12px;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      max-width: 85%;
+    }
+
+    .bubble-user {
+      background: #16a34a;
+      color: #fff;
+      border-radius: 14px 14px 4px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+    .bubble-user .icon { width: 16px; height: 16px; stroke-width: 2; }
+
+    .bubble-bot {
+      background: #1f2937;
+      color: #e5e7eb;
+      border-radius: 14px 14px 14px 4px;
+    }
+
+    .bubble-analysis {
+      padding: 12px;
+      width: 92%;
+      max-width: 92%;
+    }
+    .receipt-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 6px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed #374151;
+      margin-bottom: 8px;
+    }
+    .receipt-store {
+      font-weight: 700;
+      color: #f3f4f6;
+      font-size: 0.82rem;
+    }
+    .receipt-date {
+      color: #9ca3af;
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+    .receipt-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 0.78rem;
+    }
+    .receipt-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .receipt-line span:first-child { color: #9ca3af; }
+    .receipt-line span:last-child { color: #d1d5db; font-variant-numeric: tabular-nums; }
+    .receipt-more {
+      color: #6b7280;
+      font-size: 0.72rem;
+      font-style: italic;
+      margin-top: 2px;
+    }
+    .receipt-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #374151;
+      font-size: 0.82rem;
+      color: #d1d5db;
+    }
+    .receipt-total strong {
+      color: #86efac;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bubble-insight {
+      padding: 12px;
+      max-width: 92%;
+      background: linear-gradient(135deg, #065f46 0%, #14532d 100%);
+      color: #d1fae5;
+    }
+    .insight-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .insight-icon {
+      width: 20px;
+      height: 20px;
+      color: #86efac;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .insight-sub {
+      color: #a7f3d0;
+      font-size: 0.74rem;
+      line-height: 1.4;
+    }
+
+    .mockup-time {
+      color: #6b7280;
+      font-size: 0.68rem;
+      margin: 2px 8px 6px;
+    }
+    .mockup-time-right { text-align: right; }
+    .mockup-time-left { text-align: left; }
+
+    @media (max-width: 900px) {
+      .hero-ribbon { font-size: 0.64rem; width: 200px; right: -68px; top: 28px; padding: 7px 0; }
+    }
+    @media (max-width: 480px) {
+      .hero-ribbon { font-size: 0.58rem; width: 170px; right: -60px; top: 18px; padding: 6px 0; }
+      .hero-ribbon small { font-size: 0.52rem; }
+    }
+
+    /* ===== SHARED ===== */
+    .section-header { text-align: center; margin-bottom: 48px; }
+    .section-header p {
+      color: var(--text-muted);
+      margin-top: 12px;
+      font-size: 1.05rem;
+      line-height: 1.55;
+      max-width: 580px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .section-eyebrow {
+      display: inline-block;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--green-dark);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    /* ===== FAIXA DE CREDIBILIDADE ===== */
+    #credibility {
+      padding: 22px 0;
+      background: var(--text);
+      color: #fff;
+    }
+    #credibility .container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px 36px;
+      align-items: center;
+    }
+    .cred-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #e7e5e4;
+    }
+    .cred-item .icon {
+      width: 18px;
+      height: 18px;
+      color: #86efac;
+      stroke-width: 2;
+    }
+    .cred-divider {
+      width: 1px;
+      height: 18px;
+      background: #44403c;
+      display: none;
+    }
+    @media (min-width: 800px) {
+      .cred-divider { display: block; }
+    }
+
+    /* ===== EMPATIA ===== */
+    #empatia {
+      background: var(--bg-warm);
+      padding: 80px 0;
+    }
+    .empatia-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 800px) {
+      .empatia-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    .empatia-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 26px;
+      position: relative;
+      box-shadow: var(--shadow-soft);
+    }
+    .empatia-card .quote-mark {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      color: var(--accent-dark);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 4rem;
+      font-weight: 800;
+      line-height: 1;
+      opacity: 0.6;
+      user-select: none;
+    }
+    .empatia-quote {
+      font-size: 1.02rem;
+      line-height: 1.55;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 18px;
+      position: relative;
+    }
+    .empatia-attribution {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .empatia-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--green-light);
+      color: var(--green-dark);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    /* ===== COMO FUNCIONA ===== */
+    #como-funciona {
+      background: var(--bg);
+      padding: 80px 0;
+    }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    @media (min-width: 800px) {
+      .steps-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+      }
+    }
+    .step-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px 28px;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .step-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--green-light);
+    }
+    .step-num {
+      position: absolute;
+      top: 18px;
+      right: 22px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--border);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    .step-icon-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--green-light);
+      color: var(--green-dark);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .step-icon-wrap .icon {
+      width: 26px;
+      height: 26px;
+      stroke-width: 1.8;
+    }
+    .step-card h3 {
+      margin-bottom: 8px;
+      font-size: 1.15rem;
+    }
+    .step-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.55;
+    }
+
+    /* ===== OBJEÇÃO: CUPOM JÁ MOSTRA ===== */
+    #objection {
+      background: var(--bg-warm);
+      padding: 80px 0;
+    }
+    .objection-compare {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      max-width: 920px;
+      margin: 0 auto;
+    }
+    @media (min-width: 900px) {
+      .objection-compare {
+        grid-template-columns: 1fr auto 1fr;
+        align-items: stretch;
+        gap: 24px;
+      }
+    }
+    .compare-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+    }
+    .compare-card-bad {
+      border-style: dashed;
+      background: transparent;
+    }
+    .compare-card-good {
+      border-color: var(--green);
+      border-width: 2px;
+      box-shadow: 0 16px 40px rgba(22, 163, 74, 0.12);
+    }
+    .compare-tag {
+      display: inline-block;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 100px;
+      margin-bottom: 18px;
+    }
+    .tag-bad { background: var(--bg-tinted); color: var(--text-muted); }
+    .tag-good { background: var(--green-light); color: var(--green-dark); }
+    .compare-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      line-height: 1.35;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .compare-card-bad .compare-title { color: var(--text-muted); }
+    .compare-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .compare-list li {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.5;
+    }
+    .compare-list .icon {
+      width: 16px;
+      height: 16px;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+    .compare-card-bad .compare-list .icon { color: var(--text-soft); }
+    .compare-card-good .compare-list .icon { color: var(--green); }
+    .compare-card-good .compare-list li { color: var(--text); }
+    .compare-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--green);
+    }
+    .compare-arrow .icon {
+      width: 36px;
+      height: 36px;
+      stroke-width: 2.25;
+    }
+    @media (max-width: 900px) {
+      .compare-arrow { transform: rotate(90deg); padding: 4px 0; }
+    }
+
+    /* ===== ANTI-PLANILHA ===== */
+    #planilha {
+      background: var(--bg);
+      padding: 80px 0;
+    }
+    .planilha-inner {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    @media (min-width: 900px) {
+      .planilha-inner {
+        grid-template-columns: 1fr 1fr;
+        gap: 64px;
+      }
+    }
+    .planilha-quote {
+      background: linear-gradient(160deg, var(--green-50) 0%, var(--bg-warm) 100%);
+      border: 1px solid var(--green-light);
+      border-radius: var(--radius-lg);
+      padding: 36px 32px 26px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.08rem;
+      line-height: 1.5;
+      color: var(--text);
+      font-weight: 500;
+      position: relative;
+      font-style: italic;
+    }
+    .planilha-quote::before {
+      content: '"';
+      font-size: 6rem;
+      position: absolute;
+      top: -6px;
+      left: 14px;
+      color: var(--green);
+      opacity: 0.2;
+      font-family: 'Plus Jakarta Sans', serif;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .planilha-quote-attr {
+      display: block;
+      font-style: normal;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 14px;
+      font-weight: 500;
+    }
+    .planilha-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+    .planilha-bullets li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      line-height: 1.5;
+    }
+    .planilha-bullets strong {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.02rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+    .planilha-bullets .text {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      display: block;
+    }
+    .planilha-bullet-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--green-light);
+      color: var(--green-dark);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .planilha-bullet-icon .icon {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2;
+    }
+
+    /* ===== PRICING ===== */
+    #pricing {
+      background: var(--bg-warm);
+      padding: 80px 0;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    @media (min-width: 640px) {
+      .pricing-grid { grid-template-columns: repeat(2, 1fr); gap: 22px; }
+    }
+    @media (min-width: 1024px) {
+      .pricing-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 22px;
+        align-items: stretch;
+      }
+    }
+
+    .pricing-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .pricing-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--green-light);
+    }
+
+    .pricing-card.featured {
+      background: linear-gradient(170deg, var(--green-50) 0%, var(--bg) 55%);
+      border-color: var(--green);
+      border-width: 2px;
+      box-shadow: 0 18px 48px rgba(22, 163, 74, 0.16);
+    }
+    @media (min-width: 1024px) {
+      .pricing-card.featured {
+        transform: scale(1.04);
+        z-index: 2;
+        padding: 32px 24px;
+      }
+      .pricing-card.featured:hover { transform: scale(1.04) translateY(-3px); }
+    }
+
+    .badge-popular {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 100px;
+      white-space: nowrap;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      box-shadow: 0 6px 14px rgba(22, 163, 74, 0.3);
+    }
+
+    .plan-head { display: flex; flex-direction: column; gap: 6px; }
+    .plan-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.66rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 100px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      width: max-content;
+    }
+    .plan-tag .icon { width: 11px; height: 11px; stroke-width: 2.5; }
+    .tag-active { background: var(--green-light); color: var(--green-dark); }
+    .tag-soon { background: var(--bg-tinted); color: var(--text-muted); }
+
+    .plan-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .plan-subtitle { font-size: 0.85rem; color: var(--text-muted); }
+
+    .plan-price {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .price-currency { font-size: 1rem; font-weight: 600; color: var(--text-muted); }
+    .price-value { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+    .price-period { font-size: 0.875rem; color: var(--text-muted); font-weight: 500; }
+
+    .plan-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+    .plan-features li {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.5;
+    }
+    .plan-features li .icon {
+      width: 16px;
+      height: 16px;
+      color: var(--green);
+      flex-shrink: 0;
+      margin-top: 3px;
+      stroke-width: 2.5;
+    }
+    .plan-features li.highlight {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .plan-features li.highlight .icon { color: var(--green-dark); }
+
+    /* Beta Fundador inset — vive dentro do card Individual */
+    .plan-fundador {
+      background: var(--accent);
+      border: 1px solid var(--accent-dark);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      color: var(--accent-text);
+    }
+    .plan-fundador .icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      stroke-width: 2.25;
+    }
+    .plan-fundador strong {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .pricing-foot-note {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      max-width: 580px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .pricing-foot-note strong { color: var(--text); font-weight: 700; }
+
+    /* ===== PRIVACIDADE ===== */
+    #privacy {
+      background: var(--bg);
+      padding: 72px 0;
+    }
+    .privacy-inner {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+    .privacy-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      margin-top: 40px;
+    }
+    @media (min-width: 800px) {
+      .privacy-list { grid-template-columns: repeat(3, 1fr); }
+    }
+    .privacy-item {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 24px 22px;
+      background: var(--bg-warm);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+    }
+    .privacy-item-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      background: var(--green-50);
+      color: var(--green-dark);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .privacy-item-icon .icon { width: 22px; height: 22px; stroke-width: 1.8; }
+    .privacy-item h3 { font-size: 0.98rem; font-weight: 700; }
+    .privacy-item p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
+
+    /* ===== WAITLIST ===== */
+    #waitlist {
+      background: var(--bg-warm);
+      padding: 80px 0;
+    }
+
+    .waitlist-inner {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 36px;
+      align-items: flex-start;
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+    @media (min-width: 900px) {
+      .waitlist-inner {
+        grid-template-columns: 1fr 1.1fr;
+        gap: 56px;
+      }
+    }
+
+    .waitlist-pitch h2 {
+      margin-bottom: 14px;
+      font-size: clamp(1.5rem, 3.6vw, 2rem);
+    }
+    .waitlist-pitch > p {
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    .waitlist-perks {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .waitlist-perks li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      line-height: 1.45;
+    }
+    .waitlist-perk-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: var(--accent);
+      color: var(--accent-text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .waitlist-perk-icon .icon { width: 18px; height: 18px; stroke-width: 2.25; }
+    .waitlist-perks strong {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 2px;
+      color: var(--text);
+    }
+    .waitlist-perks .text {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      display: block;
+    }
+
+    .waitlist-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      box-shadow: var(--shadow-md);
+    }
+    .waitlist-box-eyebrow {
+      display: inline-block;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.74rem;
+      font-weight: 800;
+      color: var(--green-dark);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .waitlist-box h3 {
+      font-size: 1.25rem;
+      margin-bottom: 22px;
+    }
+    @media (max-width: 640px) {
+      .waitlist-box { padding: 26px 22px; }
+    }
+
+    .form-group { margin-bottom: 18px; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color 0.2s;
+      appearance: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+
+    .form-group input.error,
+    .form-group select.error {
+      border-color: #ef4444;
+    }
+
+    .field-error {
+      font-size: 0.8rem;
+      color: #ef4444;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .field-error.visible { display: block; }
+
+    .form-submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+    }
+    .form-submit-btn:hover { background: var(--green-dark); }
+    .form-submit-btn:active { transform: scale(0.98); }
+    .form-submit-btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .success-msg {
+      display: none;
+      background: var(--green-light);
+      border: 1px solid #bbf7d0;
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      color: var(--green-dark);
+      font-weight: 600;
+      margin-top: 16px;
+      font-size: 0.95rem;
+    }
+
+    /* ===== A11Y: FOCUS + SKIP LINK ===== */
+    *:focus { outline: none; }
+    *:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 16px;
+      background: var(--text);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      z-index: 1000;
+      transition: top 0.18s ease;
+    }
+    .skip-link:focus { top: 16px; }
+
+    /* Mensagem de sucesso com ícone SVG (sobrescreve display:none quando JS exibe) */
+    .success-msg .success-check {
+      width: 22px;
+      height: 22px;
+      color: var(--green-dark);
+      flex-shrink: 0;
+      stroke-width: 2.25;
+      vertical-align: -5px;
+    }
+
+    /* ===== RODAPÉ ===== */
+    footer {
+      background: var(--text);
+      color: var(--text-soft);
+      padding: 56px 0 32px;
+      border-top: 1px solid #292524;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+      margin-bottom: 36px;
+    }
+    @media (min-width: 700px) {
+      .footer-grid {
+        grid-template-columns: 1.4fr 1fr 1.1fr;
+        gap: 48px;
+        align-items: flex-start;
+      }
+    }
+    .footer-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .footer-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .footer-logo-mark {
+      width: 30px;
+      height: 30px;
+      background: var(--green);
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .footer-logo-mark .icon { width: 17px; height: 17px; stroke-width: 2.25; }
+    .footer-tagline {
+      font-size: 0.92rem;
+      color: var(--text-soft);
+      font-style: italic;
+      line-height: 1.5;
+      max-width: 300px;
+    }
+    .footer-col h4 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.74rem;
+      font-weight: 800;
+      color: #d6d3d1;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer-col a {
+      color: var(--text-soft);
+      font-size: 0.92rem;
+      transition: color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .footer-col a:hover { color: #fff; }
+    .footer-col a .icon { width: 15px; height: 15px; stroke-width: 2; color: #86efac; }
+    .footer-bottom {
+      border-top: 1px solid #292524;
+      padding-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.82rem;
+      color: var(--text-soft);
+    }
+    .footer-bottom-left { display: flex; flex-direction: column; gap: 4px; }
+    .footer-bottom .note { opacity: 0.7; font-size: 0.78rem; }
+    @media (max-width: 700px) {
+      .footer-bottom { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* ===== RESPONSIVO MISC ===== */
+    @media (max-width: 640px) {
+      #empatia, #como-funciona, #objection, #planilha, #pricing, #privacy, #waitlist {
+        padding-top: 56px;
+        padding-bottom: 56px;
+      }
+      #credibility { padding: 18px 0; }
+      .waitlist-box { padding: 26px 22px; }
+      .section-header { margin-bottom: 36px; }
+    }
+    @media (max-width: 380px) {
+      .nav-cta .icon { display: none; }
+      .nav-cta { padding: 10px 14px; }
+      .container { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Skip link (acessibilidade — só aparece quando focado via teclado) -->
+  <a href="#hero" class="skip-link">Ir para o conteúdo</a>
+
+  <!-- ===== NAV ===== -->
+  <nav>
+    <div class="container nav-inner">
+      <span class="nav-logo">
+        <span class="nav-logo-mark" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z"/><path d="M8 12l3 3 5-6"/></svg>
+        </span>
+        Economizei
+      </span>
+      <a href="#waitlist" class="nav-cta">
+        Entrar no Beta
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </nav>
+
+  <!-- ===== SEÇÃO 1: HERO ===== -->
+  <section id="hero">
+    <!-- Fita Beta Fundador no canto -->
+    <div class="hero-ribbon" aria-hidden="true">
+      <strong>Beta Fundador</strong>
+      <small>Vagas limitadas</small>
+    </div>
+
+    <div class="container">
+      <div class="hero-inner">
+
+        <!-- Texto + CTA -->
+        <div class="hero-text">
+          <span class="hero-badge">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.39 4.84L20 8l-4 3.9.94 5.48L12 14.77 7.06 17.38 8 11.9 4 8l5.61-1.16L12 2z"/></svg>
+            Beta gratuito · acesso vitalício travado
+          </span>
+
+          <!-- Headline A/B — preenchida pelo JS -->
+          <h1 id="hero-headline"></h1>
+          <p class="hero-sub" id="hero-subheadline"></p>
+
+          <div class="hero-cta-group">
+            <a href="#waitlist" class="btn btn-primary btn-hero">
+              <span>Quero economizar — é grátis</span>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <div class="hero-trust">
+              <span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>100% gratuito agora</span>
+              <span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Sem app, sem cadastro</span>
+              <span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Só pelo WhatsApp</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mockup WhatsApp em SVG/HTML puro -->
+        <div class="hero-mockup-wrap">
+          <div class="hero-mockup">
+
+            <!-- Cabeçalho da conversa -->
+            <div class="mockup-header">
+              <div class="mockup-avatar" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9z"/><path d="M9 22V12h6v10"/></svg>
+              </div>
+              <div class="mockup-meta">
+                <div class="mockup-name">Economizei</div>
+                <div class="mockup-status">
+                  <span class="mockup-dot" aria-hidden="true"></span>
+                  online agora
+                </div>
+              </div>
+            </div>
+
+            <div class="mockup-body">
+
+              <!-- Usuário enviou a foto do cupom -->
+              <div class="mockup-row mockup-row-right">
+                <div class="mockup-bubble bubble-user">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  <span>Cupom do mercado</span>
+                </div>
+              </div>
+              <div class="mockup-time mockup-time-right">10:42 · enviada</div>
+
+              <!-- Bot devolve análise -->
+              <div class="mockup-row mockup-row-left">
+                <div class="mockup-bubble bubble-bot bubble-analysis">
+                  <div class="receipt-head">
+                    <span class="receipt-store">Supermercado Extra</span>
+                    <span class="receipt-date">13 mai · 10:38</span>
+                  </div>
+                  <div class="receipt-lines">
+                    <div class="receipt-line"><span>Arroz 5kg</span><span>R$ 24,90</span></div>
+                    <div class="receipt-line"><span>Feijão 1kg</span><span>R$ 8,50</span></div>
+                    <div class="receipt-line"><span>Leite (6 un)</span><span>R$ 37,80</span></div>
+                    <div class="receipt-more">+ 6 itens</div>
+                  </div>
+                  <div class="receipt-total">
+                    <span>Total</span>
+                    <strong>R$ 71,20</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bot manda o insight -->
+              <div class="mockup-row mockup-row-left">
+                <div class="mockup-bubble bubble-insight">
+                  <div class="insight-row">
+                    <svg class="icon insight-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg>
+                    <div>
+                      <strong>Dentro da sua média.</strong><br>
+                      <span class="insight-sub">Você gasta ~R$ 78 por visita no Extra.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mockup-time mockup-time-left">10:42</div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FAIXA DE CREDIBILIDADE ===== -->
+  <section id="credibility">
+    <div class="container">
+      <div class="cred-item">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.39 4.84L20 8l-4 3.9.94 5.48L12 14.77 7.06 17.38 8 11.9 4 8l5.61-1.16L12 2z"/></svg>
+        Testado com cupons reais
+      </div>
+      <span class="cred-divider" aria-hidden="true"></span>
+      <div class="cred-item">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+        100% pelo WhatsApp que você já usa
+      </div>
+      <span class="cred-divider" aria-hidden="true"></span>
+      <div class="cred-item">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Análise em ~3 segundos · IA Google Gemini
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== EMPATIA: VOCÊ RECONHECE ISSO? ===== -->
+  <section id="empatia">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">A dor que ninguém fala</span>
+        <h2>Você reconhece alguma dessas?</h2>
+        <p>A gente conversou com 30 pessoas antes de construir o Economizei. Quase todas disseram algo parecido.</p>
+      </div>
+
+      <div class="empatia-grid">
+        <article class="empatia-card">
+          <span class="quote-mark" aria-hidden="true">"</span>
+          <p class="empatia-quote">Saio do mercado achando que gastei R$ 200. Olho o cupom: R$ 340. Mês passado também.</p>
+          <div class="empatia-attribution">
+            <span class="empatia-avatar" aria-hidden="true">C</span>
+            Carla, 38 anos · respondente da pesquisa
+          </div>
+        </article>
+
+        <article class="empatia-card">
+          <span class="quote-mark" aria-hidden="true">"</span>
+          <p class="empatia-quote">Já tentei planilha de Excel. Durou três semanas. Depois esqueci pra sempre.</p>
+          <div class="empatia-attribution">
+            <span class="empatia-avatar" aria-hidden="true">B</span>
+            Bruno, 32 anos · respondente da pesquisa
+          </div>
+        </article>
+
+        <article class="empatia-card">
+          <span class="quote-mark" aria-hidden="true">"</span>
+          <p class="empatia-quote">Sei que gasto muito no mercado. Só não sei exatamente onde. Nem em qual mês.</p>
+          <div class="empatia-attribution">
+            <span class="empatia-avatar" aria-hidden="true">M</span>
+            Marina, 29 anos · respondente da pesquisa
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== COMO FUNCIONA ===== -->
+  <section id="como-funciona">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">Como funciona</span>
+        <h2>É só foto. Sério.</h2>
+        <p>Sem cadastro, sem app, sem planilha. Só o WhatsApp que você já abre 30 vezes por dia.</p>
+      </div>
+
+      <div class="steps-grid">
+        <article class="step-card">
+          <span class="step-num" aria-hidden="true">01</span>
+          <span class="step-icon-wrap" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </span>
+          <h3>Manda a foto</h3>
+          <p>Chegou do mercado, abriu o saco, pegou o cupom. Foto. Envia. Demora 5 segundos.</p>
+        </article>
+
+        <article class="step-card">
+          <span class="step-num" aria-hidden="true">02</span>
+          <span class="step-icon-wrap" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          </span>
+          <h3>A IA lê tudo</h3>
+          <p>Cada item, loja, data, total — registrado automaticamente em segundos. Você não digita uma vírgula.</p>
+        </article>
+
+        <article class="step-card">
+          <span class="step-num" aria-hidden="true">03</span>
+          <span class="step-icon-wrap" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+          </span>
+          <h3>Você fica esperto</h3>
+          <p>Resumo no fim do mês. Alerta quando gastar acima da sua média. Sem virar contador da casa.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== OBJEÇÃO: CUPOM JÁ MOSTRA ISSO ===== -->
+  <section id="objection">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">"Mas o cupom já mostra isso, né?"</span>
+        <h2>Mostra o de hoje. E os outros 11 meses?</h2>
+        <p>Um cupom sozinho é um número. Três meses agrupados é uma história.</p>
+      </div>
+
+      <div class="objection-compare">
+
+        <div class="compare-card compare-card-bad">
+          <span class="compare-tag tag-bad">Só o cupom</span>
+          <div class="compare-title">Você sabe que gastou R$ 340 hoje.</div>
+          <ul class="compare-list">
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>Não sabe se gastou mais que a semana passada</li>
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>Não sabe qual mercado tá te cobrando mais caro</li>
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>Não sabe se esse mês vai estourar o orçamento</li>
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>Daqui 30 dias o cupom tá no lixo</li>
+          </ul>
+        </div>
+
+        <div class="compare-arrow" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </div>
+
+        <div class="compare-card compare-card-good">
+          <span class="compare-tag tag-good">Com o Economizei</span>
+          <div class="compare-title">Você sabe que gastou R$ 340 — e que é 22% acima da sua média.</div>
+          <ul class="compare-list">
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Compara com suas últimas 4 semanas automaticamente</li>
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Vê em qual mercado o ticket médio é maior</li>
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Recebe alerta antes do mês estourar</li>
+            <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Histórico que não some — fica no seu WhatsApp</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ANTI-PLANILHA ===== -->
+  <section id="planilha">
+    <div class="container">
+      <div class="section-header" style="text-align: left; max-width: 720px; margin-left: 0;">
+        <span class="section-eyebrow">Contra o que você já tentou</span>
+        <h2>A planilha que você nunca conseguiu manter.</h2>
+      </div>
+
+      <div class="planilha-inner">
+
+        <div class="planilha-quote">
+          Eu tentei planilha duas vezes. Da primeira aguentei um mês, da segunda nem isso. Toda noite digitar quanto gastou cansa. Quem é que faz isso de verdade?
+          <span class="planilha-quote-attr">— resposta espontânea, pesquisa Economizei (maio 2026)</span>
+        </div>
+
+        <ul class="planilha-bullets">
+          <li>
+            <span class="planilha-bullet-icon" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </span>
+            <div>
+              <strong>Não digita nada.</strong>
+              <span class="text">Foto do cupom. A IA registra item por item, loja, data e total. Sem você abrir uma célula.</span>
+            </div>
+          </li>
+          <li>
+            <span class="planilha-bullet-icon" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+            </span>
+            <div>
+              <strong>Não esquece.</strong>
+              <span class="text">Tá no WhatsApp. Você não precisa lembrar de abrir o app — porque não tem app pra abrir.</span>
+            </div>
+          </li>
+          <li>
+            <span class="planilha-bullet-icon" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg>
+            </span>
+            <div>
+              <strong>Não trava.</strong>
+              <span class="text">Sem fórmula que quebra, sem aba perdida, sem "ah, depois eu organizo". O resumo do mês chega pronto no seu chat.</span>
+            </div>
+          </li>
+        </ul>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PRICING ===== -->
+  <section id="pricing">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">Planos</span>
+        <h2>Bom, barato e útil — de verdade.</h2>
+        <p>O grátis resolve a dor central. O pago é genuinamente melhor — não é o grátis quebrado pra te forçar a pagar.</p>
+      </div>
+
+      <div class="pricing-grid">
+
+        <!-- Plano Grátis -->
+        <article class="pricing-card">
+          <div class="plan-head">
+            <span class="plan-tag tag-active">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" class="icon-filled"/></svg>
+              Ativo agora
+            </span>
+            <div class="plan-name">Grátis</div>
+            <div class="plan-subtitle">Pra controlar o básico</div>
+          </div>
+          <div class="plan-price">
+            <span class="price-currency">R$</span>
+            <span class="price-value">0</span>
+            <span class="price-period">/mês</span>
+          </div>
+          <ul class="plan-features">
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Foto do cupom → análise na hora</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Resumo automático no fim do mês</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Alerta quando gastar acima da média</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Até 10 cupons por mês</li>
+          </ul>
+          <a href="https://wa.me/5517996440062?text=oi" target="_blank" rel="noopener" class="btn btn-primary">
+            Começar grátis no WhatsApp
+          </a>
+        </article>
+
+        <!-- Plano Individual — destaque -->
+        <article class="pricing-card featured">
+          <div class="badge-popular">Recomendado pra maioria</div>
+          <div class="plan-head">
+            <span class="plan-tag tag-soon">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Em breve
+            </span>
+            <div class="plan-name">Individual</div>
+            <div class="plan-subtitle">Pra quem quer economizar de verdade</div>
+          </div>
+          <div class="plan-price">
+            <span class="price-currency">R$</span>
+            <span class="price-value">9,90</span>
+            <span class="price-period">/mês</span>
+          </div>
+          <ul class="plan-features">
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Tudo do Grátis</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Cupons ilimitados</li>
+            <li class="highlight"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Comparativo entre mercados</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Alerta inteligente (preditivo + categorizado)</li>
+          </ul>
+          <div class="plan-fundador">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            <div>
+              <strong>Beta Fundador trava este preço.</strong>
+              Entrou agora? 3 meses grátis quando lançar + R$ 9,90 pra sempre, mesmo se subir.
+            </div>
+          </div>
+          <a href="#waitlist" class="btn btn-primary">Quero ser Beta Fundador</a>
+        </article>
+
+        <!-- Plano Família -->
+        <article class="pricing-card">
+          <div class="plan-head">
+            <span class="plan-tag tag-soon">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Em breve
+            </span>
+            <div class="plan-name">Família</div>
+            <div class="plan-subtitle">Até 3 pessoas no mesmo plano</div>
+          </div>
+          <div class="plan-price">
+            <span class="price-currency">R$</span>
+            <span class="price-value">15</span>
+            <span class="price-period">/mês</span>
+          </div>
+          <ul class="plan-features">
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Tudo do Individual</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Visão consolidada da família</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Comparação de gastos por membro</li>
+          </ul>
+          <a href="#waitlist" class="btn btn-outline">Quero ser avisado</a>
+        </article>
+
+        <!-- Plano Família+ -->
+        <article class="pricing-card">
+          <div class="plan-head">
+            <span class="plan-tag tag-soon">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Em breve
+            </span>
+            <div class="plan-name">Família+</div>
+            <div class="plan-subtitle">Até 5 pessoas no mesmo plano</div>
+          </div>
+          <div class="plan-price">
+            <span class="price-currency">R$</span>
+            <span class="price-value">22</span>
+            <span class="price-period">/mês</span>
+          </div>
+          <ul class="plan-features">
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Igual ao Família</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Mais 2 vagas (5 pessoas no total)</li>
+          </ul>
+          <a href="#waitlist" class="btn btn-outline">Quero ser avisado</a>
+        </article>
+
+      </div>
+
+      <p class="pricing-foot-note">
+        O <strong>limite de 10 cupons no Grátis</strong> é técnico, não artificial — a gente paga por cada análise da IA. Cobre quem vai 2-3x por semana ao mercado com folga.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== PRIVACIDADE: E MEUS DADOS? ===== -->
+  <section id="privacy">
+    <div class="container">
+      <div class="privacy-inner">
+        <div class="section-header" style="margin-bottom: 8px;">
+          <span class="section-eyebrow">E meus dados?</span>
+          <h2>Você pode dormir tranquilo.</h2>
+          <p>Cupom fiscal tem dados financeiros — a gente sabe. Por isso, três princípios que valem desde o primeiro dia:</p>
+        </div>
+
+        <div class="privacy-list">
+          <div class="privacy-item">
+            <span class="privacy-item-icon" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <h3>Você manda só o cupom.</h3>
+            <p>Não pedimos acesso a banco, conta bancária, cartão ou Pix. A gente só lê o que você fotografar.</p>
+          </div>
+
+          <div class="privacy-item">
+            <span class="privacy-item-icon" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/></svg>
+            </span>
+            <h3>Sem cadastro, sem CPF.</h3>
+            <p>Sua identificação é o próprio número do WhatsApp. Nada de formulário, e-mail ou criar senha.</p>
+          </div>
+
+          <div class="privacy-item">
+            <span class="privacy-item-icon" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            </span>
+            <h3>Pode apagar a qualquer momento.</h3>
+            <p>Manda <strong>/apagar</strong> no chat e a gente remove todo seu histórico. Sem perguntas, sem fricção.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== WAITLIST ===== -->
+  <section id="waitlist">
+    <div class="container">
+      <div class="waitlist-inner">
+
+        <!-- Coluna de benefícios -->
+        <div class="waitlist-pitch">
+          <span class="section-eyebrow">Beta Fundador</span>
+          <h2>Garante seu lugar — e seu preço.</h2>
+          <p>Sem compromisso, sem cartão. A gente te avisa pelo WhatsApp quando o plano pago estiver pronto, com seu benefício travado.</p>
+
+          <ul class="waitlist-perks">
+            <li>
+              <span class="waitlist-perk-icon" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L20 8l-4 3.9.94 5.48L12 14.77 7.06 17.38 8 11.9 4 8l5.61-1.16L12 2z"/></svg>
+              </span>
+              <div>
+                <strong>3 meses grátis do Individual.</strong>
+                <span class="text">Quando o plano pago lançar, você usa comparativo entre mercados e alerta inteligente por 3 meses sem pagar.</span>
+              </div>
+            </li>
+            <li>
+              <span class="waitlist-perk-icon" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              </span>
+              <div>
+                <strong>R$ 9,90 travado pra sempre.</strong>
+                <span class="text">Mesmo que o preço do Individual suba, você paga R$ 9,90 pra sempre. Beta Fundador é vitalício.</span>
+              </div>
+            </li>
+            <li>
+              <span class="waitlist-perk-icon" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </span>
+              <div>
+                <strong>Acesso antecipado.</strong>
+                <span class="text">Você usa cada feature paga (comparativo, alerta preditivo, plano família) antes do público geral.</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Coluna do formulário -->
+        <div class="waitlist-box">
+          <span class="waitlist-box-eyebrow">Lista de Beta Fundadores</span>
+          <h3>Entre na lista</h3>
+
+        <form id="waitlist-form" novalidate>
+
+          <div class="form-group">
+            <label for="f-nome">Seu nome</label>
+            <input type="text" id="f-nome" name="nome" placeholder="Como você prefere ser chamado?" />
+            <div class="field-error" id="err-nome">Por favor, informe seu nome.</div>
+          </div>
+
+          <div class="form-group">
+            <label for="f-whatsapp">Seu WhatsApp</label>
+            <input type="tel" id="f-whatsapp" name="whatsapp" placeholder="55 11 99999-9999" />
+            <div class="field-error" id="err-whatsapp">Informe um número de WhatsApp válido.</div>
+          </div>
+
+          <div class="form-group">
+            <label for="f-plano">Plano de interesse</label>
+            <select id="f-plano" name="plano">
+              <option value="">Selecione o plano...</option>
+              <option value="gratis">Ainda estou testando o gratuito</option>
+              <option value="individual">Individual — R$9,90/mês</option>
+              <option value="familia">Família — R$15/mês (até 3 pessoas)</option>
+              <option value="familia_plus">Família+ — R$22/mês (até 5 pessoas)</option>
+            </select>
+            <div class="field-error" id="err-plano">Selecione um plano de interesse.</div>
+          </div>
+
+          <button type="submit" class="form-submit-btn" id="submit-btn">
+            <div class="spinner" id="spinner"></div>
+            <span id="btn-label">Garantir meu lugar no Beta</span>
+          </button>
+
+          <div class="success-msg" id="success-msg">
+            <svg class="icon success-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>
+            Pronto! Você está na lista. A gente entra em contato pelo WhatsApp quando chegar sua vez.
+          </div>
+
+        </form>
+        </div><!-- /.waitlist-box -->
+
+      </div><!-- /.waitlist-inner -->
+    </div>
+  </section>
+
+  <!-- ===== RODAPÉ ===== -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+
+        <div class="footer-brand">
+          <span class="footer-logo">
+            <span class="footer-logo-mark" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z"/><path d="M8 12l3 3 5-6"/></svg>
+            </span>
+            Economizei
+          </span>
+          <p class="footer-tagline">A planilha que se preenche sozinha — só pelo WhatsApp.</p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="#">Termos de uso</a></li>
+            <li><a href="#">Política de privacidade</a></li>
+            <li><a href="#">LGPD &amp; dados</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Fale com a gente</h4>
+          <ul>
+            <li>
+              <a href="https://wa.me/5517996440062?text=oi" target="_blank" rel="noopener">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                WhatsApp do bot
+              </a>
+            </li>
+            <li>
+              <a href="mailto:contato@economizei.space">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+                contato@economizei.space
+              </a>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-bottom-left">
+          <span>© 2026 Economizei · Controle de gastos via WhatsApp.</span>
+          <span class="note">Marca em registro · CNPJ em processo de abertura · Feito no Brasil.</span>
+        </div>
+        <span class="note">Seus dados são tratados com cuidado. Sem spam, nunca.</span>
+      </div>
+    </div>
+  </footer>
+
+
+  <script>
+    /* ===== CAPTURA DE UTMs ===== */
+    function capturarUTMs() {
+      const params = new URLSearchParams(window.location.search);
+      const utms = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'];
+
+      utms.forEach(function(utm) {
+        const valor = params.get(utm);
+        if (valor) {
+          localStorage.setItem('ec_' + utm, valor);
+        }
+        // Se o param não estiver na URL, mantém o valor anterior no localStorage
+        // (usuário pode ter chegado por link orgânico numa visita de retorno)
+      });
+    }
+    capturarUTMs();
+
+    /* ===== HEADLINE / SUBHEAD ===== */
+    /* Variante A é o padrão (decisão do Gabriel em 2026-05-15).
+       B fica como reserva — para reativar o A/B 50/50, mude
+       o return de resolveVariant() para sorteio aleatório. */
+    const variants = {
+      a: {
+        headline: 'Não deixa o mercado te <span class="accent">passar a perna</span>.',
+        subheadline: 'Manda a foto do cupom no WhatsApp. A gente cuida do resto — e te avisa antes do mês fugir do controle.'
+      },
+      b: {
+        headline: 'A planilha que se <span class="accent">preenche sozinha</span>.',
+        subheadline: 'Manda a foto do cupom. Tudo registrado, agrupado e comparado automaticamente. Sem app, sem cadastro.'
+      }
+    };
+
+    function resolveVariant() {
+      // URL param sobrescreve tudo (?v=a ou ?v=b) — útil pra testes manuais
+      const params = new URLSearchParams(window.location.search);
+      const urlParam = params.get('v');
+      if (urlParam === 'a' || urlParam === 'b') {
+        localStorage.setItem('ec_variant', urlParam);
+        return urlParam;
+      }
+      // Padrão: variante A para todos. Trocar para sorteio se quiser A/B real.
+      localStorage.setItem('ec_variant', 'a');
+      return 'a';
+    }
+
+    const currentVariant = resolveVariant();
+    document.getElementById('hero-headline').innerHTML = variants[currentVariant].headline;
+    document.getElementById('hero-subheadline').textContent = variants[currentVariant].subheadline;
+
+    /* ===== VALIDAÇÃO DE FORMULÁRIO ===== */
+    function showError(fieldId, errId, show) {
+      const field = document.getElementById(fieldId);
+      const err = document.getElementById(errId);
+      if (show) {
+        field.classList.add('error');
+        err.classList.add('visible');
+      } else {
+        field.classList.remove('error');
+        err.classList.remove('visible');
+      }
+    }
+
+    function validatePhone(val) {
+      // Aceita formatos: 55 11 99999-9999, +5511999990000, 11999990000, etc.
+      const digits = val.replace(/\D/g, '');
+      return digits.length >= 10 && digits.length <= 15;
+    }
+
+    function validateForm() {
+      const nome = document.getElementById('f-nome').value.trim();
+      const whatsapp = document.getElementById('f-whatsapp').value.trim();
+      const plano = document.getElementById('f-plano').value;
+
+      let valid = true;
+
+      if (!nome) { showError('f-nome', 'err-nome', true); valid = false; }
+      else { showError('f-nome', 'err-nome', false); }
+
+      if (!whatsapp || !validatePhone(whatsapp)) { showError('f-whatsapp', 'err-whatsapp', true); valid = false; }
+      else { showError('f-whatsapp', 'err-whatsapp', false); }
+
+      if (!plano) { showError('f-plano', 'err-plano', true); valid = false; }
+      else { showError('f-plano', 'err-plano', false); }
+
+      return valid;
+    }
+
+    /* ===== SUBMIT DO FORMULÁRIO ===== */
+    document.getElementById('waitlist-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      if (!validateForm()) return;
+
+      const btn = document.getElementById('submit-btn');
+      const spinner = document.getElementById('spinner');
+      const btnLabel = document.getElementById('btn-label');
+      const successMsg = document.getElementById('success-msg');
+
+      // Mostrar spinner
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      btnLabel.textContent = 'Enviando...';
+
+      const nome      = document.getElementById('f-nome').value.trim();
+      const whatsapp  = document.getElementById('f-whatsapp').value.replace(/\D/g, '');
+      const planoInteresse = document.getElementById('f-plano').value;
+
+      // Chama o endpoint do bot — ele salva no Supabase e envia o WhatsApp de confirmação
+      try {
+        await fetch('https://economizei-bot-production.up.railway.app/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nome,
+            whatsapp,
+            plano_interesse: planoInteresse,
+            variant_ab:   localStorage.getItem('ec_variant')      || 'desconhecido',
+            utm_source:   localStorage.getItem('ec_utm_source')   || null,
+            utm_medium:   localStorage.getItem('ec_utm_medium')   || null,
+            utm_campaign: localStorage.getItem('ec_utm_campaign') || null,
+            utm_content:  localStorage.getItem('ec_utm_content')  || null,
+          })
+        });
+      } catch (err) {
+        // Falha silenciosa — mostrar sucesso de qualquer forma
+        console.error('[waitlist] erro ao chamar endpoint:', err.message);
+      }
+
+      // Esconder spinner, mostrar sucesso
+      spinner.style.display = 'none';
+      btnLabel.textContent = 'Enviado!';
+      successMsg.style.display = 'block';
+
+      // Scroll suave para a mensagem de sucesso
+      successMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    /* ===== REMOVE ERRO AO DIGITAR ===== */
+    ['f-nome', 'f-whatsapp', 'f-plano'].forEach(function(id) {
+      const field = document.getElementById(id);
+      const errId = 'err-' + id.replace('f-', '');
+      field.addEventListener('input', function() {
+        if (field.value.trim()) {
+          field.classList.remove('error');
+          document.getElementById(errId).classList.remove('visible');
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
