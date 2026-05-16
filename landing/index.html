@@ -283,8 +283,16 @@
     .hero-badge .icon { width: 14px; height: 14px; color: var(--green); stroke-width: 2.25; }
 
     .hero-text h1 { margin-bottom: 22px; }
-    .hero-text h1 .accent {
+    .hero-text h1 .accent,
+    .hero-text h1 .accent-green {
       background: linear-gradient(120deg, var(--green) 0%, var(--green-dark) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+    .hero-text h1 .accent-red {
+      background: linear-gradient(120deg, #dc2626 0%, #b91c1c 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -656,6 +664,26 @@
       font-weight: 700;
       font-size: 0.85rem;
       flex-shrink: 0;
+    }
+    .empatia-attribution sup {
+      color: var(--text-soft);
+      font-size: 0.65em;
+      margin-left: 1px;
+    }
+    .empatia-disclaimer {
+      margin-top: 24px;
+      text-align: right;
+      font-size: 0.74rem;
+      color: var(--text-soft);
+      font-style: italic;
+      opacity: 0.85;
+    }
+    .empatia-disclaimer sup {
+      font-size: 0.85em;
+      margin-right: 2px;
+    }
+    @media (max-width: 800px) {
+      .empatia-disclaimer { text-align: center; }
     }
 
     /* ===== COMO FUNCIONA ===== */
@@ -1483,10 +1511,9 @@
 
   <!-- ===== SEÇÃO 1: HERO ===== -->
   <section id="hero">
-    <!-- Fita Beta Fundador no canto -->
+    <!-- Fita no canto -->
     <div class="hero-ribbon" aria-hidden="true">
-      <strong>Beta Fundador</strong>
-      <small>Vagas limitadas</small>
+      <strong>Vagas Limitadas</strong>
     </div>
 
     <div class="container">
@@ -1496,7 +1523,7 @@
         <div class="hero-text">
           <span class="hero-badge">
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.39 4.84L20 8l-4 3.9.94 5.48L12 14.77 7.06 17.38 8 11.9 4 8l5.61-1.16L12 2z"/></svg>
-            Beta gratuito · acesso vitalício travado
+            Aplicação em desenvolvimento · Beta gratuito
           </span>
 
           <!-- Headline A/B — preenchida pelo JS -->
@@ -1523,7 +1550,7 @@
             <!-- Cabeçalho da conversa -->
             <div class="mockup-header">
               <div class="mockup-avatar" aria-hidden="true">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9z"/><path d="M9 22V12h6v10"/></svg>
+                <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z"/><path d="M8 12l3 3 5-6"/></svg>
               </div>
               <div class="mockup-meta">
                 <div class="mockup-name">Economizei</div>
@@ -1597,7 +1624,7 @@
       <span class="cred-divider" aria-hidden="true"></span>
       <div class="cred-item">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-        100% pelo WhatsApp que você já usa
+        100% pelo WhatsApp
       </div>
       <span class="cred-divider" aria-hidden="true"></span>
       <div class="cred-item">
@@ -1607,13 +1634,13 @@
     </div>
   </section>
 
-  <!-- ===== EMPATIA: VOCÊ RECONHECE ISSO? ===== -->
+  <!-- ===== EMPATIA: PROBLEMAS QUE RESOLVEMOS ===== -->
   <section id="empatia">
     <div class="container">
       <div class="section-header">
-        <span class="section-eyebrow">A dor que ninguém fala</span>
-        <h2>Você reconhece alguma dessas?</h2>
-        <p>A gente conversou com 30 pessoas antes de construir o Economizei. Quase todas disseram algo parecido.</p>
+        <span class="section-eyebrow">Problemas que resolvemos</span>
+        <h2>Você se identifica com alguma dessas pessoas?</h2>
+        <p>Conversamos com várias pessoas e pesquisamos muito até chegar na solução que o brasileiro queria.</p>
       </div>
 
       <div class="empatia-grid">
@@ -1622,7 +1649,7 @@
           <p class="empatia-quote">Saio do mercado achando que gastei R$ 200. Olho o cupom: R$ 340. Mês passado também.</p>
           <div class="empatia-attribution">
             <span class="empatia-avatar" aria-hidden="true">C</span>
-            Carla, 38 anos · respondente da pesquisa
+            Carla<sup>*</sup>, 38 anos
           </div>
         </article>
 
@@ -1631,7 +1658,7 @@
           <p class="empatia-quote">Já tentei planilha de Excel. Durou três semanas. Depois esqueci pra sempre.</p>
           <div class="empatia-attribution">
             <span class="empatia-avatar" aria-hidden="true">B</span>
-            Bruno, 32 anos · respondente da pesquisa
+            Bruno<sup>*</sup>, 32 anos
           </div>
         </article>
 
@@ -1640,10 +1667,12 @@
           <p class="empatia-quote">Sei que gasto muito no mercado. Só não sei exatamente onde. Nem em qual mês.</p>
           <div class="empatia-attribution">
             <span class="empatia-avatar" aria-hidden="true">M</span>
-            Marina, 29 anos · respondente da pesquisa
+            Marina<sup>*</sup>, 29 anos
           </div>
         </article>
       </div>
+
+      <p class="empatia-disclaimer"><sup>*</sup> Nomes fictícios, usados apenas como exemplo.</p>
     </div>
   </section>
 
@@ -1652,8 +1681,8 @@
     <div class="container">
       <div class="section-header">
         <span class="section-eyebrow">Como funciona</span>
-        <h2>É só foto. Sério.</h2>
-        <p>Sem cadastro, sem app, sem planilha. Só o WhatsApp que você já abre 30 vezes por dia.</p>
+        <h2>Uma foto e pronto.</h2>
+        <p>Sem cadastro, sem app, sem planilha complexa. Mas o melhor assistente pessoal no seu WhatsApp 24/7.</p>
       </div>
 
       <div class="steps-grid">
@@ -1663,7 +1692,7 @@
             <svg class="icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </span>
           <h3>Manda a foto</h3>
-          <p>Chegou do mercado, abriu o saco, pegou o cupom. Foto. Envia. Demora 5 segundos.</p>
+          <p>No caixa do mercado, pegue o cupom, tire uma foto visível e mande no nosso número de WhatsApp.</p>
         </article>
 
         <article class="step-card">
@@ -1681,7 +1710,7 @@
             <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
           </span>
           <h3>Você fica esperto</h3>
-          <p>Resumo no fim do mês. Alerta quando gastar acima da sua média. Sem virar contador da casa.</p>
+          <p>Resumo no fim do mês. Alerta quando gastar acima da sua média.</p>
         </article>
       </div>
     </div>
@@ -1749,8 +1778,7 @@
               <svg class="icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
             </span>
             <div>
-              <strong>Não digita nada.</strong>
-              <span class="text">Foto do cupom. A IA registra item por item, loja, data e total. Sem você abrir uma célula.</span>
+              <span class="text">Foto do cupom. A IA registra item por item, loja, data e total — e organiza os dados.</span>
             </div>
           </li>
           <li>
@@ -1758,8 +1786,7 @@
               <svg class="icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
             </span>
             <div>
-              <strong>Não esquece.</strong>
-              <span class="text">Tá no WhatsApp. Você não precisa lembrar de abrir o app — porque não tem app pra abrir.</span>
+              <span class="text">No seu WhatsApp, com privacidade, a qualquer momento que precisar.</span>
             </div>
           </li>
           <li>
@@ -1783,7 +1810,7 @@
       <div class="section-header">
         <span class="section-eyebrow">Planos</span>
         <h2>Bom, barato e útil — de verdade.</h2>
-        <p>O grátis resolve a dor central. O pago é genuinamente melhor — não é o grátis quebrado pra te forçar a pagar.</p>
+        <p>Você pode testar gratuitamente ou ter os benefícios do plano Pró, que possui comparativo entre mercados e outras funcionalidades.</p>
       </div>
 
       <div class="pricing-grid">
@@ -1836,14 +1863,7 @@
             <li class="highlight"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Comparativo entre mercados</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Alerta inteligente (preditivo + categorizado)</li>
           </ul>
-          <div class="plan-fundador">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-            <div>
-              <strong>Beta Fundador trava este preço.</strong>
-              Entrou agora? 3 meses grátis quando lançar + R$ 9,90 pra sempre, mesmo se subir.
-            </div>
-          </div>
-          <a href="#waitlist" class="btn btn-primary">Quero ser Beta Fundador</a>
+          <a href="#waitlist" class="btn btn-primary">Quero ser avisado</a>
         </article>
 
         <!-- Plano Família -->
@@ -1893,9 +1913,6 @@
 
       </div>
 
-      <p class="pricing-foot-note">
-        O <strong>limite de 10 cupons no Grátis</strong> é técnico, não artificial — a gente paga por cada análise da IA. Cobre quem vai 2-3x por semana ao mercado com folga.
-      </p>
     </div>
   </section>
 
@@ -1931,7 +1948,7 @@
               <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
             </span>
             <h3>Pode apagar a qualquer momento.</h3>
-            <p>Manda <strong>/apagar</strong> no chat e a gente remove todo seu histórico. Sem perguntas, sem fricção.</p>
+            <p>Manda <strong>/apagar</strong> no chat e a gente remove todo seu histórico. Sem perguntas.</p>
           </div>
         </div>
       </div>
@@ -1946,8 +1963,8 @@
         <!-- Coluna de benefícios -->
         <div class="waitlist-pitch">
           <span class="section-eyebrow">Beta Fundador</span>
-          <h2>Garante seu lugar — e seu preço.</h2>
-          <p>Sem compromisso, sem cartão. A gente te avisa pelo WhatsApp quando o plano pago estiver pronto, com seu benefício travado.</p>
+          <h2>Garante seu lugar na lista.</h2>
+          <p>Sem compromisso, sem cartão. A gente te avisa pelo WhatsApp quando o plano pago estiver pronto.</p>
 
           <ul class="waitlist-perks">
             <li>
@@ -1957,15 +1974,6 @@
               <div>
                 <strong>3 meses grátis do Individual.</strong>
                 <span class="text">Quando o plano pago lançar, você usa comparativo entre mercados e alerta inteligente por 3 meses sem pagar.</span>
-              </div>
-            </li>
-            <li>
-              <span class="waitlist-perk-icon" aria-hidden="true">
-                <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-              </span>
-              <div>
-                <strong>R$ 9,90 travado pra sempre.</strong>
-                <span class="text">Mesmo que o preço do Individual suba, você paga R$ 9,90 pra sempre. Beta Fundador é vitalício.</span>
               </div>
             </li>
             <li>
@@ -2106,12 +2114,12 @@
        o return de resolveVariant() para sorteio aleatório. */
     const variants = {
       a: {
-        headline: 'Não deixa o mercado te <span class="accent">passar a perna</span>.',
-        subheadline: 'Manda a foto do cupom no WhatsApp. A gente cuida do resto — e te avisa antes do mês fugir do controle.'
+        headline: '<span class="accent-green">Não deixa</span> o mercado te <span class="accent-red">passar a perna</span>.',
+        subheadline: 'Mande a foto do cupom no WhatsApp. A gente cuida do resto — e te avisa antes do mês fugir do controle.'
       },
       b: {
         headline: 'A planilha que se <span class="accent">preenche sozinha</span>.',
-        subheadline: 'Manda a foto do cupom. Tudo registrado, agrupado e comparado automaticamente. Sem app, sem cadastro.'
+        subheadline: 'Mande a foto do cupom. Tudo registrado, agrupado e comparado automaticamente. Sem app, sem cadastro.'
       }
     };
 
