@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#16a34a" />
   <meta name="robots" content="index, follow" />
   <title>Economizei — A planilha que se preenche sozinha. Só no WhatsApp.</title>
-  <meta name="description" content="Não deixa o mercado te passar a perna. Manda a foto do cupom no WhatsApp — a IA registra tudo e te avisa antes do mês fugir do controle. Beta gratuito." />
+  <meta name="description" content="Manda a foto do cupom no WhatsApp — a IA registra tudo e te avisa antes do mês fugir do controle. Plano Grátis funciona pra sempre; Pro a partir de R$9,90/mês via PIX." />
 
   <!-- Open Graph -->
   <meta property="og:title" content="Economizei — Controle seus gastos pelo WhatsApp" />
-  <meta property="og:description" content="Manda a foto do cupom. A IA registra tudo e te avisa quando você está gastando mais que o normal. Beta gratuito, sem app, sem cadastro." />
+  <meta property="og:description" content="Manda a foto do cupom. A IA registra tudo e te avisa quando você está gastando mais que o normal. Grátis ou Pro a partir de R$9,90 — sem app, sem cadastro." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://economizei.space" />
   <meta property="og:locale" content="pt_BR" />
@@ -19,7 +19,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Economizei — Controle seus gastos pelo WhatsApp" />
-  <meta name="twitter:description" content="Manda a foto do cupom. A IA registra tudo e te avisa quando o mês foge do controle." />
+  <meta name="twitter:description" content="Manda a foto do cupom. A IA registra tudo. Grátis ou Pro a partir de R$9,90 via PIX." />
 
   <!-- Favicon SVG inline (verde Economizei) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='20' height='20' rx='5' fill='%2316a34a'/%3E%3Cpath d='M8 12l3 3 5-6' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -41,7 +41,7 @@
       --green-light: #dcfce7;
       --green-50: #f0fdf4;
 
-      --accent: #fef3c7;          /* amarelo-creme — Beta Fundador, destaques */
+      --accent: #fef3c7;          /* amarelo-creme — destaques */
       --accent-dark: #fde68a;
       --accent-text: #92400e;
 
@@ -214,7 +214,7 @@
         linear-gradient(170deg, var(--green-50) 0%, var(--bg) 55%);
     }
 
-    /* Fita Beta Fundador — canto superior direito */
+    /* Fita do hero — canto superior direito */
     .hero-ribbon {
       position: absolute;
       top: 36px;
@@ -1079,7 +1079,7 @@
     }
     .plan-features li.highlight .icon { color: var(--green-dark); }
 
-    /* Beta Fundador inset — vive dentro do card Individual */
+    /* Inset destaque (legado — não usado atualmente) */
     .plan-fundador {
       background: var(--accent);
       border: 1px solid var(--accent-dark);
@@ -1158,190 +1158,91 @@
     .privacy-item h3 { font-size: 0.98rem; font-weight: 700; }
     .privacy-item p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
 
-    /* ===== WAITLIST ===== */
-    #waitlist {
+    /* ===== COMEÇAR (substituiu Waitlist) ===== */
+    #comecar {
       background: var(--bg-warm);
       padding: 80px 0;
     }
 
-    .waitlist-inner {
+    .comecar-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 36px;
-      align-items: flex-start;
-      max-width: 1040px;
+      gap: 24px;
+      max-width: 920px;
       margin: 0 auto;
     }
-    @media (min-width: 900px) {
-      .waitlist-inner {
-        grid-template-columns: 1fr 1.1fr;
-        gap: 56px;
-      }
+    @media (min-width: 800px) {
+      .comecar-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
     }
 
-    .waitlist-pitch h2 {
-      margin-bottom: 14px;
-      font-size: clamp(1.5rem, 3.6vw, 2rem);
-    }
-    .waitlist-pitch > p {
-      color: var(--text-muted);
-      margin-bottom: 28px;
-      font-size: 1rem;
-      line-height: 1.55;
-    }
-
-    .waitlist-perks {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-    .waitlist-perks li {
-      display: flex;
-      align-items: flex-start;
-      gap: 14px;
-      line-height: 1.45;
-    }
-    .waitlist-perk-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 11px;
-      background: var(--accent);
-      color: var(--accent-text);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .waitlist-perk-icon .icon { width: 18px; height: 18px; stroke-width: 2.25; }
-    .waitlist-perks strong {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 1rem;
-      font-weight: 700;
-      display: block;
-      margin-bottom: 2px;
-      color: var(--text);
-    }
-    .waitlist-perks .text {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      display: block;
-    }
-
-    .waitlist-box {
+    .comecar-card {
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 32px 28px;
-      box-shadow: var(--shadow-md);
-    }
-    .waitlist-box-eyebrow {
-      display: inline-block;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 0.74rem;
-      font-weight: 800;
-      color: var(--green-dark);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-    .waitlist-box h3 {
-      font-size: 1.25rem;
-      margin-bottom: 22px;
-    }
-    @media (max-width: 640px) {
-      .waitlist-box { padding: 26px 22px; }
-    }
-
-    .form-group { margin-bottom: 18px; }
-
-    .form-group label {
-      display: block;
-      font-size: 0.875rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: var(--text);
-    }
-
-    .form-group input,
-    .form-group select {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
-      font-size: 1rem;
-      font-family: inherit;
-      color: var(--text);
-      background: var(--bg);
-      transition: border-color 0.2s;
-      appearance: none;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus {
-      outline: none;
-      border-color: var(--green);
-    }
-
-    .form-group input.error,
-    .form-group select.error {
-      border-color: #ef4444;
-    }
-
-    .field-error {
-      font-size: 0.8rem;
-      color: #ef4444;
-      margin-top: 4px;
-      display: none;
-    }
-
-    .field-error.visible { display: block; }
-
-    .form-submit-btn {
-      width: 100%;
-      padding: 16px;
-      background: var(--green);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-family: inherit;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
     }
-    .form-submit-btn:hover { background: var(--green-dark); }
-    .form-submit-btn:active { transform: scale(0.98); }
-    .form-submit-btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
-
-    .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2.5px solid rgba(255,255,255,0.4);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      display: none;
+    .comecar-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--green-light);
     }
+    .comecar-card-featured {
+      background: linear-gradient(170deg, var(--green-50) 0%, var(--bg) 55%);
+      border-color: var(--green);
+      border-width: 2px;
+      box-shadow: 0 18px 48px rgba(22, 163, 74, 0.16);
+    }
+    .comecar-tag {
+      display: inline-flex;
+      width: max-content;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 100px;
+      background: var(--bg-tinted);
+      color: var(--text-muted);
+    }
+    .comecar-tag-pro {
+      background: var(--green-light);
+      color: var(--green-dark);
+    }
+    .comecar-card h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .comecar-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.55;
+      flex: 1;
+    }
+    .comecar-card .btn {
+      margin-top: 4px;
+    }
+    .comecar-foot-note {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 580px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.5;
+    }
+    .comecar-foot-note strong { color: var(--text); font-weight: 700; }
 
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    .success-msg {
-      display: none;
-      background: var(--green-light);
-      border: 1px solid #bbf7d0;
-      border-radius: var(--radius);
-      padding: 16px;
-      text-align: center;
-      color: var(--green-dark);
-      font-weight: 600;
-      margin-top: 16px;
-      font-size: 0.95rem;
-    }
 
     /* ===== A11Y: FOCUS + SKIP LINK ===== */
     *:focus { outline: none; }
@@ -1366,16 +1267,6 @@
       transition: top 0.18s ease;
     }
     .skip-link:focus { top: 16px; }
-
-    /* Mensagem de sucesso com ícone SVG (sobrescreve display:none quando JS exibe) */
-    .success-msg .success-check {
-      width: 22px;
-      height: 22px;
-      color: var(--green-dark);
-      flex-shrink: 0;
-      stroke-width: 2.25;
-      vertical-align: -5px;
-    }
 
     /* ===== RODAPÉ ===== */
     footer {
@@ -1473,18 +1364,142 @@
 
     /* ===== RESPONSIVO MISC ===== */
     @media (max-width: 640px) {
-      #empatia, #como-funciona, #objection, #planilha, #pricing, #privacy, #waitlist {
+      #empatia, #como-funciona, #objection, #planilha, #pricing, #privacy, #comecar {
         padding-top: 56px;
         padding-bottom: 56px;
       }
       #credibility { padding: 18px 0; }
-      .waitlist-box { padding: 26px 22px; }
+      .comecar-card { padding: 26px 22px; }
       .section-header { margin-bottom: 36px; }
     }
     @media (max-width: 380px) {
       .nav-cta .icon { display: none; }
       .nav-cta { padding: 10px 14px; }
       .container { padding: 0 16px; }
+    }
+
+    /* ===== HERO: BUBBLE ALERTA ===== */
+    .bubble-alert {
+      padding: 11px 12px;
+      max-width: 92%;
+      background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%);
+      color: #fed7aa;
+      border-radius: 14px 14px 14px 4px;
+      font-size: 0.8rem;
+      line-height: 1.42;
+    }
+    .bubble-alert strong { color: #fff; }
+    .bubble-alert .alert-insight {
+      color: #fdba74; font-size: 0.74rem;
+      margin-top: 5px; display: block; line-height: 1.4;
+    }
+
+    /* ===== HERO: BUBBLE EM BREVE ===== */
+    .bubble-soon {
+      padding: 11px 12px; max-width: 92%;
+      background: #1e1b4b; border: 1px dashed #818cf8;
+      color: #c7d2fe; border-radius: 14px 14px 14px 4px;
+      font-size: 0.8rem; line-height: 1.42;
+    }
+    .bubble-soon .soon-tag {
+      display: inline-block; background: #312e81; color: #a5b4fc;
+      font-size: 0.62rem; font-weight: 800; letter-spacing: 0.07em;
+      text-transform: uppercase; padding: 2px 7px; border-radius: 100px; margin-bottom: 5px;
+    }
+    .bubble-soon .soon-title { color: #e0e7ff; font-weight: 700; display: block; margin-bottom: 3px; font-size: 0.82rem; }
+    .bubble-soon .soon-sub   { color: #a5b4fc; font-size: 0.74rem; line-height: 1.4; display: block; }
+
+    /* ===== NA PRÁTICA ===== */
+    #na-pratica { background: var(--bg-warm); padding: 80px 0; }
+    .pratica-stack { display: flex; flex-direction: column; gap: 52px; }
+    .pratica-item {
+      display: grid; grid-template-columns: 1fr;
+      gap: 32px; align-items: center;
+      max-width: 940px; margin: 0 auto; width: 100%;
+    }
+    @media (min-width: 900px) {
+      .pratica-item { grid-template-columns: 1fr 1fr; gap: 56px; }
+      .pratica-item-rev .pratica-visual { order: -1; }
+    }
+    .pratica-eyebrow {
+      display: inline-block;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.68rem; font-weight: 800;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      padding: 4px 11px; border-radius: 100px; margin-bottom: 14px;
+    }
+    .eyebrow-auto { background: var(--green-light); color: var(--green-dark); }
+    .eyebrow-soon { background: #ede9fe; color: #6d28d9; }
+    .pratica-item h3 { font-size: 1.22rem; margin-bottom: 12px; line-height: 1.25; }
+    .pratica-text p { color: var(--text-muted); font-size: 0.96rem; line-height: 1.6; }
+    .pratica-callout {
+      margin-top: 18px; background: var(--accent);
+      border: 1px solid var(--accent-dark); border-radius: var(--radius);
+      padding: 12px 16px; font-size: 0.88rem;
+      color: var(--accent-text); line-height: 1.5; font-style: italic;
+    }
+    .pratica-callout strong { font-style: normal; }
+    .pratica-divider { border: none; border-top: 1px solid var(--border); max-width: 920px; margin: 0 auto; }
+    /* Chat bubbles sem casca de celular */
+    .chat-mock {
+      background: #0b141a; border-radius: var(--radius-lg);
+      padding: 16px 14px; display: flex; flex-direction: column;
+      gap: 6px; box-shadow: var(--shadow-md);
+    }
+    .cb { padding: 9px 12px; border-radius: 12px; font-size: 0.79rem; line-height: 1.46; max-width: 93%; }
+    .cb-bot   { background: #1f2937; color: #e5e7eb; border-radius: 12px 12px 12px 3px; }
+    .cb-green { background: linear-gradient(135deg,#065f46 0%,#14532d 100%); color: #d1fae5; border-radius: 12px 12px 12px 3px; }
+    .cb-warn  { background: linear-gradient(135deg,#7c2d12 0%,#9a3412 100%); color: #fed7aa; border-radius: 12px 12px 12px 3px; }
+    .cb-soon  { background: #1e1b4b; border: 1px dashed #818cf8; color: #c7d2fe; border-radius: 12px 12px 12px 3px; }
+    .cb strong { color: #f3f4f6; }
+    .cb-green strong { color: #ecfdf5; }
+    .cb-warn  strong { color: #fff; }
+    .cb-soon  strong { color: #e0e7ff; }
+    .cb-em    { color: #86efac; font-weight: 700; }
+    .cb-muted { color: #9ca3af; font-size: 0.73rem; }
+    .cb-ora   { color: #fdba74; }
+    .cb-vio   { color: #a5b4fc; font-size: 0.73rem; }
+    .cb-soon-tag {
+      display: inline-block; background: #312e81; color: #a5b4fc;
+      font-size: 0.6rem; font-weight: 800; letter-spacing: 0.07em;
+      text-transform: uppercase; padding: 2px 6px; border-radius: 100px; margin-bottom: 4px;
+    }
+    .chat-lbl { font-size: 0.65rem; color: #6b7280; text-transform: uppercase; letter-spacing:.07em; font-weight: 700; padding-left: 2px; margin-bottom: 2px; }
+    .pratica-section-foot {
+      text-align: center; margin-top: 48px; font-size: 1rem;
+      color: var(--text-muted); max-width: 560px;
+      margin-left: auto; margin-right: auto; font-style: italic; line-height: 1.55;
+    }
+    .pratica-section-foot strong { color: var(--text); font-style: normal; }
+
+    /* ===== ERROS ===== */
+    #erros { background: var(--bg); padding: 80px 0; }
+    .erros-inner { max-width: 880px; margin: 0 auto; }
+    .erros-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 40px; }
+    @media (min-width: 680px) { .erros-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (min-width: 980px) { .erros-grid { grid-template-columns: repeat(3,1fr); } }
+    .erro-card {
+      background: var(--bg-warm); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 20px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .erro-situation { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+    .erro-response {
+      background: #ecfdf5; border-left: 3px solid var(--green);
+      padding: 9px 12px; font-size: 0.875rem; color: var(--text-muted);
+      border-radius: 0 var(--radius) var(--radius) 0; font-style: italic; line-height: 1.5;
+    }
+    .erros-foot {
+      margin-top: 32px; text-align: center;
+      background: var(--green-50); border: 1px solid var(--green-light);
+      border-radius: var(--radius-lg); padding: 20px 28px;
+      font-size: 0.97rem; color: var(--text-muted);
+      max-width: 640px; margin-left: auto; margin-right: auto; line-height: 1.55;
+    }
+    .erros-foot strong { color: var(--text); }
+    @media (max-width: 640px) {
+      #na-pratica, #erros { padding-top: 56px; padding-bottom: 56px; }
+      .pratica-stack { gap: 40px; }
     }
   </style>
 </head>
@@ -1502,8 +1517,8 @@
         </span>
         Economizei
       </span>
-      <a href="#waitlist" class="nav-cta">
-        Entrar no Beta
+      <a href="#comecar" class="nav-cta">
+        Começar agora
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </a>
     </div>
@@ -1513,7 +1528,7 @@
   <section id="hero">
     <!-- Fita no canto -->
     <div class="hero-ribbon" aria-hidden="true">
-      <strong>Vagas Limitadas</strong>
+      <strong>Direto no WhatsApp</strong>
     </div>
 
     <div class="container">
@@ -1523,7 +1538,7 @@
         <div class="hero-text">
           <span class="hero-badge">
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.39 4.84L20 8l-4 3.9.94 5.48L12 14.77 7.06 17.38 8 11.9 4 8l5.61-1.16L12 2z"/></svg>
-            Aplicação em desenvolvimento · Beta gratuito
+            Funciona agora · Plano Grátis ou Pro a R$9,90
           </span>
 
           <!-- Headline A/B — preenchida pelo JS -->
@@ -1531,12 +1546,12 @@
           <p class="hero-sub" id="hero-subheadline"></p>
 
           <div class="hero-cta-group">
-            <a href="#waitlist" class="btn btn-primary btn-hero">
-              <span>Quero economizar — é grátis</span>
+            <a href="#comecar" class="btn btn-primary btn-hero">
+              <span>Começar agora no WhatsApp</span>
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </a>
             <div class="hero-trust">
-              <span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>100% gratuito agora</span>
+              <span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Plano grátis funciona de verdade</span>
               <span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Sem app, sem cadastro</span>
               <span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Só pelo WhatsApp</span>
             </div>
@@ -1576,35 +1591,39 @@
               <div class="mockup-row mockup-row-left">
                 <div class="mockup-bubble bubble-bot bubble-analysis">
                   <div class="receipt-head">
-                    <span class="receipt-store">Supermercado Extra</span>
+                    <span class="receipt-store">Mercado Central</span>
                     <span class="receipt-date">13 mai · 10:38</span>
                   </div>
                   <div class="receipt-lines">
                     <div class="receipt-line"><span>Arroz 5kg</span><span>R$ 24,90</span></div>
                     <div class="receipt-line"><span>Feijão 1kg</span><span>R$ 8,50</span></div>
                     <div class="receipt-line"><span>Leite (6 un)</span><span>R$ 37,80</span></div>
-                    <div class="receipt-more">+ 6 itens</div>
+                    <div class="receipt-more">+ 8 itens</div>
                   </div>
                   <div class="receipt-total">
                     <span>Total</span>
-                    <strong>R$ 71,20</strong>
+                    <strong>R$ 94,70</strong>
                   </div>
                 </div>
               </div>
 
-              <!-- Bot manda o insight -->
+              <!-- Alerta de gasto acima da média -->
               <div class="mockup-row mockup-row-left">
-                <div class="mockup-bubble bubble-insight">
-                  <div class="insight-row">
-                    <svg class="icon insight-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg>
-                    <div>
-                      <strong>Dentro da sua média.</strong><br>
-                      <span class="insight-sub">Você gasta ~R$ 78 por visita no Extra.</span>
-                    </div>
-                  </div>
+                <div class="mockup-bubble bubble-alert">
+                  ⚠️ <strong>22% acima da sua média habitual</strong> (R$ 77,60).
+                  <span class="alert-insight">🍫 Doces e chocolates: R$ 43,80 esse mês — foi a categoria que mais cresceu.</span>
                 </div>
               </div>
-              <div class="mockup-time mockup-time-left">10:42</div>
+
+              <!-- Teaser comparativo em breve -->
+              <div class="mockup-row mockup-row-left">
+                <div class="mockup-bubble bubble-soon">
+                  <span class="soon-tag">Em breve</span>
+                  <span class="soon-title">🏪 Comparativo entre mercados</span>
+                  <span class="soon-sub">Vou te mostrar qual mercado cobra menos nos seus itens habituais.</span>
+                </div>
+              </div>
+              <div class="mockup-time mockup-time-left">10:43</div>
 
             </div>
           </div>
@@ -1709,10 +1728,119 @@
           <span class="step-icon-wrap" aria-hidden="true">
             <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
           </span>
-          <h3>Você fica esperto</h3>
-          <p>Resumo no fim do mês. Alerta quando gastar acima da sua média.</p>
+          <h3>Você descobre o que ninguém te conta</h3>
+          <p>Todo mês você recebe um relatório automático com tudo que pesou no orçamento — inclusive aquilo que você não notava. E quando uma compra sair da sua média, o bot te avisa na hora com o percentual exato.</p>
         </article>
       </div>
+    </div>
+  </section>
+
+  <!-- ===== NA PRÁTICA: O QUE VOCÊ RECEBE ===== -->
+  <section id="na-pratica">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-eyebrow">O que você recebe</span>
+        <h2>Cada foto vai construindo o seu retrato financeiro.</h2>
+        <p>Você fotografa o cupom. O Economizei cuida do resto — e com o tempo, os padrões aparecem sozinhos.</p>
+      </div>
+
+      <div class="pratica-stack">
+
+        <!-- CENÁRIO 1: Análise imediata -->
+        <div class="pratica-item">
+          <div class="pratica-text">
+            <span class="pratica-eyebrow eyebrow-auto">Toda compra</span>
+            <h3>Análise na hora — com o que importa de verdade</h3>
+            <p>Loja, data, total e os itens que mais pesaram — tudo registrado em ~3 segundos. E se essa compra for maior que o seu padrão, você já sabe na mesma mensagem.</p>
+          </div>
+          <div class="pratica-visual">
+            <div class="chat-mock">
+              <div class="chat-lbl">Bot Economizei</div>
+              <div class="cb cb-bot">
+                <strong>✅ Compra registrada!</strong><br><br>
+                🏪 Mercado Central — 24/mai<br>
+                💰 <strong>Total: R$ 94,70</strong><br><br>
+                📦 <strong>Itens principais:</strong><br>
+                <span class="cb-muted">- Arroz 5kg — R$ 24,90<br>
+                - Feijão 1kg — R$ 8,50<br>
+                - Leite (6 un) — R$ 37,80<br>
+                • ...e mais 8 itens</span><br><br>
+                📊 <span class="cb-em">Esse mês: R$ 347,20</span> em 4 compras
+              </div>
+              <div class="cb cb-warn">
+                ⚠️ <strong>Essa compra foi 22% acima da sua média habitual</strong> (R$ 77,60).<br>
+                <span class="cb-ora">🍫 Você gastou R$ 43,80 em doces esse mês — foi a categoria que mais cresceu.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="pratica-divider" />
+
+        <!-- CENÁRIO 2: Resumo mensal -->
+        <div class="pratica-item pratica-item-rev">
+          <div class="pratica-text">
+            <span class="pratica-eyebrow eyebrow-auto">Todo dia 1 do mês</span>
+            <h3>O mês inteiro em uma mensagem</h3>
+            <p>No dia 1 de cada mês, você recebe um resumo completo do mês anterior. Total gasto, em quantas compras, onde foi a maior parte — e os itens que mais pesaram no orçamento. Inclusive aquilo que cê não notava.</p>
+            <div class="pratica-callout">
+              <strong>"Doces e chocolates — R$ 52,40."</strong> Esse é o tipo de coisa que ninguém rastreia, mas que aparece no resumo do mês.
+            </div>
+          </div>
+          <div class="pratica-visual">
+            <div class="chat-mock">
+              <div class="chat-lbl">Bot Economizei · 1 de junho</div>
+              <div class="cb cb-bot">
+                🗓️ <strong>Seu mês — Maio/2026</strong><br><br>
+                💰 Você gastou <span class="cb-em">R$ 687,40</span> em 8 compras<br>
+                📊 Ticket médio: R$ 85,93<br><br>
+                🏪 <strong>Onde você mais gastou:</strong><br>
+                <span class="cb-muted">1. Mercado Central — R$ 312,00 (4x)<br>
+                2. Atacadão do Povo — R$ 231,40 (2x)</span>
+              </div>
+              <div class="cb cb-green">
+                📦 <strong>Itens que mais pesaram:</strong><br>
+                <span style="color:#a7f3d0;">1. Carne bovina — R$ 143,00<br>
+                2. Frios e embutidos — R$ 87,60<br>
+                3. Doces e chocolates — <strong>R$ 52,40</strong> 👀</span><br><br>
+                📈 Comparado a Abril: <strong>+18%</strong> (R$ 103,80 a mais)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="pratica-divider" />
+
+        <!-- CENÁRIO 3: Comparativo de mercados (em breve) -->
+        <div class="pratica-item">
+          <div class="pratica-text">
+            <span class="pratica-eyebrow eyebrow-soon">Em desenvolvimento · Plano Individual</span>
+            <h3>Qual mercado tá te cobrando mais caro?</h3>
+            <p>O Economizei vai cruzar os preços dos seus itens habituais entre os mercados que você frequenta. Você vai saber, com dados reais dos seus próprios cupons, onde vale mais a pena comprar cada coisa.</p>
+            <p style="margin-top:12px;color:var(--text-muted);font-size:0.96rem;">Esse recurso está em desenvolvimento para o plano Individual (R$ 9,90/mês).</p>
+          </div>
+          <div class="pratica-visual">
+            <div class="chat-mock">
+              <div class="chat-lbl">Em breve — Plano Individual</div>
+              <div class="cb cb-soon">
+                <span class="cb-soon-tag">Em breve</span><br>
+                🏪 <strong>Comparativo de mercados</strong><br><br>
+                <span class="cb-vio">Nos últimos 3 meses você comprou arroz em 3 mercados. Preço médio por kg:</span><br><br>
+                <span style="color:#c7d2fe;">• Mercado Bom Preço: R$ 6,20/kg<br>
+                • Mercado Central: R$ 5,98/kg<br>
+                • <strong style="color:#a5b4fc;">Atacadão do Povo: R$ 4,82/kg ← mais barato</strong></span><br><br>
+                <span class="cb-vio">💡 Comprando arroz só no Atacadão do Povo, cê teria economizado ~R$ 38 nos últimos 90 dias.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /pratica-stack -->
+
+      <p class="pratica-section-foot">
+        A foto do cupom é só o começo. <strong>Com o tempo, o Economizei vai mostrando o que realmente está pesando no seu orçamento.</strong>
+      </p>
+
     </div>
   </section>
 
@@ -1753,6 +1881,42 @@
           </ul>
         </div>
 
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== E SE O CUPOM NÃO LER? ===== -->
+  <section id="erros">
+    <div class="container">
+      <div class="erros-inner">
+        <div class="section-header">
+          <span class="section-eyebrow" style="color: var(--text-muted);">Transparência</span>
+          <h2 class="section-title">E se o bot não conseguir ler o cupom?</h2>
+          <p class="section-sub">Acontece. Foto ruim, luz baixa, cupom amassado — a gente sabe. Por isso, o bot nunca some: ele te avisa o que aconteceu e te fala exatamente o que fazer.</p>
+        </div>
+        <div class="erros-grid">
+          <div class="erro-card">
+            <span class="erro-situation">📸 Foto borrada ou escura</span>
+            <span class="erro-response">"A foto ficou meio borrada. Tenta com mais luz — perto da janela funciona bem."</span>
+          </div>
+          <div class="erro-card">
+            <span class="erro-situation">🏪 Cupom de farmácia ou restaurante</span>
+            <span class="erro-response">"Esse cupom não é de supermercado. Por enquanto foco só em mercado — farmácia e restaurante chegam depois."</span>
+          </div>
+          <div class="erro-card">
+            <span class="erro-situation">📜 Cupom muito comprido</span>
+            <span class="erro-response">"Esse cupom é muito longo. Tira em 2 fotos: topo até o meio, e do meio até o total."</span>
+          </div>
+          <div class="erro-card">
+            <span class="erro-situation">⚠️ Itens ilegíveis</span>
+            <span class="erro-response">"Li o total certinho, mas os itens estão ilegíveis. Salvei o total — se quiser os itens, tira de novo com mais luz na lista."</span>
+          </div>
+          <div class="erro-card">
+            <span class="erro-situation">🤔 Não é cupom fiscal</span>
+            <span class="erro-response">"Isso não parece um cupom fiscal. Manda o papel que o caixa te deu — com a lista de produtos e o CNPJ no topo."</span>
+          </div>
+        </div>
+        <p class="erros-foot">Em todos os casos, o bot te orienta. Você nunca fica sem saber o que aconteceu — e sempre tem uma saída clara.</p>
       </div>
     </div>
   </section>
@@ -1810,7 +1974,7 @@
       <div class="section-header">
         <span class="section-eyebrow">Planos</span>
         <h2>Bom, barato e útil — de verdade.</h2>
-        <p>Você pode testar gratuitamente ou ter os benefícios do plano Pró, que possui comparativo entre mercados e outras funcionalidades.</p>
+        <p>O plano <strong>Grátis</strong> resolve o básico — e funciona pra sempre. Os pagos têm comparativo entre mercados, cupons ilimitados e plano família. Pagamento via PIX.</p>
       </div>
 
       <div class="pricing-grid">
@@ -1834,6 +1998,7 @@
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Foto do cupom → análise na hora</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Resumo automático no fim do mês</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Alerta quando gastar acima da média</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Histórico completo dos seus gastos</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Até 10 cupons por mês</li>
           </ul>
           <a href="https://wa.me/5517996440062?text=oi" target="_blank" rel="noopener" class="btn btn-primary">
@@ -1845,9 +2010,9 @@
         <article class="pricing-card featured">
           <div class="badge-popular">Recomendado pra maioria</div>
           <div class="plan-head">
-            <span class="plan-tag tag-soon">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              Em breve
+            <span class="plan-tag tag-active">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" class="icon-filled"/></svg>
+              Ativo via PIX
             </span>
             <div class="plan-name">Individual</div>
             <div class="plan-subtitle">Pra quem quer economizar de verdade</div>
@@ -1859,19 +2024,19 @@
           </div>
           <ul class="plan-features">
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Tudo do Grátis</li>
-            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Cupons ilimitados</li>
+            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Cupons <strong>ilimitados</strong></li>
             <li class="highlight"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Comparativo entre mercados</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Alerta inteligente (preditivo + categorizado)</li>
           </ul>
-          <a href="#waitlist" class="btn btn-primary">Quero ser avisado</a>
+          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20plano%20Individual%20%28R%249%2C90%2Fm%C3%AAs%29%20do%20Economizei.%20Como%20fa%C3%A7o%20pra%20pagar%20via%20PIX%3F" target="_blank" rel="noopener" class="btn btn-primary">Assinar Individual via PIX</a>
         </article>
 
         <!-- Plano Família -->
         <article class="pricing-card">
           <div class="plan-head">
-            <span class="plan-tag tag-soon">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              Em breve
+            <span class="plan-tag tag-active">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" class="icon-filled"/></svg>
+              Ativo via PIX
             </span>
             <div class="plan-name">Família</div>
             <div class="plan-subtitle">Até 3 pessoas no mesmo plano</div>
@@ -1886,15 +2051,15 @@
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Visão consolidada da família</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Comparação de gastos por membro</li>
           </ul>
-          <a href="#waitlist" class="btn btn-outline">Quero ser avisado</a>
+          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20plano%20Fam%C3%ADlia%20%28R%2415%2Fm%C3%AAs%2C%20at%C3%A9%203%20pessoas%29%20do%20Economizei.%20Como%20fa%C3%A7o%20pra%20pagar%20via%20PIX%3F" target="_blank" rel="noopener" class="btn btn-outline">Assinar Família via PIX</a>
         </article>
 
         <!-- Plano Família+ -->
         <article class="pricing-card">
           <div class="plan-head">
-            <span class="plan-tag tag-soon">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              Em breve
+            <span class="plan-tag tag-active">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" class="icon-filled"/></svg>
+              Ativo via PIX
             </span>
             <div class="plan-name">Família+</div>
             <div class="plan-subtitle">Até 5 pessoas no mesmo plano</div>
@@ -1908,10 +2073,14 @@
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Igual ao Família</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Mais 2 vagas (5 pessoas no total)</li>
           </ul>
-          <a href="#waitlist" class="btn btn-outline">Quero ser avisado</a>
+          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20plano%20Fam%C3%ADlia%2B%20%28R%2422%2Fm%C3%AAs%2C%20at%C3%A9%205%20pessoas%29%20do%20Economizei.%20Como%20fa%C3%A7o%20pra%20pagar%20via%20PIX%3F" target="_blank" rel="noopener" class="btn btn-outline">Assinar Família+ via PIX</a>
         </article>
 
       </div>
+
+      <p class="pricing-foot-note">
+        <strong>Como funciona o pagamento:</strong> você clica em "Assinar via PIX", abre uma conversa no WhatsApp, paga e em até 1h seu plano é ativado manualmente. Estamos numa fase inicial — quando o volume justificar, automatizamos com Stripe/Mercado Pago.
+      </p>
 
     </div>
   </section>
@@ -1955,84 +2124,41 @@
     </div>
   </section>
 
-  <!-- ===== WAITLIST ===== -->
-  <section id="waitlist">
+  <!-- ===== COMO COMEÇAR ===== -->
+  <section id="comecar">
     <div class="container">
-      <div class="waitlist-inner">
+      <div class="section-header">
+        <span class="section-eyebrow">Como começar</span>
+        <h2>É só mandar uma mensagem no WhatsApp.</h2>
+        <p>Sem cadastro, sem formulário, sem app. Escolha o caminho que faz sentido pra você.</p>
+      </div>
 
-        <!-- Coluna de benefícios -->
-        <div class="waitlist-pitch">
-          <span class="section-eyebrow">Beta Fundador</span>
-          <h2>Garante seu lugar na lista.</h2>
-          <p>Sem compromisso, sem cartão. A gente te avisa pelo WhatsApp quando o plano pago estiver pronto.</p>
+      <div class="comecar-grid">
 
-          <ul class="waitlist-perks">
-            <li>
-              <span class="waitlist-perk-icon" aria-hidden="true">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L20 8l-4 3.9.94 5.48L12 14.77 7.06 17.38 8 11.9 4 8l5.61-1.16L12 2z"/></svg>
-              </span>
-              <div>
-                <strong>3 meses grátis do Individual.</strong>
-                <span class="text">Quando o plano pago lançar, você usa comparativo entre mercados e alerta inteligente por 3 meses sem pagar.</span>
-              </div>
-            </li>
-            <li>
-              <span class="waitlist-perk-icon" aria-hidden="true">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-              </span>
-              <div>
-                <strong>Acesso antecipado.</strong>
-                <span class="text">Você usa cada feature paga (comparativo, alerta preditivo, plano família) antes do público geral.</span>
-              </div>
-            </li>
-          </ul>
-        </div>
+        <article class="comecar-card">
+          <span class="comecar-tag">Grátis</span>
+          <h3>Quero testar de graça</h3>
+          <p>Você manda uma foto de cupom e já começa. O plano Grátis tem 10 cupons/mês, resumo automático e alerta básico — cobre quem vai ao mercado 2-3x por semana com folga.</p>
+          <a href="https://wa.me/5517996440062?text=oi" target="_blank" rel="noopener" class="btn btn-primary">
+            Começar grátis no WhatsApp
+          </a>
+        </article>
 
-        <!-- Coluna do formulário -->
-        <div class="waitlist-box">
-          <span class="waitlist-box-eyebrow">Lista de Beta Fundadores</span>
-          <h3>Entre na lista</h3>
+        <article class="comecar-card comecar-card-featured">
+          <span class="comecar-tag comecar-tag-pro">Pro</span>
+          <h3>Quero o plano Pro agora</h3>
+          <p>Cupons ilimitados, comparativo entre mercados e alerta inteligente. Pagamento via PIX direto no WhatsApp — em até 1h seu plano fica ativo. R$9,90 (Individual), R$15 (Família) ou R$22 (Família+).</p>
+          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20um%20plano%20pago%20do%20Economizei.%20Manda%20pra%20mim%20as%20op%C3%A7%C3%B5es%2C%20por%20favor." target="_blank" rel="noopener" class="btn btn-primary">
+            Assinar Pro via PIX
+          </a>
+        </article>
 
-        <form id="waitlist-form" novalidate>
+      </div>
 
-          <div class="form-group">
-            <label for="f-nome">Seu nome</label>
-            <input type="text" id="f-nome" name="nome" placeholder="Como você prefere ser chamado?" />
-            <div class="field-error" id="err-nome">Por favor, informe seu nome.</div>
-          </div>
+      <p class="comecar-foot-note">
+        Em dúvida? <strong>Começa pelo grátis.</strong> Se em uma semana ele resolver sua dor, ótimo. Se você quiser mais (comparativo entre mercados, cupons ilimitados), o Pro está esperando.
+      </p>
 
-          <div class="form-group">
-            <label for="f-whatsapp">Seu WhatsApp</label>
-            <input type="tel" id="f-whatsapp" name="whatsapp" placeholder="55 11 99999-9999" />
-            <div class="field-error" id="err-whatsapp">Informe um número de WhatsApp válido.</div>
-          </div>
-
-          <div class="form-group">
-            <label for="f-plano">Plano de interesse</label>
-            <select id="f-plano" name="plano">
-              <option value="">Selecione o plano...</option>
-              <option value="gratis">Ainda estou testando o gratuito</option>
-              <option value="individual">Individual — R$9,90/mês</option>
-              <option value="familia">Família — R$15/mês (até 3 pessoas)</option>
-              <option value="familia_plus">Família+ — R$22/mês (até 5 pessoas)</option>
-            </select>
-            <div class="field-error" id="err-plano">Selecione um plano de interesse.</div>
-          </div>
-
-          <button type="submit" class="form-submit-btn" id="submit-btn">
-            <div class="spinner" id="spinner"></div>
-            <span id="btn-label">Garantir meu lugar no Beta</span>
-          </button>
-
-          <div class="success-msg" id="success-msg">
-            <svg class="icon success-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>
-            Pronto! Você está na lista. A gente entra em contato pelo WhatsApp quando chegar sua vez.
-          </div>
-
-        </form>
-        </div><!-- /.waitlist-box -->
-
-      </div><!-- /.waitlist-inner -->
     </div>
   </section>
 
@@ -2114,7 +2240,7 @@
        o return de resolveVariant() para sorteio aleatório. */
     const variants = {
       a: {
-        headline: '<span class="accent-green">Não deixa</span> o mercado te <span class="accent-red">passar a perna</span>.',
+        headline: '<span class="accent-green">Não deixa</span> o mercado te passar a perna.',
         subheadline: 'Mande a foto do cupom no WhatsApp. A gente cuida do resto — e te avisa antes do mês fugir do controle.'
       },
       b: {
@@ -2140,105 +2266,23 @@
     document.getElementById('hero-headline').innerHTML = variants[currentVariant].headline;
     document.getElementById('hero-subheadline').textContent = variants[currentVariant].subheadline;
 
-    /* ===== VALIDAÇÃO DE FORMULÁRIO ===== */
-    function showError(fieldId, errId, show) {
-      const field = document.getElementById(fieldId);
-      const err = document.getElementById(errId);
-      if (show) {
-        field.classList.add('error');
-        err.classList.add('visible');
-      } else {
-        field.classList.remove('error');
-        err.classList.remove('visible');
-      }
-    }
+    /* ===== UTMs nos links do WhatsApp =====
+       Anexa as UTMs salvas em localStorage como parâmetros nos links wa.me,
+       pra dar pra rastrear de qual canal veio cada conversa do bot. */
+    (function appendUtmsToWhatsappLinks() {
+      const utms = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']
+        .map(k => ({ key: k, val: localStorage.getItem('ec_' + k) }))
+        .filter(o => o.val);
 
-    function validatePhone(val) {
-      // Aceita formatos: 55 11 99999-9999, +5511999990000, 11999990000, etc.
-      const digits = val.replace(/\D/g, '');
-      return digits.length >= 10 && digits.length <= 15;
-    }
+      if (utms.length === 0) return;
 
-    function validateForm() {
-      const nome = document.getElementById('f-nome').value.trim();
-      const whatsapp = document.getElementById('f-whatsapp').value.trim();
-      const plano = document.getElementById('f-plano').value;
+      const suffix = utms.map(o => `${o.key}=${encodeURIComponent(o.val)}`).join('&');
 
-      let valid = true;
-
-      if (!nome) { showError('f-nome', 'err-nome', true); valid = false; }
-      else { showError('f-nome', 'err-nome', false); }
-
-      if (!whatsapp || !validatePhone(whatsapp)) { showError('f-whatsapp', 'err-whatsapp', true); valid = false; }
-      else { showError('f-whatsapp', 'err-whatsapp', false); }
-
-      if (!plano) { showError('f-plano', 'err-plano', true); valid = false; }
-      else { showError('f-plano', 'err-plano', false); }
-
-      return valid;
-    }
-
-    /* ===== SUBMIT DO FORMULÁRIO ===== */
-    document.getElementById('waitlist-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-
-      if (!validateForm()) return;
-
-      const btn = document.getElementById('submit-btn');
-      const spinner = document.getElementById('spinner');
-      const btnLabel = document.getElementById('btn-label');
-      const successMsg = document.getElementById('success-msg');
-
-      // Mostrar spinner
-      btn.disabled = true;
-      spinner.style.display = 'block';
-      btnLabel.textContent = 'Enviando...';
-
-      const nome      = document.getElementById('f-nome').value.trim();
-      const whatsapp  = document.getElementById('f-whatsapp').value.replace(/\D/g, '');
-      const planoInteresse = document.getElementById('f-plano').value;
-
-      // Chama o endpoint do bot — ele salva no Supabase e envia o WhatsApp de confirmação
-      try {
-        await fetch('https://economizei-bot-production.up.railway.app/waitlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nome,
-            whatsapp,
-            plano_interesse: planoInteresse,
-            variant_ab:   localStorage.getItem('ec_variant')      || 'desconhecido',
-            utm_source:   localStorage.getItem('ec_utm_source')   || null,
-            utm_medium:   localStorage.getItem('ec_utm_medium')   || null,
-            utm_campaign: localStorage.getItem('ec_utm_campaign') || null,
-            utm_content:  localStorage.getItem('ec_utm_content')  || null,
-          })
-        });
-      } catch (err) {
-        // Falha silenciosa — mostrar sucesso de qualquer forma
-        console.error('[waitlist] erro ao chamar endpoint:', err.message);
-      }
-
-      // Esconder spinner, mostrar sucesso
-      spinner.style.display = 'none';
-      btnLabel.textContent = 'Enviado!';
-      successMsg.style.display = 'block';
-
-      // Scroll suave para a mensagem de sucesso
-      successMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-
-    /* ===== REMOVE ERRO AO DIGITAR ===== */
-    ['f-nome', 'f-whatsapp', 'f-plano'].forEach(function(id) {
-      const field = document.getElementById(id);
-      const errId = 'err-' + id.replace('f-', '');
-      field.addEventListener('input', function() {
-        if (field.value.trim()) {
-          field.classList.remove('error');
-          document.getElementById(errId).classList.remove('visible');
-        }
+      document.querySelectorAll('a[href^="https://wa.me/"]').forEach(link => {
+        const sep = link.href.includes('?') ? '&' : '?';
+        link.href = link.href + sep + suffix;
       });
-    });
+    })();
   </script>
 
 </body>
