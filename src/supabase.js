@@ -1,9 +1,12 @@
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 const { log, maskPhone } = require('./logger');
 
+// Node.js < 22 não tem WebSocket nativo — passa o pacote ws como transport
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_ANON_KEY,
+  { realtime: { transport: ws } }
 );
 
 // Garante que o usuário existe — cria na primeira mensagem, ignora se já existir
