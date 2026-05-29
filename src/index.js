@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 const express = require('express');
-const cors = require('cors');
 const { enviarMensagem, baixarImagem } = require('./zapi');
 const { lerRecibo } = require('./gemini');
 const {
@@ -12,11 +11,13 @@ const {
   verificarLimiteGratuito,
   buscarStatusUsuario,
   atualizarOnboardingStep,
-  salvarWaitlist,
+  // salvarWaitlist — DEPRECATED em 2026-05-22 (waitlist removida); função
+  // mantida em supabase.js para reativação futura se necessário.
 } = require('./supabase');
 const {
   montarResposta,
   montarMensagemErro,
+  montarMensagemPlanos,
   montarAvisoSucessoParcial,
   montarMensagemBemVindo,
   montarMensagemLimite,
@@ -36,7 +37,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '50kb' }));
-app.use('/waitlist', cors({ origin: '*' })); // restringir ao domínio real pós-deploy
+// endpoint /waitlist removido em 2026-05-22 (decisão: paywall PIX dia 1, waitlist
+// substituída por CTA direto na landing). Bloco de CORS abaixo mantido como
+// comentário caso o endpoint precise ser reativado no futuro.
+// app.use('/waitlist', cors({ origin: '*' }));
 
 // ---------------------------------------------------------------
 // Rate limiter em memória — 10 mensagens/minuto por número
@@ -79,7 +83,8 @@ app.post('/webhook', (req, res) => {
   res.sendStatus(200);
 
   const body = req.body;
-  const phone = body?.phone;
+  // Remove o '+' inicial que alguns gateways incluem no DDI (ex: +15551234567 → 15551234567)
+  const phone = typeof body?.phone === 'string' ? body.phone.replace(/^\+/, '') : body?.phone;
 
   if (typeof phone !== 'string' || !/^\d{10,15}$/.test(phone)) {
     log('payload_invalido', { motivo: 'phone inválido' });
@@ -125,47 +130,23 @@ app.get('/health', (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// POST /waitlist — cadastro de interesse da landing page
+// POST /waitlist — DEPRECATED em 2026-05-22
 // ---------------------------------------------------------------
-app.post('/waitlist', async (req, res) => {
-  const { nome, whatsapp, plano_interesse, variant_ab,
-          utm_source, utm_medium, utm_campaign, utm_content } = req.body || {};
-
-  if (!nome || !whatsapp) {
-    return res.status(400).json({ erro: 'nome e whatsapp são obrigatórios' });
-  }
-  const digits = String(whatsapp).replace(/\D/g, '');
-  if (digits.length < 10 || digits.length > 13) {
-    return res.status(400).json({ erro: 'whatsapp inválido' });
-  }
-
-  try {
-    await salvarWaitlist({ nome, whatsapp: digits, plano_interesse, variant_ab,
-                           utm_source, utm_medium, utm_campaign, utm_content });
-  } catch (err) {
-    log('waitlist_erro_supabase', { erro: err.message });
-    return res.status(500).json({ erro: 'falha ao salvar' });
-  }
-
-  log('waitlist_cadastro', {
-    nome,
-    whatsapp_mascarado: maskPhone(digits),
-    plano: plano_interesse,
-    variant_ab,
+// Antes: aceitava cadastros da waitlist da landing e enviava mensagem
+// promocional do "Beta Fundador" (com 3 meses grátis + preço travado).
+//
+// Decisão de 2026-05-22 (ver CLAUDE.md seção 8): paywall ativo desde o
+// lançamento via PIX manual, waitlist removida da landing, copy do bot
+// reescrita sem promessas de benefícios.
+//
+// Endpoint mantido como 410 Gone pra clientes que tenham link/bookmark
+// antigo — retorna instrução pra usar o WhatsApp diretamente.
+app.post('/waitlist', (req, res) => {
+  log('waitlist_endpoint_deprecated_chamado', {});
+  res.status(410).json({
+    erro: 'endpoint descontinuado',
+    instrucao: 'A waitlist foi descontinuada. Use o WhatsApp do bot diretamente — manda "oi" pra começar ou "/planos" pra ver as opções pagas.'
   });
-
-  const msg =
-    `Oi, ${nome}! 🎉\n\n` +
-    `Você está dentro do Economizei como *Beta Fundador*. 🏆\n\n` +
-    `Isso significa que quando os planos pagos chegarem, você ganha *3 meses grátis* + preço travado pra sempre. 🔒\n\n` +
-    `Por enquanto, começa a usar agora: manda a foto do cupom aqui nessa conversa depois das suas compras no mercado.\n\n` +
-    `— Equipe Economizei`;
-
-  enviarMensagem(digits, msg).catch((err) =>
-    log('waitlist_whatsapp_erro', { erro: err.message })
-  );
-
-  res.json({ sucesso: true });
 });
 
 // ---------------------------------------------------------------
@@ -236,9 +217,14 @@ async function processarTexto(phone, texto) {
     return;
   }
 
-  if (ehComando('/limite', 'limite', '/plano', 'plano', '/cupons', 'cupons')) {
+  if (ehComando('/limite', 'limite', '/cupons', 'cupons')) {
     const status = await buscarStatusUsuario(phone);
     await enviarMensagem(phone, montarMensagemStatusLimite(status));
+    return;
+  }
+
+  if (ehComando('/planos', 'planos', '/plano', 'plano', '/pro', 'pro', '/upgrade', 'upgrade', '/assinar', 'assinar', '/preco', 'preço', 'preco')) {
+    await enviarMensagem(phone, montarMensagemPlanos());
     return;
   }
 
@@ -247,7 +233,7 @@ async function processarTexto(phone, texto) {
   } else if (ehComando('oi', 'olá', 'ola', 'ajuda', '/ajuda', 'start', 'menu', 'help', '/start')) {
     await enviarMensagem(phone, montarMensagemBemVindo());
   } else {
-    await enviarMensagem(phone, '📸 Me manda a foto do cupom do mercado!');
+    await enviarMensagem(phone, '📸 Me manda a foto do cupom do mercado!\n\n(Manda */planos* pra ver as opções pagas, ou */ajuda* pra ver todos os comandos.)');
   }
 }
 
