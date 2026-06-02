@@ -3,6 +3,12 @@ const MESES = [
   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
 ];
 
+// Chave PIX configurável via env. Em desenvolvimento, mostra placeholder.
+// IMPORTANTE: configurar PIX_KEY no .env antes do deploy.
+function pixKey() {
+  return process.env.PIX_KEY || '[chave PIX a configurar]';
+}
+
 // Formata números para o padrão brasileiro (ex: 1234.5 → "1.234,50")
 function brl(valor) {
   return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -80,8 +86,7 @@ function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia) {
     `🏪 *Onde você mais gastou:*\n${linhasLojas}` +
     `${blocoItens}\n\n` +
     `${linhaComparacao}\n\n` +
-    `💡 *Continue mandando os cupons* — quanto mais dados, mais padrões eu vejo.\n\n` +
-    `🎉 Como *Beta Fundador*, você tem 3 meses grátis do plano Pro quando ele chegar — automaticamente.`
+    `💡 *Continue mandando os cupons* — quanto mais dados, mais padrões eu vejo.`
   );
 }
 
@@ -157,22 +162,24 @@ function montarAvisoSucessoParcial() {
 
 function montarMensagemBemVindo() {
   return (
-    `📸 *Economizei* — você manda a foto do cupom, eu registro e acompanho seus gastos no mercado. Sem app, sem planilha, só foto.\n\n` +
-    `Manda uma foto aqui pra começar!\n\n` +
-    `🎉 Você entrou no *Beta Fundador* — já funciona de graça de verdade, e quando os planos pagos chegarem você ganha 3 meses grátis automático.\n\n` +
-    `Comandos:\n` +
+    `📸 *Economizei* — você manda a foto do cupom, eu organizo seus gastos no mercado. Sem app, sem planilha, só foto.\n\n` +
+    `Manda uma foto de cupom aqui pra começar!\n\n` +
+    `*Comandos:*\n` +
+    `• */planos* — vê os planos (Grátis, Individual, Família, Família+)\n` +
     `• */historico* ou */resumo* — suas últimas compras\n` +
     `• */limite* — quantos cupons restam esse mês\n` +
-    `• */ajuda* — ver esta mensagem`
+    `• */apagar* — apaga todo seu histórico\n` +
+    `• */ajuda* — vê esta mensagem de novo\n\n` +
+    `💡 O *Grátis* deixa você mandar até 10 cupons/mês — cobre quem vai ao mercado 2-3x por semana. Pra ver o que o Pro oferece (cupons ilimitados, comparativo entre mercados), manda */planos*.`
   );
 }
 
 function montarMensagemLimite() {
   return (
-    `🏆 *10 cupons esse mês — você usou direitinho!*\n\n` +
-    `Seu limite renova no dia 1 do próximo mês. Até lá, tudo que você registrou continua salvo.\n\n` +
-    `🎉 Como *Beta Fundador*, quando o plano ilimitado chegar você já tem 3 meses grátis — automático, não precisa fazer nada.\n\n` +
-    `Enquanto isso: manda */resumo* pra ver tudo que você registrou esse mês.`
+    `📊 *Você registrou os 10 cupons do plano Grátis este mês.*\n\n` +
+    `Isso é ótimo — significa que você está acompanhando os gastos de verdade. Tudo que registrou continua salvo; mande */historico* para ver. Seu limite renova no dia 1.\n\n` +
+    `Para quem usa toda semana, o passo natural é o plano *Individual* (R$ 9,90/mês): cupons ilimitados e comparativo entre mercados, para saber onde cada item sai mais barato.\n\n` +
+    `Mande */planos* para assinar via PIX.`
   );
 }
 
@@ -185,53 +192,82 @@ function diasAteFimDoMes() {
 }
 
 function montarMensagemStatusLimite(status) {
-  const { isPro, isBetaFundador, cuponsUsados, limite } = status;
+  // isBetaFundador é mantido como flag técnica de cohort (decisão 2026-05-19),
+  // mas não aparece mais em copy promocional (decisão 2026-05-22).
+  const { isPro, cuponsUsados, limite } = status;
   const { dias, dataLimite } = diasAteFimDoMes();
 
   if (isPro) {
     return (
       '✨ *Seu plano: Pro — Ilimitado*\n\n' +
-      `Cupons usados esse mês: ${cuponsUsados}\n` +
+      `Cupons esse mês: ${cuponsUsados}\n` +
       'Manda quantos quiser, sem limite!'
     );
   }
 
   const restantes = Math.max(0, limite - cuponsUsados);
-  const planoLabel = isBetaFundador ? 'Beta Fundador Grátis' : 'Grátis';
 
   if (restantes === 0) {
     return (
-      `🏆 *Seu plano: ${planoLabel}*\n\n` +
+      `🏆 *Seu plano: Grátis*\n\n` +
       `Você já usou os ${limite} cupons desse mês — uso completo, parabéns!\n` +
       `Seu limite renova em ${dias} ${dias === 1 ? 'dia' : 'dias'} (${dataLimite}).\n\n` +
-      (isBetaFundador
-        ? '🎉 Como *Beta Fundador*, quando o plano Pro chegar você ganha 3 meses grátis e tudo ilimitado — automático.'
-        : '💡 Quando o plano Pro chegar, vai ser ilimitado.')
+      `Se não quiser esperar, o plano *Individual* (R$9,90/mês) tem cupons ilimitados — manda */planos* pra ver como assinar.`
     );
   }
 
   return (
-    `📊 *Seu plano: ${planoLabel}*\n\n` +
+    `📊 *Seu plano: Grátis*\n\n` +
     `Cupons esse mês: *${cuponsUsados} de ${limite}* usados\n` +
-    `Restam: ${restantes} ${restantes === 1 ? 'cupom' : 'cupons'} ` +
-    `(até ${dataLimite})\n\n` +
-    (isBetaFundador
-      ? '🎉 Como *Beta Fundador*, quando o Pro chegar você ganha 3 meses grátis automaticamente.'
-      : '')
-  ).trim();
+    `Restam: ${restantes} ${restantes === 1 ? 'cupom' : 'cupons'} (até ${dataLimite})\n\n` +
+    `Quando quiser cupons ilimitados + comparativo entre mercados, manda */planos*.`
+  );
+}
+
+function montarMensagemPlanos() {
+  return (
+    `💰 *Planos do Economizei*\n\n` +
+    `*🆓 Grátis — R$0/mês*\n` +
+    `✓ Foto do cupom → análise na hora\n` +
+    `✓ Resumo automático no fim do mês\n` +
+    `✓ Alerta quando gastar acima da sua média\n` +
+    `✓ Histórico completo dos seus gastos\n` +
+    `• Limite: 10 cupons/mês\n\n` +
+    `*⭐ Individual — R$9,90/mês*\n` +
+    `Tudo do Grátis +\n` +
+    `✓ Cupons *ilimitados*\n` +
+    `✓ *Comparativo entre mercados* (qual tá mais barato pros itens que você compra)\n` +
+    `✓ *Alerta inteligente* (preditivo + categorizado por tipo de item)\n\n` +
+    `*👨‍👩‍👧 Família — R$15/mês* (até 3 pessoas)\n` +
+    `Tudo do Individual +\n` +
+    `✓ Visão consolidada da família\n` +
+    `✓ Comparação de gastos por membro\n\n` +
+    `*👨‍👩‍👧‍👦 Família+ — R$22/mês* (até 5 pessoas)\n` +
+    `Igual ao Família, com 2 vagas adicionais.\n\n` +
+    `*Como assinar via PIX:*\n` +
+    `1. Pague o valor do plano no PIX abaixo:\n` +
+    `   📱 Chave PIX: ${pixKey()}\n` +
+    `   💰 R$9,90 (Individual) / R$15 (Família) / R$22 (Família+)\n` +
+    `2. Manda o comprovante aqui no chat\n` +
+    `3. Em até 1h eu ativo seu plano\n\n` +
+    `*Pode continuar usando o Grátis* — ele resolve o básico bem. 👍`
+  );
 }
 
 function montarMensagemAlerta(percentual, mediaHistorica) {
   return (
-    `⚠️ *Atenção!* Essa compra foi ${Math.round(percentual)}% maior que sua média habitual (R$ ${brl(mediaHistorica)}).`
+    `📊 *Compra acima do seu padrão*\n\n` +
+    `Esta compra ficou ${Math.round(percentual)}% acima da sua média, que é de R$ ${brl(mediaHistorica)} por compra.\n\n` +
+    `Pode ser só a compra do mês — mas se quiser ver o que pesou, mande */historico*.`
   );
 }
 
 function montarOnboarding1() {
   return (
-    `📸 *Economizei* — você manda a foto do cupom, eu registro e acompanho seus gastos no mercado. Sem app, sem planilha, só foto.\n\n` +
-    `🎉 Você entrou como *Beta Fundador*. Quando chegar o plano pago, você ganha 3 meses grátis — automático.\n\n` +
-    `Quando for ao mercado, manda a foto do cupom aqui. Aguardo! 📲`
+    `👋 Bem-vindo ao *Economizei*!\n\n` +
+    `Funciona assim: depois do mercado, tire uma foto do cupom fiscal e mande aqui. Em segundos eu registro loja, total e cada item — sem cadastro, sem digitar nada.\n\n` +
+    `📸 *Mande a foto de um cupom para começar.*\n\n` +
+    `_Precisa de ajuda? Mande /ajuda_`
   );
 }
 
@@ -245,9 +281,12 @@ function montarOnboarding2() {
 
 function montarOnboarding3() {
   return (
-    `💡 *Esse foi seu primeiro registro.*\n\n` +
-    `Daqui um mês você vai começar a ver padrões que hoje não dá pra ver — onde tá gastando mais, o que sobe de preço, onde dá pra economizar.\n\n` +
-    `Na próxima ida ao mercado, manda o cupom de novo. 👊`
+    `💡 *Primeiro cupom registrado!*\n\n` +
+    `Continue mandando o cupom depois de cada compra. Em poucas semanas eu mostro coisas que passam despercebidas no dia a dia:\n\n` +
+    `→ Que você gastou R$ 180,00 só em carnes no mês\n` +
+    `→ Que a compra do fim de semana custa o dobro da compra rápida\n` +
+    `→ Que o total subiu R$ 90,00 em relação ao mês passado\n\n` +
+    `📊 Cada cupom deixa o retrato dos seus gastos mais nítido.`
   );
 }
 
@@ -257,7 +296,7 @@ function montarOnboarding4(dadosCompra, totalMes) {
     `📊 *Duas compras registradas — já dá pra ver o padrão começando.*\n\n` +
     `${loja}: R$ ${brl(total)} hoje. No mês até agora: R$ ${brl(totalMes)}.\n\n` +
     `É isso. Você está no controle agora. 🎯\n\n` +
-    `O bot acompanha tudo automaticamente — continua mandando os cupons depois de cada compra!`
+    `Continua mandando os cupons depois de cada compra. Pra ver o que tem no plano *Individual* (cupons ilimitados + comparativo entre mercados): manda */planos*.`
   );
 }
 
@@ -269,6 +308,7 @@ module.exports = {
   montarMensagemBemVindo,
   montarMensagemLimite,
   montarMensagemStatusLimite,
+  montarMensagemPlanos,
   montarMensagemAlerta,
   montarOnboarding1,
   montarOnboarding2,

@@ -233,7 +233,7 @@ async function processarTexto(phone, texto) {
   } else if (ehComando('oi', 'olá', 'ola', 'ajuda', '/ajuda', 'start', 'menu', 'help', '/start')) {
     await enviarMensagem(phone, montarMensagemBemVindo());
   } else {
-    await enviarMensagem(phone, '📸 Me manda a foto do cupom do mercado!\n\n(Manda */planos* pra ver as opções pagas, ou */ajuda* pra ver todos os comandos.)');
+    await enviarMensagem(phone, 'Não consegui entender essa mensagem, desculpe. 🙂\n\nPara registrar uma compra, mande a foto do cupom fiscal.\nPara ver tudo que eu faço, mande */ajuda*.');
   }
 }
 
