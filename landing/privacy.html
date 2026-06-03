@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade — Economizei</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #e5e5e5;
+      --muted: #888;
+      --green: #22c55e;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.7;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    header a {
+      color: var(--green);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    header span { color: var(--muted); font-size: .9rem; }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: .5rem; }
+    .meta { color: var(--muted); font-size: .85rem; margin-bottom: 2.5rem; }
+    h2 {
+      font-size: 1.1rem;
+      color: var(--green);
+      margin: 2.5rem 0 .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    p { margin-bottom: 1rem; }
+    ul { padding-left: 1.4rem; margin-bottom: 1rem; }
+    li { margin-bottom: .4rem; }
+    a { color: var(--green); }
+    .box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin: 1.5rem 0;
+    }
+    .box strong { color: var(--green); }
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: .8rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+
+  <!-- Vercel Analytics -->
+  <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/">Economizei</a>
+    <span>/ Política de Privacidade</span>
+  </header>
+
+  <main>
+    <h1>Política de Privacidade</h1>
+    <p class="meta">Última atualização: junho de 2026 · Versão 1.0</p>
+
+    <div class="box">
+      <strong>Resumo rápido:</strong> coletamos apenas o que precisamos para funcionar —
+      seu número de WhatsApp e os dados dos cupons que você nos envia.
+      Você pode apagar tudo a qualquer momento mandando <strong>/apagar</strong> no bot.
+    </div>
+
+    <h2>1. Quem somos</h2>
+    <p>
+      O <strong>Economizei</strong> é um serviço de análise de gastos em supermercados
+      via WhatsApp, desenvolvido e operado por Gabriel Ferreira Maraschin
+      (CPF/CNPJ em processo de regularização), com sede em Fernandópolis-SP, Brasil.
+      Para fins da Lei Geral de Proteção de Dados (LGPD — Lei n.º 13.709/2018),
+      somos o <strong>controlador</strong> dos seus dados pessoais.
+    </p>
+    <p>
+      Contato do encarregado (DPO): <a href="mailto:privacidade@economizei.space">privacidade@economizei.space</a>
+    </p>
+
+    <h2>2. Dados que coletamos</h2>
+    <p>Coletamos somente os dados necessários para prestar o serviço:</p>
+    <ul>
+      <li><strong>Número de WhatsApp</strong> — para identificar você no bot e enviar respostas.</li>
+      <li><strong>Dados dos cupons fiscais</strong> enviados por você: nome da loja, CNPJ do estabelecimento, data da compra, valor total e lista de itens com preços.</li>
+      <li><strong>Dados de uso</strong>: data e hora das mensagens, erros de processamento (sem conteúdo pessoal).</li>
+      <li><strong>Plano contratado</strong>: se você é usuário gratuito ou pagante (Plano Pro).</li>
+    </ul>
+    <p>
+      <strong>Não coletamos:</strong> nome, CPF, e-mail, localização, contatos, fotos fora dos
+      cupons, conteúdo de outras conversas do WhatsApp.
+    </p>
+
+    <h2>3. Como usamos seus dados</h2>
+    <ul>
+      <li>Processar e interpretar os cupons fiscais que você envia.</li>
+      <li>Gerar resumos de gastos, alertas e comparativos (conforme seu plano).</li>
+      <li>Enviar lembretes automáticos de uso do serviço (reengajamento).</li>
+      <li>Detectar abusos e garantir a segurança do serviço.</li>
+      <li>Melhorar a precisão da leitura de cupons (análise agregada, sem identificação).</li>
+    </ul>
+    <p>
+      <strong>Base legal (LGPD):</strong> execução de contrato (art. 7.º, V) e legítimo interesse
+      do controlador (art. 7.º, IX) para os fins operacionais acima.
+    </p>
+
+    <h2>4. Compartilhamento com terceiros</h2>
+    <p>Seus dados são processados pelos seguintes prestadores de serviço contratados:</p>
+    <ul>
+      <li>
+        <strong>Google (Gemini AI)</strong> — as imagens dos cupons são enviadas à API Gemini
+        da Google para extração de texto. Regidos pela
+        <a href="https://ai.google.dev/terms" target="_blank" rel="noopener">Política de Uso do Google AI</a>.
+      </li>
+      <li>
+        <strong>Supabase</strong> — banco de dados onde os registros de compras são armazenados.
+        Servidores localizados nos EUA (AWS us-east-1). Regidos pela
+        <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Política de Privacidade do Supabase</a>.
+      </li>
+      <li>
+        <strong>Z-API</strong> — gateway de WhatsApp que entrega e recebe as mensagens.
+        Empresa brasileira. Regidos pela
+        <a href="https://www.z-api.io/termos-de-uso" target="_blank" rel="noopener">Termos do Z-API</a>.
+      </li>
+    </ul>
+    <p>
+      <strong>Não vendemos, alugamos ou compartilhamos seus dados com anunciantes
+      nem com terceiros para fins comerciais.</strong>
+    </p>
+
+    <h2>5. Retenção de dados</h2>
+    <ul>
+      <li><strong>Dados de compra:</strong> mantidos enquanto você tiver uma conta ativa,
+        mais 12 meses após o encerramento (para garantir acesso ao histórico).</li>
+      <li><strong>Dados de uso (logs):</strong> 90 dias, depois deletados automaticamente.</li>
+      <li><strong>Dados de pagamento (PIX):</strong> não armazenamos comprovantes; apenas o
+        status do plano é registrado no banco de dados.</li>
+    </ul>
+    <p>
+      Se você solicitar a exclusão (veja abaixo), todos os dados são removidos em até 15 dias úteis.
+    </p>
+
+    <h2>6. Seus direitos (LGPD)</h2>
+    <p>Você tem os seguintes direitos em relação aos seus dados:</p>
+    <ul>
+      <li><strong>Acesso:</strong> saber quais dados temos sobre você.</li>
+      <li><strong>Correção:</strong> corrigir dados incompletos ou imprecisos.</li>
+      <li><strong>Eliminação:</strong> apagar todos os seus dados.</li>
+      <li><strong>Portabilidade:</strong> receber seus dados em formato estruturado.</li>
+      <li><strong>Revogação de consentimento:</strong> encerrar o uso do serviço a qualquer momento.</li>
+    </ul>
+
+    <div class="box">
+      <strong>Como exercer seus direitos:</strong><br />
+      Mande <strong>/apagar</strong> no bot → seus dados são excluídos em até 48 horas.<br />
+      Ou escreva para <a href="mailto:privacidade@economizei.space">privacidade@economizei.space</a>
+      — respondemos em até 15 dias úteis.
+    </div>
+
+    <h2>7. Segurança</h2>
+    <p>
+      Adotamos as seguintes medidas de segurança:
+    </p>
+    <ul>
+      <li>Comunicação cifrada (HTTPS/TLS) em todos os endpoints.</li>
+      <li>Dados armazenados com controle de acesso por linha (Row Level Security) no banco de dados.</li>
+      <li>Chaves de API nunca expostas ao cliente; armazenadas em variáveis de ambiente no servidor.</li>
+      <li>Números de telefone são mascarados nos logs internos.</li>
+    </ul>
+
+    <h2>8. Cookies e rastreamento</h2>
+    <p>
+      O bot de WhatsApp em si não usa cookies. A página <strong>economizei.space</strong>
+      pode usar ferramentas de analytics (Google Analytics ou Vercel Analytics) para medir
+      visitas — sem rastreamento individual de comportamento.
+    </p>
+
+    <h2>9. Menores de idade</h2>
+    <p>
+      O Economizei não é destinado a menores de 13 anos. Se você acredita que coletamos
+      dados de um menor, entre em contato pelo e-mail acima para remoção imediata.
+    </p>
+
+    <h2>10. Alterações nesta política</h2>
+    <p>
+      Podemos atualizar esta política periodicamente. Quando houver mudanças relevantes,
+      avisaremos no bot com pelo menos 7 dias de antecedência.
+      A data de "última atualização" no topo desta página reflete a versão vigente.
+    </p>
+
+    <h2>11. Lei aplicável</h2>
+    <p>
+      Esta política é regida pela legislação brasileira, em especial pela LGPD
+      (Lei n.º 13.709/2018). O foro competente é o da Comarca de Fernandópolis-SP.
+    </p>
+  </main>
+
+  <footer>
+    &copy; 2026 Economizei · <a href="/termos.html">Termos de Uso</a> ·
+    <a href="/">Voltar ao início</a>
+  </footer>
+</body>
+</html>
