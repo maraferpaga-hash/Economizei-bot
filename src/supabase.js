@@ -59,11 +59,35 @@ async function salvarCompra(phoneNumber, dados) {
         nome_canonico: item.nome_canonico ?? null,
       }));
 
-      const { error: erroItens } = await supabase
-        .from('itens_compra')
-        .insert(linhasItens);
+      // [DIAGNÓSTICO TEMPORÁRIO — remover após confirmar fix de categoria/nome_canonico]
+      // Loga o que está SENDO ENVIADO ao INSERT. Se este log NÃO aparecer no Railway
+      // ao processar um cupom, o build em produção é antigo (não é o commit ae58972).
+      log('diag_itens_antes_insert', {
+        qtd: linhasItens.length,
+        amostra: linhasItens.slice(0, 3).map(l => ({
+          nome: (l.nome || '').slice(0, 30),
+          categoria: l.categoria,
+          nome_canonico: l.nome_canonico,
+        })),
+      });
 
-      if (erroItens) throw erroItens;
+      const { data: itensInseridos, error: erroItens } = await supabase
+        .from('itens_compra')
+        .insert(linhasItens)
+        .select('categoria, nome_canonico');
+
+      if (erroItens) {
+        // [DIAGNÓSTICO TEMPORÁRIO] erro explícito do INSERT (ex: PGRST204 = coluna
+        // ausente no schema cache do PostgREST).
+        log('diag_insert_itens_erro', { erro: erroItens.message, code: erroItens.code, details: erroItens.details });
+        throw erroItens;
+      }
+
+      // [DIAGNÓSTICO TEMPORÁRIO] confirma o que o banco GRAVOU de fato.
+      log('diag_itens_gravados', {
+        qtd: itensInseridos?.length ?? 0,
+        amostra: (itensInseridos || []).slice(0, 3),
+      });
 
       // Registra preços anônimos para o comparativo de mercados (fire-and-forget).
       // Cupom não-mercado (tipo='outros') NÃO entra no comparativo de mercados —
