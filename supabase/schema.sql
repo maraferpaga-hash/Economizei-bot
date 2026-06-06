@@ -7,17 +7,23 @@
 -- Armazena cada usuário identificado pelo número de WhatsApp
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS usuarios (
-  phone_number    TEXT        PRIMARY KEY,               -- Número no formato internacional (ex: 5511999999999)
-  criado_em       TIMESTAMPTZ DEFAULT NOW() NOT NULL,    -- Data/hora de cadastro do usuário
-  is_pro          BOOLEAN     DEFAULT FALSE NOT NULL,    -- Indica se o usuário tem plano Pro
-  compras_mes_atual INTEGER   DEFAULT 0 NOT NULL         -- Contador de compras registradas no mês corrente
+  phone_number      TEXT        PRIMARY KEY,               -- Número no formato internacional (ex: 5511999999999)
+  criado_em         TIMESTAMPTZ DEFAULT NOW() NOT NULL,    -- Data/hora de cadastro do usuário
+  is_pro            BOOLEAN     DEFAULT FALSE NOT NULL,    -- Indica se o usuário tem plano Pro
+  beta_fundador     BOOLEAN     DEFAULT TRUE  NOT NULL,    -- TRUE para todos os usuários do Beta
+  compras_mes_atual INTEGER     DEFAULT 0     NOT NULL,    -- Contador de compras no mês corrente
+  mes_referencia    TEXT        DEFAULT '',                -- "YYYY-MM" do mês em que compras_mes_atual foi atualizado pela última vez
+  onboarding_step   INTEGER     DEFAULT 0     NOT NULL     -- Etapa do fluxo de onboarding (0=início, 1=aguarda foto, 2=primeira foto, 3=concluído)
 );
 
 COMMENT ON TABLE  usuarios                       IS 'Usuários do bot identificados pelo número de WhatsApp';
 COMMENT ON COLUMN usuarios.phone_number          IS 'Número de WhatsApp no formato internacional (ex: 5511999999999)';
 COMMENT ON COLUMN usuarios.criado_em             IS 'Data e hora em que o usuário enviou a primeira mensagem';
 COMMENT ON COLUMN usuarios.is_pro                IS 'TRUE quando o usuário possui assinatura Pro ativa';
-COMMENT ON COLUMN usuarios.compras_mes_atual     IS 'Quantidade de compras registradas no mês corrente (resetado mensalmente)';
+COMMENT ON COLUMN usuarios.beta_fundador         IS 'TRUE para usuários que entraram durante o Beta; garante 3 meses grátis + preço travado ao ativar pagamentos';
+COMMENT ON COLUMN usuarios.compras_mes_atual     IS 'Quantidade de compras registradas no mês corrente (verificado e resetado via mes_referencia)';
+COMMENT ON COLUMN usuarios.mes_referencia        IS 'Mês de referência no formato YYYY-MM; quando diverge do mês atual, compras_mes_atual é zerado';
+COMMENT ON COLUMN usuarios.onboarding_step       IS 'Controla o fluxo de onboarding: 0=boas-vindas, 1=aguardando foto, 2=primeira foto enviada, 3=concluído';
 
 -- -------------------------------------------------------------
 -- Tabela: compras
@@ -78,3 +84,38 @@ CREATE INDEX IF NOT EXISTS idx_compras_phone_data
 -- Buscar todos os itens de uma compra
 CREATE INDEX IF NOT EXISTS idx_itens_compra_compra_id
   ON itens_compra (compra_id);
+
+-- -------------------------------------------------------------
+-- Tabela: waitlist
+-- Cadastros de interesse vindos da landing page
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS waitlist (
+  id             UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  nome           TEXT        NOT NULL,
+  whatsapp       TEXT        NOT NULL,
+  plano_interesse TEXT,                     -- ex: 'individual', 'familia', 'familia_plus'
+  variant_ab     TEXT,                     -- variante do A/B test da landing (ex: 'headline_a')
+  utm_source     TEXT,
+  utm_medium     TEXT,
+  utm_campaign   TEXT,
+  utm_content    TEXT,
+  criado_em      TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+COMMENT ON TABLE waitlist IS 'Leads capturados pela landing page antes da ativação do paywall';
+
+CREATE INDEX IF NOT EXISTS idx_waitlist_whatsapp
+  ON waitlist (whatsapp);
+
+-- -------------------------------------------------------------
+-- RPC: incrementar_compras_mes
+-- Incrementa o contador mensal do usuário de forma atômica
+-- -------------------------------------------------------------
+CREATE OR REPLACE FUNCTION incrementar_compras_mes(p_phone_number TEXT)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE usuarios
+  SET compras_mes_atual = compras_mes_atual + 1
+  WHERE phone_number = p_phone_number;
+END;
+$$ LANGUAGE plpgsql;

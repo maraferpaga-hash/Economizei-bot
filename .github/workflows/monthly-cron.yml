@@ -1,0 +1,17 @@
+name: Monthly Summary Cron (failsafe)
+on:
+  schedule:
+    # Roda dia 28-31 às 13h UTC (10h em São Paulo, 1h depois do cron interno)
+    - cron: '0 13 28-31 * *'
+  workflow_dispatch: # permite trigger manual pra teste
+
+jobs:
+  trigger-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger monthly summary endpoint
+        run: |
+          curl -X POST "${{ secrets.BOT_URL }}/cron/monthly-summary" \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --show-error

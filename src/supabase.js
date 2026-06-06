@@ -2,10 +2,12 @@ const { createClient } = require('@supabase/supabase-js');
 const ws = require('ws');
 const { log, maskPhone } = require('./logger');
 
-// Node.js < 22 não tem WebSocket nativo — passa o pacote ws como transport
+// Usa service_role key no servidor (bypassa RLS, nunca exposta ao cliente).
+// Fallback para anon key durante a transição — remover quando RLS estiver ativo.
+// Ver: supabase/rls_migration.sql
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY,
   { realtime: { transport: ws } }
 );
 
@@ -26,14 +28,14 @@ async function upsertUsuario(phoneNumber) {
     if (error) throw error;
     return data;
   } catch (err) {
-    log('supabase_erro', { fn: 'upsertUsuario', erro: err.message });
+    log('supabase_erro', { fn: 'upsertUsuario', erro: err.message, causa: err.cause?.message ?? err.cause ?? null });
     throw err;
   }
 }
 
 // Salva a compra, os itens e incrementa o contador mensal do usuário
 async function salvarCompra(phoneNumber, dados) {
-  const { loja, total, data_compra, itens = [] } = dados;
+  const { loja, total, data_compra, itens = [], tipo = 'mercado' } = dados;
 
   try {
     // 1. Insere a compra e recupera o id gerado
@@ -48,11 +50,13 @@ async function salvarCompra(phoneNumber, dados) {
     // 2. Insere os itens vinculados ao id da compra
     if (itens.length > 0) {
       const linhasItens = itens.map((item) => ({
-        compra_id: compra.id,
-        nome: item.nome,
+        compra_id:     compra.id,
+        nome:          item.nome,
         // Gemini retorna preco_unitario; fallback para preco (compatibilidade futura)
-        preco: item.preco_unitario ?? item.preco ?? null,
-        quantidade: item.quantidade,
+        preco:         item.preco_unitario ?? item.preco ?? null,
+        quantidade:    item.quantidade,
+        categoria:     item.categoria     ?? null,
+        nome_canonico: item.nome_canonico ?? null,
       }));
 
       const { error: erroItens } = await supabase
@@ -60,6 +64,14 @@ async function salvarCompra(phoneNumber, dados) {
         .insert(linhasItens);
 
       if (erroItens) throw erroItens;
+
+      // Registra preços anônimos para o comparativo de mercados (fire-and-forget).
+      // Cupom não-mercado (tipo='outros') NÃO entra no comparativo de mercados —
+      // farmácia/posto/restaurante poluiriam a base de preços de supermercado.
+      if (tipo !== 'outros') {
+        registrarPrecosMercado(phoneNumber, dados.loja, dados.cnpj ?? null, itens)
+          .catch(err => log('precos_mercado_erro', { fn: 'salvarCompra', erro: err.message }));
+      }
     }
 
     // 3. Incrementa o contador de compras do mês atual do usuário
@@ -312,6 +324,106 @@ async function buscarComprasDoMes(phoneNumber, mesReferencia) {
   return { compras, totalGasto, qtdCompras, ticketMedio, topLojas, topItens };
 }
 
+// ---------------------------------------------------------------
+// Preços de mercado anônimos (base do comparativo futuro)
+// ---------------------------------------------------------------
+
+// Registra preços dos itens na tabela compartilhada, respeitando opt-out.
+// Fire-and-forget — erros são logados mas não bloqueiam o fluxo principal.
+async function registrarPrecosMercado(phoneNumber, loja, cnpj, itens) {
+  try {
+    const { data: usuario } = await supabase
+      .from('usuarios')
+      .select('opt_out_precos')
+      .eq('phone_number', phoneNumber)
+      .single();
+
+    if (usuario?.opt_out_precos) return; // usuário optou por não compartilhar
+
+    const hoje = new Date().toISOString().split('T')[0];
+    const linhas = itens
+      .filter(i => i.nome_canonico && (i.preco_unitario ?? i.preco) > 0)
+      .map(i => ({
+        produto_canonico: i.nome_canonico,
+        loja,
+        cnpj:       cnpj || null,
+        preco_unit: i.preco_unitario ?? i.preco,
+        data_obs:   hoje,
+      }));
+
+    if (linhas.length === 0) return;
+
+    await supabase.from('precos_mercado').insert(linhas);
+    log('precos_mercado_registrados', { loja, qtd: linhas.length });
+  } catch (err) {
+    log('precos_mercado_erro', { fn: 'registrarPrecosMercado', erro: err.message });
+  }
+}
+
+// Retorna breakdown de gastos por categoria no mês informado.
+// Só inclui itens com categoria definida (compras feitas após a migration).
+async function buscarGastosPorCategoria(phoneNumber, mesReferencia) {
+  try {
+    const primeiroDia = `${mesReferencia}-01`;
+    const [ano, mes] = mesReferencia.split('-').map(Number);
+    const proximoMes = mes === 12
+      ? `${ano + 1}-01-01`
+      : `${ano}-${String(mes + 1).padStart(2, '0')}-01`;
+
+    const { data: compras, error: errC } = await supabase
+      .from('compras')
+      .select('id')
+      .eq('phone_number', phoneNumber)
+      .gte('data_compra', primeiroDia)
+      .lt('data_compra', proximoMes);
+
+    if (errC) throw errC;
+    if (!compras || compras.length === 0) return [];
+
+    const ids = compras.map(c => c.id);
+    const { data: itens, error: errI } = await supabase
+      .from('itens_compra')
+      .select('categoria, preco, quantidade')
+      .in('compra_id', ids)
+      .not('categoria', 'is', null);
+
+    if (errI) throw errI;
+    if (!itens || itens.length === 0) return [];
+
+    // Agrega totais por categoria em JS (volume pequeno por usuário/mês)
+    const catMap = {};
+    for (const item of itens) {
+      const cat = item.categoria || 'outros';
+      if (!catMap[cat]) catMap[cat] = 0;
+      catMap[cat] += (Number(item.preco) || 0) * (Number(item.quantidade) || 1);
+    }
+
+    return Object.entries(catMap)
+      .map(([categoria, total]) => ({ categoria, total: Math.round(total * 100) / 100 }))
+      .sort((a, b) => b.total - a.total);
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarGastosPorCategoria', erro: err.message });
+    return [];
+  }
+}
+
+// Opt-out/in do compartilhamento anônimo de preços
+async function setOptOutPrecos(phoneNumber, valor) {
+  try {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ opt_out_precos: valor })
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+    log('opt_out_precos_atualizado', { phone: maskPhone(phoneNumber), valor });
+  } catch (err) {
+    log('supabase_erro', { fn: 'setOptOutPrecos', erro: err.message });
+    throw err;
+  }
+}
+
+// ---------------------------------------------------------------
+
 async function verificarResumoJaEnviado(phoneNumber, mesReferencia) {
   const { data, error } = await supabase
     .from('resumos_mensais_enviados')
@@ -342,6 +454,168 @@ async function marcarResumoEnviado(phoneNumber, mesReferencia, totalCompras, tot
   }
 }
 
+// ---------------------------------------------------------------
+// Reengajamento — busca de usuários elegíveis + controle de lembretes
+// ---------------------------------------------------------------
+
+// Retorna { inicio, fim } (ISO) da janela de 1 dia que ocorreu há `dias` dias.
+// Ex: dias=3 hoje (05) → janela do dia 02 (00:00 até 03 00:00). Usado para
+// casar "exatamente há N dias" por dia de calendário (horário do servidor).
+function _janelaDiaAtras(dias) {
+  const alvo = new Date();
+  alvo.setHours(0, 0, 0, 0);
+  alvo.setDate(alvo.getDate() - dias);
+
+  const inicio = new Date(alvo);
+  const fim = new Date(alvo);
+  fim.setDate(fim.getDate() + 1);
+
+  return { inicio: inicio.toISOString(), fim: fim.toISOString() };
+}
+
+// Segmento A — usuários que se cadastraram há `diasDesde` dias e nunca mandaram
+// cupom (compras_mes_atual = 0, onboarding_step entre 1 e 2).
+// onboarding_step = 0 (nunca respondeu às boas-vindas) é excluído de propósito.
+async function buscarElegiveisOnboarding(diasDesde) {
+  try {
+    const { inicio, fim } = _janelaDiaAtras(diasDesde);
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('phone_number, compras_mes_atual, onboarding_step')
+      .gte('criado_em', inicio)
+      .lt('criado_em', fim)
+      .eq('compras_mes_atual', 0)
+      .gte('onboarding_step', 1)
+      .lt('onboarding_step', 3);
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarElegiveisOnboarding', erro: err.message });
+    throw err;
+  }
+}
+
+// Segmento B — usuários cuja última compra (última linha em `compras`) foi
+// exatamente há `diasDesde` dias. Agrega o último criado_em por usuário em JS
+// (volume pequeno no Beta) e cruza com `usuarios` para trazer contador/step.
+async function buscarElegiveisInativos(diasDesde) {
+  try {
+    const { inicio, fim } = _janelaDiaAtras(diasDesde);
+
+    // Última atividade por usuário: criado_em desc → primeira ocorrência = mais recente
+    const { data, error } = await supabase
+      .from('compras')
+      .select('phone_number, criado_em')
+      .order('criado_em', { ascending: false });
+
+    if (error) throw error;
+
+    const ultimaPorUsuario = {};
+    for (const row of (data || [])) {
+      if (!ultimaPorUsuario[row.phone_number]) {
+        ultimaPorUsuario[row.phone_number] = row.criado_em;
+      }
+    }
+
+    const phonesAlvo = Object.entries(ultimaPorUsuario)
+      .filter(([, ultima]) => ultima >= inicio && ultima < fim)
+      .map(([phone]) => phone);
+
+    if (phonesAlvo.length === 0) return [];
+
+    const { data: usuarios, error: errU } = await supabase
+      .from('usuarios')
+      .select('phone_number, compras_mes_atual, onboarding_step, is_pro')
+      .in('phone_number', phonesAlvo);
+
+    if (errU) throw errU;
+
+    // Nunca enviar para quem nem respondeu às boas-vindas (onboarding_step = 0)
+    return (usuarios || []).filter(u => (u.onboarding_step ?? 0) > 0);
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarElegiveisInativos', erro: err.message });
+    throw err;
+  }
+}
+
+// Segmento D — usuários no plano gratuito que chegaram a 8 cupons no mês.
+async function buscarElegiveisLimiteAviso() {
+  try {
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('phone_number, compras_mes_atual, onboarding_step, is_pro')
+      .eq('compras_mes_atual', 8)
+      .eq('is_pro', false)
+      .eq('mes_referencia', mesAtual)
+      .gte('onboarding_step', 1);
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarElegiveisLimiteAviso', erro: err.message });
+    throw err;
+  }
+}
+
+// Segmento C — usuários ativos no mês corrente (>= 1 cupom no mês) com
+// onboarding concluído. Usado para o teaser de fim de mês (dias 26–27).
+async function buscarElegiveisFinsDeMes() {
+  try {
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('phone_number, compras_mes_atual, onboarding_step')
+      .gt('compras_mes_atual', 0)
+      .gte('onboarding_step', 3)
+      .eq('mes_referencia', mesAtual);
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarElegiveisFinsDeMes', erro: err.message });
+    throw err;
+  }
+}
+
+// Verifica se um lembrete já foi enviado para o usuário.
+// mesReferencia = null para lembretes de ciclo único (onboarding, inativo).
+async function lembreteFoiEnviado(phoneNumber, lembreteId, mesReferencia = null) {
+  try {
+    let query = supabase
+      .from('lembretes_enviados')
+      .select('id')
+      .eq('phone_number', phoneNumber)
+      .eq('lembrete_id', lembreteId);
+
+    query = mesReferencia === null
+      ? query.is('mes_referencia', null)
+      : query.eq('mes_referencia', mesReferencia);
+
+    const { data, error } = await query.maybeSingle();
+    if (error) throw error;
+    return !!data;
+  } catch (err) {
+    log('supabase_erro', { fn: 'lembreteFoiEnviado', erro: err.message });
+    throw err;
+  }
+}
+
+// Registra que um lembrete foi enviado ao usuário.
+async function registrarLembreteEnviado(phoneNumber, lembreteId, mesReferencia = null) {
+  try {
+    const { error } = await supabase
+      .from('lembretes_enviados')
+      .insert({ phone_number: phoneNumber, lembrete_id: lembreteId, mes_referencia: mesReferencia });
+
+    if (error) throw error;
+  } catch (err) {
+    log('supabase_erro', { fn: 'registrarLembreteEnviado', erro: err.message });
+    throw err;
+  }
+}
+
 module.exports = {
   upsertUsuario,
   salvarCompra,
@@ -355,4 +629,12 @@ module.exports = {
   buscarComprasDoMes,
   verificarResumoJaEnviado,
   marcarResumoEnviado,
+  buscarGastosPorCategoria,
+  setOptOutPrecos,
+  buscarElegiveisOnboarding,
+  buscarElegiveisInativos,
+  buscarElegiveisLimiteAviso,
+  buscarElegiveisFinsDeMes,
+  lembreteFoiEnviado,
+  registrarLembreteEnviado,
 };

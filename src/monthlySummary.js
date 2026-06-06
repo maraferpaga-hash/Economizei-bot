@@ -1,7 +1,8 @@
 const { listarUsuariosAtivosNoMes, buscarComprasDoMes, verificarResumoJaEnviado,
-        marcarResumoEnviado } = require('./supabase');
-const { enviarMensagem } = require('./zapi');
-const { montarResumoMensal } = require('./formatter');
+        marcarResumoEnviado, buscarGastosPorCategoria } = require('./supabase');
+const { enviarMensagem, enviarImagem } = require('./zapi');
+const { montarResumoMensal, nomeDoMes } = require('./formatter');
+const { gerarUrlGraficoCategorias } = require('./charts');
 const { log, maskPhone } = require('./logger');
 
 function calcularMesAnterior(mesRef) {
@@ -34,7 +35,23 @@ async function executarResumoMensal(mesReferencia, phoneEspecifico = null) {
       await enviarMensagem(phone, texto);
       await marcarResumoEnviado(phone, mesReferencia, dadosAtual.qtdCompras, dadosAtual.totalGasto);
 
-      // throttle: 1 mensagem por segundo pra não estourar rate-limit do Z-API
+      // Tenta enviar gráfico de categorias logo após o texto do resumo
+      try {
+        const dadosCat = await buscarGastosPorCategoria(phone, mesReferencia);
+        if (dadosCat && dadosCat.length > 0) {
+          const titulo   = nomeDoMes(mesReferencia);
+          const chartUrl = gerarUrlGraficoCategorias(dadosCat, titulo);
+          if (chartUrl) {
+            await new Promise(r => setTimeout(r, 800));
+            await enviarImagem(phone, chartUrl, `📊 Gastos por categoria — ${titulo}`);
+          }
+        }
+      } catch (errCat) {
+        // Falha no gráfico não impede o resumo de ser marcado como enviado
+        log('resumo_grafico_erro', { phone: maskPhone(phone), erro: errCat.message });
+      }
+
+      // throttle: 1 segundo entre usuários pra não estourar rate-limit do Z-API
       await new Promise(r => setTimeout(r, 1000));
       enviados++;
     } catch (err) {

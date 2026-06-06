@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Como tratamos seus dados — Economizei</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --verde: #1D9E75;
+      --verde-claro: #E1F5EE;
+      --texto: #1a1a1a;
+      --texto-suave: #555;
+      --borda: #e5e7eb;
+      --fundo: #f9fafb;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--texto);
+      background: #fff;
+      line-height: 1.7;
+    }
+
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--borda);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--verde);
+      text-decoration: none;
+    }
+
+    .logo span {
+      color: var(--texto);
+      font-weight: 400;
+    }
+
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--verde-claro);
+      color: var(--verde);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+      letter-spacing: 0.04em;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 0.75rem;
+    }
+
+    .subtitulo {
+      font-size: 1.05rem;
+      color: var(--texto-suave);
+      margin-bottom: 2.5rem;
+      max-width: 540px;
+    }
+
+    .atualizacao {
+      font-size: 0.8rem;
+      color: var(--texto-suave);
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--borda);
+    }
+
+    .bloco {
+      display: flex;
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+      padding-bottom: 2.5rem;
+      border-bottom: 1px solid var(--borda);
+    }
+
+    .bloco:last-of-type {
+      border-bottom: none;
+    }
+
+    .icone {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--verde-claro);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-top: 2px;
+    }
+
+    .bloco-conteudo h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .bloco-conteudo p {
+      font-size: 0.95rem;
+      color: var(--texto-suave);
+      margin-bottom: 0.5rem;
+    }
+
+    .bloco-conteudo ul {
+      padding-left: 1.25rem;
+      font-size: 0.95rem;
+      color: var(--texto-suave);
+    }
+
+    .bloco-conteudo ul li {
+      margin-bottom: 0.35rem;
+    }
+
+    .destaque {
+      background: var(--fundo);
+      border: 1px solid var(--borda);
+      border-left: 3px solid var(--verde);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      font-size: 0.9rem;
+      color: var(--texto-suave);
+      margin-top: 0.75rem;
+    }
+
+    .apagar-box {
+      background: var(--verde-claro);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .apagar-box strong {
+      font-size: 1rem;
+      display: block;
+      margin-bottom: 0.35rem;
+      color: #0F6E56;
+    }
+
+    .apagar-box p {
+      font-size: 0.9rem;
+      color: #0F6E56 !important;
+      margin: 0 !important;
+    }
+
+    .comando {
+      font-family: monospace;
+      background: #fff;
+      border: 1px solid #9FE1CB;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.9rem;
+      color: #0F6E56;
+    }
+
+    .rodape-pagina {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--borda);
+      font-size: 0.85rem;
+      color: var(--texto-suave);
+    }
+
+    .rodape-pagina a {
+      color: var(--verde);
+      text-decoration: none;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.5rem; }
+      .bloco { flex-direction: column; gap: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="/">✓ Economizei <span>— Beta</span></a>
+</header>
+
+<main>
+  <div class="badge">Privacidade & Dados</div>
+  <h1>Como tratamos seus dados</h1>
+  <p class="subtitulo">Aqui não tem letra miúda. Explicamos em linguagem simples o que coletamos, por que, e como você controla tudo isso.</p>
+  <p class="atualizacao">Última atualização: maio de 2026</p>
+
+  <div class="bloco">
+    <div class="icone">📋</div>
+    <div class="bloco-conteudo">
+      <h2>O que coletamos</h2>
+      <p>Quando você usa o Economizei, armazenamos apenas o necessário para o serviço funcionar:</p>
+      <ul>
+        <li>Seu número de WhatsApp (para identificar você e responder suas mensagens)</li>
+        <li>Os dados extraídos dos seus cupons fiscais: nome da loja, data, valor total e itens comprados</li>
+        <li>O histórico das suas compras para calcular médias e gerar alertas</li>
+      </ul>
+      <div class="destaque">
+        <strong>Sobre o CPF:</strong> os cupons fiscais impressos contêm seu CPF. A inteligência artificial que lê a imagem pode ver esse número, mas nós <strong>não armazenamos o CPF</strong> em nenhuma base de dados. Só salvamos as informações de compra listadas acima.
+      </div>
+    </div>
+  </div>
+
+  <div class="bloco">
+    <div class="icone">🎯</div>
+    <div class="bloco-conteudo">
+      <h2>Por que coletamos</h2>
+      <p>Cada dado tem uma razão específica e nada além disso:</p>
+      <ul>
+        <li><strong>Número de WhatsApp</strong> — para saber com quem estamos falando e enviar as respostas certas</li>
+        <li><strong>Dados do cupom</strong> — para montar seu histórico de gastos e calcular médias ao longo do tempo</li>
+        <li><strong>Histórico de compras</strong> — para gerar alertas quando você gasta mais que o habitual e mostrar onde seu dinheiro vai</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="bloco">
+    <div class="icone">🔒</div>
+    <div class="bloco-conteudo">
+      <h2>Com quem compartilhamos</h2>
+      <p><strong>Ninguém.</strong> Seus dados financeiros são seus. Não vendemos, não repassamos e não usamos para publicidade.</p>
+      <p>Usamos dois serviços técnicos para o bot funcionar:</p>
+      <ul>
+        <li><strong>Google Gemini</strong> — a IA que lê a imagem do cupom. A imagem é enviada para análise e não é armazenada pelo Google após o processamento</li>
+        <li><strong>Supabase</strong> — o banco de dados seguro onde seu histórico fica guardado, hospedado em servidores na Europa (GDPR compliant)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="bloco">
+    <div class="icone">📅</div>
+    <div class="bloco-conteudo">
+      <h2>Por quanto tempo guardamos</h2>
+      <p>Seus dados ficam armazenados enquanto você usar o serviço. Se você ficar 12 meses sem enviar nenhum cupom, apagamos sua conta automaticamente.</p>
+      <p>Você pode pedir a exclusão a qualquer momento — veja abaixo.</p>
+    </div>
+  </div>
+
+  <div class="bloco">
+    <div class="icone">🗑️</div>
+    <div class="bloco-conteudo">
+      <h2>Como apagar tudo</h2>
+      <p>Você tem controle total. Para apagar sua conta e todos os dados associados a ela:</p>
+      <div class="apagar-box">
+        <strong>Manda a mensagem abaixo no WhatsApp do Economizei:</strong>
+        <p><span class="comando">/apagar</span> — e excluímos tudo em até 48 horas.</p>
+      </div>
+      <p style="margin-top: 0.75rem; font-size: 0.875rem; color: var(--texto-suave);">Não precisa de formulário, não precisa de e-mail, não precisa esperar. Um comando e sumiu.</p>
+    </div>
+  </div>
+
+  <div class="bloco">
+    <div class="icone">✉️</div>
+    <div class="bloco-conteudo">
+      <h2>Dúvidas ou solicitações</h2>
+      <p>Se tiver qualquer dúvida sobre seus dados, entre em contato:</p>
+      <ul>
+        <li>WhatsApp: pelo próprio bot, manda <span class="comando">/privacidade</span></li>
+        <li>E-mail: <a href="mailto:privacidade@economizei.space" style="color: var(--verde); text-decoration: none;">privacidade@economizei.space</a></li>
+      </ul>
+      <p>Respondemos em até 3 dias úteis.</p>
+    </div>
+  </div>
+
+  <div class="rodape-pagina">
+    <p>Esta página é um resumo humano. Para o documento legal completo, veja nossa <a href="/politica-de-privacidade">Política de Privacidade</a>.</p>
+    <p style="margin-top: 0.5rem;"><a href="/">← Voltar para o início</a></p>
+  </div>
+</main>
+
+</body>
+</html>

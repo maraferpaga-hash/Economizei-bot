@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const express = require('express');
-const { enviarMensagem, baixarImagem } = require('./zapi');
+const { enviarMensagem, baixarImagem, enviarImagem } = require('./zapi');
 const { lerRecibo } = require('./gemini');
 const {
   upsertUsuario,
@@ -11,6 +11,8 @@ const {
   verificarLimiteGratuito,
   buscarStatusUsuario,
   atualizarOnboardingStep,
+  buscarGastosPorCategoria,
+  setOptOutPrecos,
   // salvarWaitlist — DEPRECATED em 2026-05-22 (waitlist removida); função
   // mantida em supabase.js para reativação futura se necessário.
 } = require('./supabase');
@@ -27,11 +29,17 @@ const {
   montarOnboarding2,
   montarOnboarding3,
   montarOnboarding4,
+  montarMensagemGastos,
+  montarMensagemPrivacidade,
+  montarMensagemEnviarComoArquivo,
+  nomeDoMes,
 } = require('./formatter');
+const { gerarUrlGraficoCategorias } = require('./charts');
 const { verificarAlerta } = require('./alerts');
 const { log, maskPhone } = require('./logger');
 const { iniciar: iniciarScheduler } = require('./scheduler');
 const { executarResumoMensal } = require('./monthlySummary');
+const { buscarTodasMetricas } = require('./metrics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -127,6 +135,25 @@ app.post('/webhook', (req, res) => {
 // ---------------------------------------------------------------
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ---------------------------------------------------------------
+// GET /admin/metrics — métricas consolidadas (autenticado)
+// Uso: curl -H "X-Admin-Secret: SEU_SECRET" https://seu-bot.up.railway.app/admin/metrics
+// Variável de ambiente necessária: ADMIN_SECRET (gere com: openssl rand -hex 32)
+// ---------------------------------------------------------------
+app.get('/admin/metrics', async (req, res) => {
+  const secret = req.header('X-Admin-Secret');
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
+    return res.status(401).json({ erro: 'unauthorized' });
+  }
+  try {
+    const metricas = await buscarTodasMetricas();
+    res.json(metricas);
+  } catch (err) {
+    log('admin_metrics_erro', { erro: err.message });
+    res.status(500).json({ erro: err.message });
+  }
 });
 
 // ---------------------------------------------------------------
@@ -228,6 +255,34 @@ async function processarTexto(phone, texto) {
     return;
   }
 
+  if (ehComando('/gastos', 'gastos', '/categorias', 'categorias', '/grafico', 'gráfico')) {
+    await mostrarGastos(phone);
+    return;
+  }
+
+  if (ehComando('/privacidade', 'privacidade')) {
+    await enviarMensagem(phone, montarMensagemPrivacidade());
+    return;
+  }
+
+  if (ehComando('/nao-compartilhar', 'nao-compartilhar', '/naoquero')) {
+    await setOptOutPrecos(phone, true);
+    await enviarMensagem(
+      phone,
+      '✅ Entendido. Seus preços não serão mais usados na rede de comparação de mercados.\n\nSeu histórico pessoal continua salvo normalmente. Para reativar a qualquer momento: */compartilhar*'
+    );
+    return;
+  }
+
+  if (ehComando('/compartilhar', 'compartilhar')) {
+    await setOptOutPrecos(phone, false);
+    await enviarMensagem(
+      phone,
+      '✅ Ativado! Seus preços voltam a contribuir anonimamente para o comparativo entre mercados.\n\nPara sair novamente: */nao-compartilhar*'
+    );
+    return;
+  }
+
   if (ehComando('historico', 'histórico', '/historico', '/resumo', 'resumo')) {
     await mostrarHistorico(phone);
   } else if (ehComando('oi', 'olá', 'ola', 'ajuda', '/ajuda', 'start', 'menu', 'help', '/start')) {
@@ -269,6 +324,11 @@ async function processarImagem(phone, imageUrl) {
         motivo: dados.motivo,
       });
       await enviarMensagem(phone, montarMensagemErro(dados.motivo, dados.categoria_erro));
+      // Borrado mesmo após pré-processamento: orienta a reenviar como documento
+      if (dados.categoria_erro === 'borrado') {
+        await new Promise(r => setTimeout(r, 800));
+        await enviarMensagem(phone, montarMensagemEnviarComoArquivo());
+      }
       return;
     }
 
@@ -281,6 +341,8 @@ async function processarImagem(phone, imageUrl) {
       total: dados.total,
       data_compra: dados.data_compra,
       itens: dados.itens,
+      cnpj: dados.cnpj,
+      tipo: dados.tipo,
     });
 
     // Após salvar, busca totalMes (já inclui a compra atual) e o contador atualizado do usuário
@@ -323,6 +385,39 @@ async function processarImagem(phone, imageUrl) {
       await enviarMensagem(phone, montarMensagemErro('Erro interno ao processar imagem'));
     } catch (_) { /* já logado em zapi_erro */ }
   }
+}
+
+// ---------------------------------------------------------------
+// Mostra gráfico de gastos por categoria do mês atual
+// ---------------------------------------------------------------
+async function mostrarGastos(phone) {
+  const mesAtual = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+  const dadosCat = await buscarGastosPorCategoria(phone, mesAtual);
+
+  if (!dadosCat || dadosCat.length === 0) {
+    await enviarMensagem(
+      phone,
+      '📊 Ainda não tenho dados de categoria para esse mês.\n\n' +
+      'Continue mandando os cupons — a partir de agora cada cupom registra a categoria de cada item automaticamente. 📸'
+    );
+    return;
+  }
+
+  const titulo   = nomeDoMes(mesAtual);
+  const chartUrl = gerarUrlGraficoCategorias(dadosCat, titulo);
+
+  // Envia o gráfico — fallback silencioso se a imagem falhar
+  if (chartUrl) {
+    try {
+      await enviarImagem(phone, chartUrl, `📊 Gastos por categoria — ${titulo}`);
+      await new Promise(r => setTimeout(r, 600));
+    } catch (err) {
+      log('gastos_imagem_erro', { phone: maskPhone(phone), erro: err.message });
+    }
+  }
+
+  // Sempre envia o texto com os valores detalhados
+  await enviarMensagem(phone, montarMensagemGastos(dadosCat, mesAtual));
 }
 
 // ---------------------------------------------------------------

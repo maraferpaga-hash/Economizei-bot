@@ -3,6 +3,21 @@ const MESES = [
   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
 ];
 
+// Labels em português das categorias (espelho de charts.js para evitar dependência circular)
+const LABELS_CATEGORIA = {
+  carnes:     'Carnes e Aves',
+  hortifruti: 'Hortifruti',
+  laticinios: 'Laticínios',
+  padaria:    'Padaria',
+  bebidas:    'Bebidas',
+  limpeza:    'Limpeza',
+  mercearia:  'Mercearia',
+  congelados: 'Congelados',
+  doces:      'Doces e Petiscos',
+  outros:     'Outros',
+  nao_mercado:'Outros (não-mercado)',
+};
+
 // Chave PIX configurável via env. Em desenvolvimento, mostra placeholder.
 // IMPORTANTE: configurar PIX_KEY no .env antes do deploy.
 function pixKey() {
@@ -91,27 +106,51 @@ function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia) {
 }
 
 function montarResposta(dadosCompra, historico) {
-  const { loja, total, data_compra, itens = [] } = dadosCompra;
+  const { loja, total, data_compra, itens = [], tipo = 'mercado' } = dadosCompra;
   const { totalMes, qtdComprasMes } = historico;
 
-  const itensPrincipais = itens.slice(0, 3);
-  const extras = itens.length - 3;
+  // Decisão 2026-06-04: listar TODOS os itens registrados (antes cortava em 3).
+  // Mostra quantidade quando > 1: "• 2x Arroz 5kg — R$ 19,80".
+  const formatarLinha = (item) => {
+    const qtd = Number(item.quantidade) || 1;
+    const prefixoQtd = qtd > 1 ? `${qtd}x ` : '';
+    const preco = item.preco_total ?? item.preco_unitario ?? item.preco;
+    return `• ${prefixoQtd}${item.nome} — R$ ${brl(preco)}`;
+  };
 
-  const linhasItens = itensPrincipais
-    .map((item) => `- ${item.nome} — R$ ${brl(item.preco_total ?? item.preco)}`)
-    .join('\n');
-
-  const linhaExtras = extras > 0 ? `\n• ...e mais ${extras} ${extras === 1 ? 'item' : 'itens'}` : '';
-
-  // Bloco de itens só aparece se houver pelo menos um item legível
-  const blocoItens = itensPrincipais.length > 0
-    ? `📦 *Itens principais:*\n${linhasItens}${linhaExtras}\n\n`
+  // Guarda contra o limite (~4096 chars) de uma mensagem do WhatsApp: se a lista
+  // completa estourar, mostra o máximo que cabe e indica quantos ficaram de fora.
+  const LIMITE_CHARS_ITENS = 3000;
+  let linhasItens = '';
+  let mostrados = 0;
+  for (const item of itens) {
+    const linha = formatarLinha(item);
+    if (linhasItens.length + linha.length + 1 > LIMITE_CHARS_ITENS) break;
+    linhasItens += (linhasItens ? '\n' : '') + linha;
+    mostrados++;
+  }
+  const ocultos = itens.length - mostrados;
+  const linhaOcultos = ocultos > 0
+    ? `\n• ...e mais ${ocultos} ${ocultos === 1 ? 'item' : 'itens'} (cupom longo demais pra uma mensagem só)`
     : '';
 
+  // Bloco de itens só aparece se houver pelo menos um item legível
+  const blocoItens = itens.length > 0
+    ? `📦 *Itens registrados (${itens.length}):*\n${linhasItens}${linhaOcultos}\n\n`
+    : '';
+
+  // Cupom de não-mercado: confirmação neutra/positiva (nunca negativa) + nota de categoria
+  const cabecalho = tipo === 'outros'
+    ? `✅ *Cupom registrado!*\n\n` +
+      `🏪 ${loja} — ${dataCurta(data_compra)}\n` +
+      `🏷️ _Não é de supermercado — guardei em *Outros (não-mercado)*._\n` +
+      `💰 *Total: R$ ${brl(total)}*\n\n`
+    : `✅ *Compra registrada!*\n\n` +
+      `🏪 ${loja} — ${dataCurta(data_compra)}\n` +
+      `💰 *Total: R$ ${brl(total)}*\n\n`;
+
   return (
-    `✅ *Compra registrada!*\n\n` +
-    `🏪 ${loja} — ${dataCurta(data_compra)}\n` +
-    `💰 *Total: R$ ${brl(total)}*\n\n` +
+    cabecalho +
     `${blocoItens}` +
     `📊 *Esse mês:* R$ ${brl(totalMes)} em ${qtdComprasMes} compra(s)`
   );
@@ -165,9 +204,11 @@ function montarMensagemBemVindo() {
     `📸 *Economizei* — você manda a foto do cupom, eu organizo seus gastos no mercado. Sem app, sem planilha, só foto.\n\n` +
     `Manda uma foto de cupom aqui pra começar!\n\n` +
     `*Comandos:*\n` +
-    `• */planos* — vê os planos (Grátis, Individual, Família, Família+)\n` +
+    `• */gastos* — gráfico dos seus gastos por categoria esse mês\n` +
     `• */historico* ou */resumo* — suas últimas compras\n` +
     `• */limite* — quantos cupons restam esse mês\n` +
+    `• */planos* — ver os planos disponíveis\n` +
+    `• */privacidade* — sobre como usamos seus dados\n` +
     `• */apagar* — apaga todo seu histórico\n` +
     `• */ajuda* — vê esta mensagem de novo\n\n` +
     `💡 O *Grátis* deixa você mandar até 10 cupons/mês — cobre quem vai ao mercado 2-3x por semana. Pra ver o que o Pro oferece (cupons ilimitados, comparativo entre mercados), manda */planos*.`
@@ -254,6 +295,48 @@ function montarMensagemPlanos() {
   );
 }
 
+/**
+ * Texto de breakdown de gastos por categoria (enviado junto ou após o gráfico).
+ * @param {Array<{categoria: string, total: number}>} dados - Ordenado por total desc
+ * @param {string} mesReferencia - "YYYY-MM"
+ */
+function montarMensagemGastos(dados, mesReferencia) {
+  if (!dados || dados.length === 0) {
+    return (
+      '📊 Ainda não tenho dados de categoria para esse período.\n\n' +
+      'Continue mandando os cupons — a partir desta semana cada cupom já vem com a categoria de cada item.'
+    );
+  }
+
+  const total = dados.reduce((s, d) => s + d.total, 0);
+
+  const linhas = dados.map((d, i) => {
+    const pct   = Math.round((d.total / total) * 100);
+    const label = LABELS_CATEGORIA[d.categoria] || d.categoria;
+    return `${i + 1}. ${label}: *R$ ${brl(d.total)}* (${pct}%)`;
+  });
+
+  return (
+    `📊 *Gastos por categoria — ${nomeDoMes(mesReferencia)}*\n\n` +
+    linhas.join('\n') +
+    `\n\n💰 *Total: R$ ${brl(total)}*\n\n` +
+    `_Mande /gastos a qualquer hora para ver o gráfico atualizado._`
+  );
+}
+
+function montarMensagemPrivacidade() {
+  return (
+    `🔒 *Privacidade no Economizei*\n\n` +
+    `*Seus dados pessoais:* seus cupons e histórico ficam guardados na sua conta. Só você tem acesso. Para apagar tudo: */apagar*\n\n` +
+    `*Compartilhamento anônimo de preços:*\n` +
+    `Para alimentar o comparativo entre mercados, usamos os preços dos seus itens de forma *totalmente anônima* — sem seu nome, número ou qualquer dado pessoal. Isso ajuda todos os usuários a saberem onde cada produto sai mais barato.\n\n` +
+    `Você participa automaticamente e pode sair a qualquer momento:\n` +
+    `• Para *não* compartilhar: mande */nao-compartilhar*\n` +
+    `• Para reativar: mande */compartilhar*\n\n` +
+    `Dúvidas? Responda aqui.`
+  );
+}
+
 function montarMensagemAlerta(percentual, mediaHistorica) {
   return (
     `📊 *Compra acima do seu padrão*\n\n` +
@@ -300,8 +383,145 @@ function montarOnboarding4(dadosCompra, totalMes) {
   );
 }
 
+// ---------------------------------------------------------------
+// Digest semanal dos "3 números" do roadmap — enviado ao ADMIN_PHONE
+// dados: { dashboard, w2, uptime, landingUrl } (ver weeklyDigest.js)
+// Cada bloco degrada sozinho: se uma fonte falhar, as outras aparecem.
+// ---------------------------------------------------------------
+function montarDigestSemanal(dados) {
+  const { dashboard, w2, uptime, landingUrl } = dados || {};
+  const hoje = new Date().toLocaleDateString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo',
+  });
+
+  const linhas = [`📈 *Economizei — placar da semana*`, `_${hoje}_`, ``];
+
+  // 1. Cadastros novos (Supabase)
+  if (dashboard && !dashboard.erro) {
+    linhas.push(`👤 *Cadastros*`);
+    linhas.push(`• Novos (7 dias): *${dashboard.novos_7d}*`);
+    linhas.push(`• Hoje: ${dashboard.novos_hoje}  |  Total: ${dashboard.total_usuarios}`);
+    linhas.push(`• Pagantes: ${dashboard.pagantes}`);
+    linhas.push(`• Ativos — DAU ${dashboard.dau} / WAU ${dashboard.wau} / MAU ${dashboard.mau}`);
+    linhas.push(`• Cupons no mês: ${dashboard.cupons_mes_atual}`);
+  } else {
+    linhas.push(`👤 *Cadastros*: ⚠️ erro ao ler (${dashboard?.erro || 'sem dados'})`);
+  }
+  linhas.push(``);
+
+  // Retenção W2 (métrica crítica de hábito)
+  if (w2 && !w2.erro && w2.usuarios_cohort > 0) {
+    linhas.push(`🔁 *Retenção W2*: ${w2.retencao_w2_pct ?? 0}% (${w2.usuarios_retidos_w2}/${w2.usuarios_cohort})`);
+  } else if (w2 && !w2.erro) {
+    linhas.push(`🔁 *Retenção W2*: cohort ainda pequeno pra medir`);
+  }
+  linhas.push(``);
+
+  // 2. Uptime (UptimeRobot)
+  if (uptime?.ok) {
+    const emoji = Number(uptime.ratio) >= 99 ? '🟢' : Number(uptime.ratio) >= 95 ? '🟡' : '🔴';
+    linhas.push(`${emoji} *Uptime (7 dias)*: ${uptime.ratio}%`);
+  } else {
+    linhas.push(`⚪ *Uptime*: indisponível (${uptime?.motivo || 'sem dados'})`);
+  }
+  linhas.push(``);
+
+  // 3. Visitas da landing (Vercel Analytics — leitura manual)
+  linhas.push(`🌐 *Visitas da landing*: ver no painel`);
+  if (landingUrl) linhas.push(landingUrl);
+  else linhas.push(`(Vercel → projeto → aba Analytics → últimos 7 dias)`);
+
+  linhas.push(``, `_Próximo placar: sexta que vem._`);
+  return linhas.join('\n');
+}
+
+// Enviada quando a imagem ficou borrada mesmo após pré-processamento automático.
+// Orienta o usuário a reenviar como documento — o WhatsApp não comprime arquivos.
+function montarMensagemEnviarComoArquivo() {
+  return (
+    '📎 *Dica: tente enviar como arquivo!*\n\n' +
+    'O WhatsApp comprime as fotos e isso pode dificultar a leitura do cupom.\n\n' +
+    'Para evitar a compressão:\n' +
+    '1. Toque no 📎 (clipe/+) na conversa\n' +
+    '2. Escolha *"Documento"*\n' +
+    '3. Selecione a foto do cupom\n\n' +
+    'Assim a imagem chega sem compressão e a leitura fica muito melhor! 🧾'
+  );
+}
+
+// ---------------------------------------------------------------
+// Lembretes de reengajamento — tom de amizade, nunca de cobrança.
+// Mensagens aprovadas em 2026-06-02 (ver CLAUDE.md, seção 11).
+// Funções puras: recebem dados e retornam string.
+// ---------------------------------------------------------------
+
+// Segmento A — nunca mandou cupom
+function montarLembreteOnboardingD2() {
+  return (
+    'Oi! Tudo bem? 😊\n\n' +
+    'Só passando para lembrar que estou aqui — quando for ao mercado, é só guardar o cupom e me mandar uma foto.\n\n' +
+    'Não precisa de cadastro, não precisa de app. É só a foto mesmo.'
+  );
+}
+
+function montarLembreteOnboardingD7() {
+  return (
+    'Oi! Faz uma semana que você se cadastrou aqui. 👋\n\n' +
+    'Se ainda não experimentou, que tal hoje? Pega o próximo cupom do mercado e manda pra mim — em menos de um minuto você já vê o resumo da compra.\n\n' +
+    'Estou aqui quando você quiser.'
+  );
+}
+
+// Segmento B — já mandou cupom mas sumiu
+function montarLembreteInativoD3() {
+  return (
+    'Oi! Passou mais algum dia no mercado? 🛒\n\n' +
+    'É só mandar a foto do cupom quando tiver — fico aqui registrando tudo pra você.'
+  );
+}
+
+function montarLembreteInativoD10(qtdComprasMes) {
+  const qtd = Number(qtdComprasMes) || 0;
+  return (
+    `Oi! Você já tem ${qtd} compra(s) registrada(s) aqui comigo este mês.\n\n` +
+    'Quando fechar o mês, te mando um resumo completo de tudo que gastou. Ainda dá tempo de completar — manda mais um cupom quando puder. 📋'
+  );
+}
+
+function montarLembreteInativoD30() {
+  return (
+    'Faz um tempinho que você não passa por aqui.\n\n' +
+    'Se quiser retomar, é só mandar a foto do cupom do próximo mercado — sem pressa, sem cobranças. Estou aqui quando precisar. 😊'
+  );
+}
+
+function montarLembreteInativoD60() {
+  return (
+    'Oi! Faz dois meses desde a última vez que você me mandou um cupom.\n\n' +
+    'Se quiser continuar controlando os gastos no mercado, é só me mandar uma foto quando for às compras. E se preferir parar por aqui, tudo bem também — é só mandar */apagar* e deleto tudo.'
+  );
+}
+
+// Segmento C — fim de mês com cupons abertos
+function montarLembreteFimMes(qtdComprasMes) {
+  const qtd = Number(qtdComprasMes) || 0;
+  return (
+    'O mês está quase fechando! 📅\n\n' +
+    `Você tem ${qtd} compra(s) registrada(s) até agora. Se ainda tiver cupons guardados, manda pra mim antes do fim do mês — assim consigo montar um balanço completo pra você.`
+  );
+}
+
+// Segmento D — perto do limite gratuito
+function montarLembreteLimite8() {
+  return (
+    'Você já usou 8 dos 10 cupons gratuitos deste mês. 📊\n\n' +
+    'Ainda dá para mais 2 registros. Se quiser continuar sem limite, dá uma olhada nos planos — é só mandar */planos* aqui.'
+  );
+}
+
 module.exports = {
   nomeDoMes,
+  montarDigestSemanal,
   montarResposta,
   montarMensagemErro,
   montarAvisoSucessoParcial,
@@ -315,4 +535,15 @@ module.exports = {
   montarOnboarding3,
   montarOnboarding4,
   montarResumoMensal,
+  montarMensagemGastos,
+  montarMensagemPrivacidade,
+  montarMensagemEnviarComoArquivo,
+  montarLembreteOnboardingD2,
+  montarLembreteOnboardingD7,
+  montarLembreteInativoD3,
+  montarLembreteInativoD10,
+  montarLembreteInativoD30,
+  montarLembreteInativoD60,
+  montarLembreteFimMes,
+  montarLembreteLimite8,
 };

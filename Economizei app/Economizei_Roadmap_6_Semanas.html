@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Economizei — Roadmap 6 Semanas</title>
+<style>
+  :root {
+    --accent: #1F7A4D;
+    --accent-light: #E8F3EE;
+    --ink: #1A1A1A;
+    --muted: #666;
+    --rule: #D5D5D5;
+    --soft: #F4F4F4;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background: white;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+  .page {
+    max-width: 18cm;
+    margin: 0 auto;
+    padding: 1.8cm 1.5cm;
+  }
+  header.brand {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 6px; margin-bottom: 24px;
+  }
+  header.brand .logo { color: var(--accent); font-weight: 800; font-size: 11pt; letter-spacing: 0.5px; }
+  header.brand .crumb { color: var(--muted); font-size: 9.5pt; }
+
+  h1.title {
+    color: var(--accent);
+    font-size: 26pt;
+    margin: 0 0 6px 0;
+    line-height: 1.15;
+  }
+  p.subtitle {
+    color: var(--muted);
+    font-size: 11pt;
+    margin: 0 0 18px 0;
+  }
+  p.intro {
+    text-align: justify;
+    margin-bottom: 22px;
+  }
+
+  h2.section {
+    color: var(--accent);
+    font-size: 14pt;
+    margin: 28px 0 12px 0;
+    padding-bottom: 4px;
+  }
+
+  /* Tabela visão geral */
+  table.overview {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+  }
+  table.overview thead th {
+    background: var(--accent-light);
+    color: var(--accent);
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1.5px solid var(--accent);
+    font-weight: 700;
+  }
+  table.overview tbody td {
+    padding: 7px 10px;
+    border-bottom: 0.5px solid var(--rule);
+    vertical-align: middle;
+  }
+  table.overview tbody tr:nth-child(even) { background: #FBFBFB; }
+  table.overview td.num {
+    color: var(--accent);
+    font-weight: 700;
+    width: 1.2cm;
+  }
+  table.overview td.foco { font-weight: 600; width: 4cm; }
+  table.overview td.h    { width: 1.5cm; }
+
+  .note-small {
+    color: var(--muted);
+    font-size: 9.5pt;
+    font-style: italic;
+    margin-top: 10px;
+  }
+
+  /* Bloco semana */
+  .week { margin-bottom: 22px; page-break-inside: avoid; }
+  .week .bar {
+    background: var(--accent);
+    color: white;
+    padding: 10px 14px;
+    font-weight: 700;
+    font-size: 12pt;
+    border-radius: 2px;
+  }
+  .week .bar .num {
+    letter-spacing: 1px;
+    margin-right: 12px;
+    font-size: 10.5pt;
+  }
+  .week .meta {
+    margin: 8px 2px 8px 2px;
+    font-size: 10pt;
+  }
+  .week .meta .obj { font-style: italic; color: var(--ink); margin-bottom: 4px; }
+  .week .meta .hours { color: var(--accent); font-weight: 700; font-size: 9.5pt; }
+
+  .week ul.tasks {
+    list-style: none;
+    margin: 6px 0 0 0;
+    padding: 0;
+  }
+  .week ul.tasks li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 4px 0;
+    font-size: 10pt;
+  }
+  .week ul.tasks li .cb {
+    color: var(--accent);
+    font-size: 13pt;
+    line-height: 1;
+    flex: 0 0 18px;
+    margin-top: 1px;
+  }
+  .week ul.tasks li .body { flex: 1; }
+  .week ul.tasks li .h {
+    flex: 0 0 1.6cm;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 9.5pt;
+    text-align: right;
+  }
+
+  /* Princípios */
+  ul.principles {
+    list-style: none;
+    margin: 10px 0;
+    padding: 0;
+  }
+  ul.principles li {
+    margin-bottom: 10px;
+    padding-left: 18px;
+    position: relative;
+  }
+  ul.principles li::before {
+    content: "•";
+    color: var(--accent);
+    font-weight: 700;
+    position: absolute;
+    left: 0; top: 0;
+  }
+
+  footer.docnote {
+    margin-top: 28px;
+    padding-top: 12px;
+    border-top: 0.5px solid var(--rule);
+    color: var(--muted);
+    font-size: 9pt;
+    font-style: italic;
+    text-align: center;
+  }
+
+  /* Print rules */
+  @page { size: A4; margin: 1.5cm; }
+  @media print {
+    body { font-size: 10.5pt; }
+    .page { padding: 0; max-width: none; }
+    .week { page-break-inside: avoid; }
+    .page-break { page-break-before: always; }
+    h2.section { page-break-after: avoid; }
+  }
+
+  /* Pequena dica de uso fora da impressão */
+  .print-hint {
+    position: fixed;
+    top: 12px; right: 12px;
+    background: var(--accent);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 10pt;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+  @media print { .print-hint { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="print-hint" onclick="window.print()">Imprimir / Salvar como PDF (Ctrl+P)</div>
+
+<div class="page">
+
+  <header class="brand">
+    <div class="logo">ECONOMIZEI</div>
+    <div class="crumb">Roadmap 6 Semanas — Beta Fundador</div>
+  </header>
+
+  <h1 class="title">Roadmap de Lançamento</h1>
+  <p class="subtitle">Economizei — Beta Fundador &nbsp;·&nbsp; 6 semanas &nbsp;·&nbsp; ~42h totais &nbsp;·&nbsp; 1h/dia</p>
+
+  <p class="intro">
+    Plano executivo de 6 semanas para validar o produto, lançar o beta gratuito e testar
+    willingness-to-pay sem ativar paywall prematuro. Cada semana entrega algo lançável.
+    Buffer realista embutido (~6h não alocadas).
+  </p>
+
+  <h2 class="section">Visão geral</h2>
+  <table class="overview">
+    <thead>
+      <tr>
+        <th>Sem.</th><th>Foco</th><th>Objetivo</th><th>Horas</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="num">1</td><td class="foco">Hardening + Free</td><td>Bot pronto pro modelo Spotify-style</td><td class="h">~7h</td></tr>
+      <tr><td class="num">2</td><td class="foco">Landing + Pricing</td><td>Tráfego com 4 planos visíveis</td><td class="h">~7h</td></tr>
+      <tr><td class="num">3</td><td class="foco">Privacidade + Conteúdo</td><td>3 vídeos + 1 carrossel + página de privacidade</td><td class="h">~7h</td></tr>
+      <tr><td class="num">4</td><td class="foco">Polir Free + Scheduler</td><td>Resumo mensal automático + erros tratados</td><td class="h">~7h</td></tr>
+      <tr><td class="num">5</td><td class="foco">Beta Soft + Indicação</td><td>30–50 usuários ativos + sistema /indicar</td><td class="h">~7h</td></tr>
+      <tr><td class="num">6</td><td class="foco">Iteração + Pricing</td><td>Validar willingness-to-pay por A/B</td><td class="h">~7h</td></tr>
+    </tbody>
+  </table>
+  <p class="note-small">
+    Semana cortável se necessário: <b>Semana 4</b>. O resumo mensal pode ser substituído por
+    mensagem manual no primeiro mês sem matar o lançamento. Cortar qualquer outra compromete
+    a campanha.
+  </p>
+
+  <div class="page-break"></div>
+
+  <h2 class="section">Plano semana a semana</h2>
+
+  <!-- Semana 1 -->
+  <div class="week">
+    <div class="bar"><span class="num">SEMANA 1</span> Hardening + Definição do Free</div>
+    <div class="meta">
+      <div class="obj"><b>Objetivo:</b> Bot pronto pro modelo Spotify-style, sem ser trial disfarçado. Free funciona de verdade.</div>
+      <div class="hours">Carga total: ~7h (1h/dia × 7 dias)</div>
+    </div>
+    <ul class="tasks">
+      <li><span class="cb">☐</span><span class="body">Subir limite de cupons mensais de 3 para 10 (<i>supabase.js</i>)</span><span class="h">30min</span></li>
+      <li><span class="cb">☐</span><span class="body">Criar <i>.env.example</i>, remover <i>.env</i> do git, rotacionar credenciais expostas</span><span class="h">30min</span></li>
+      <li><span class="cb">☐</span><span class="body">Adicionar coluna <i>beta_fundador</i> (BOOLEAN, default true) na tabela <i>usuarios</i></span><span class="h">30min</span></li>
+      <li><span class="cb">☐</span><span class="body">Adicionar validação básica do payload Z-API no webhook</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Adicionar rate limit por phone_number (max 10 mensagens/min)</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Reescrever mensagem de boas-vindas: privacidade + status fundador + paywall futuro</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Criar fluxo de onboarding em 4 mensagens (boas-vindas → pedido 1º cupom → após 1º cupom → após 2º cupom com comparação)</span><span class="h">2h</span></li>
+      <li><span class="cb">☐</span><span class="body">Logging mínimo (timestamp + phone + ação) em arquivo ou console estruturado</span><span class="h">30min</span></li>
+    </ul>
+  </div>
+
+  <!-- Semana 2 -->
+  <div class="week">
+    <div class="bar"><span class="num">SEMANA 2</span> Landing Page + Waitlist + Pricing Visível</div>
+    <div class="meta">
+      <div class="obj"><b>Objetivo:</b> Ter para onde mandar tráfego, com os 4 planos visíveis e o pricing futuro já ancorado.</div>
+      <div class="hours">Carga total: ~7h (1h/dia × 7 dias)</div>
+    </div>
+    <ul class="tasks">
+      <li><span class="cb">☐</span><span class="body">Comprar domínio + escolher hospedagem (Vercel/Netlify grátis)</span><span class="h">30min</span></li>
+      <li><span class="cb">☐</span><span class="body">Construir landing page com headline em A/B test (Opção 1 vs Opção 4)</span><span class="h">3h</span></li>
+      <li><span class="cb">☐</span><span class="body">Bloco de pricing com 4 planos (Grátis ativo; Individual/Família/Família+ com tag “em breve”)</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Captura de waitlist no Supabase (formulário → tabela <i>waitlist</i>)</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Auto-resposta de waitlist via WhatsApp (template + envio Z-API)</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Adicionar UTM tracking básico para medir origem</span><span class="h">30min</span></li>
+    </ul>
+  </div>
+
+  <!-- Semana 3 -->
+  <div class="week">
+    <div class="bar"><span class="num">SEMANA 3</span> Mensagem de Privacidade + Conteúdo</div>
+    <div class="meta">
+      <div class="obj"><b>Objetivo:</b> Conteúdo distribuível + reforço da objeção #2 (privacidade) e do framing “esperto/economia”.</div>
+      <div class="hours">Carga total: ~7h (1h/dia × 7 dias)</div>
+    </div>
+    <ul class="tasks">
+      <li><span class="cb">☐</span><span class="body">Página dedicada “Como tratamos seus dados”</span><span class="h">1h 30min</span></li>
+      <li><span class="cb">☐</span><span class="body">Política de privacidade simples (template + ajuste)</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Vídeo Reels/TikTok 1: “A planilha que você nunca conseguiu manter” (esperto + zero esforço)</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Vídeo Reels/TikTok 2: “Não deixa o mercado te passar a perna” (provocação)</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Vídeo Reels/TikTok 3: “Indica pra sua mãe” (persona indireta + plano família)</span><span class="h">1h 30min</span></li>
+      <li><span class="cb">☐</span><span class="body">1 post de carrossel para Instagram com prints reais do bot</span><span class="h">1h</span></li>
+    </ul>
+  </div>
+
+  <!-- Semana 4 -->
+  <div class="week">
+    <div class="bar"><span class="num">SEMANA 4</span> Polimento do Free + Scheduler de Resumo Mensal</div>
+    <div class="meta">
+      <div class="obj"><b>Objetivo:</b> Deixar o free 100% funcional pra justificar gratuidade real (não trial disfarçado).</div>
+      <div class="hours">Carga total: ~7h (1h/dia × 7 dias)</div>
+    </div>
+    <ul class="tasks">
+      <li><span class="cb">☐</span><span class="body">Implementar scheduler (cron-like) que envia resumo no último dia do mês</span><span class="h">3h</span></li>
+      <li><span class="cb">☐</span><span class="body">Template de mensagem de resumo mensal</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Polir mensagens de erro (cupom borrado, farmácia, sem itens lidos, longo demais)</span><span class="h">1h 30min</span></li>
+      <li><span class="cb">☐</span><span class="body">Comando <i>/limite</i> que mostra quantos cupons restam no mês (UX transparente)</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Testar fluxo completo de ponta a ponta com 5 cupons reais</span><span class="h">30min</span></li>
+    </ul>
+  </div>
+
+  <!-- Semana 5 -->
+  <div class="week">
+    <div class="bar"><span class="num">SEMANA 5</span> Lançamento Beta Soft + Indicação</div>
+    <div class="meta">
+      <div class="obj"><b>Objetivo:</b> 30–50 usuários ativos. Capturar feedback real e ativar o motor de indicação.</div>
+      <div class="hours">Carga total: ~7h (1h/dia × 7 dias)</div>
+    </div>
+    <ul class="tasks">
+      <li><span class="cb">☐</span><span class="body">Lançar para grupos próximos: família, amigos, 2-3 grupos de WhatsApp</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Implementar fluxo de indicação: comando <i>/indicar</i> com link único</span><span class="h">2h</span></li>
+      <li><span class="cb">☐</span><span class="body">Tabela <i>indicacoes</i> no Supabase + lógica de rastreio</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Anúncios pagos teste: R$50–100 em Meta Ads (Reels) — 25–45 anos, classe B/C, BR</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Coletar feedback ativo: mensagem após 3º cupom pedindo nota 0–10 + comentário</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Análise diária de métricas (15min/dia × 4 dias)</span><span class="h">1h</span></li>
+    </ul>
+  </div>
+
+  <!-- Semana 6 -->
+  <div class="week">
+    <div class="bar"><span class="num">SEMANA 6</span> Iteração + Teste de Pricing</div>
+    <div class="meta">
+      <div class="obj"><b>Objetivo:</b> Validar willingness-to-pay com dados reais. Decidir se ativa paywall ou estende beta.</div>
+      <div class="hours">Carga total: ~7h (1h/dia × 7 dias)</div>
+    </div>
+    <ul class="tasks">
+      <li><span class="cb">☐</span><span class="body">Segmentar usuários ativos em 3 grupos randomizados</span><span class="h">30min</span></li>
+      <li><span class="cb">☐</span><span class="body">Enviar teste de preço diferenciado: A = R$4,90; B = R$9,90 individual ou R$15 família; C = pague o que achar justo</span><span class="h">2h</span></li>
+      <li><span class="cb">☐</span><span class="body">Medir conversão por grupo (análise dos retornos)</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Reescrever página principal com a oferta vencedora</span><span class="h">2h</span></li>
+      <li><span class="cb">☐</span><span class="body">Documento de retrospectiva: o que funcionou, o que não, próximos 30 dias</span><span class="h">1h</span></li>
+      <li><span class="cb">☐</span><span class="body">Decisão final: ativar paywall em qual estrutura (ou estender beta)</span><span class="h">30min</span></li>
+    </ul>
+  </div>
+
+  <div class="page-break"></div>
+
+  <h2 class="section">Princípios operacionais</h2>
+  <ul class="principles">
+    <li><b>Lançar imperfeito &gt; guardar polido.</b> Cada semana entrega algo público.</li>
+    <li><b>Free é produto real, não trial.</b> Limite de 10 cupons/mês existe só pelo custo do Gemini Vision por chamada — não para forçar upgrade.</li>
+    <li><b>Privacidade primeiro na voz, esperteza primeiro na headline.</b> Headline da landing fala de economia/esperto; bloco dedicado fala de privacidade.</li>
+    <li><b>Tag fundador desde o dia 1.</b> Quem entra agora ganha 3 meses do plano Individual + preço travado vitalício quando o paywall ativar.</li>
+    <li><b>Decisão crítica em D+42:</b> se retenção W2 &lt; 30% <b>e</b> willingness-to-pay &lt; 15%, NÃO ativar paywall — estender beta mais 30 dias.</li>
+    <li><b>1h/dia é meta, não obrigação.</b> Buffer de ~6h não alocadas absorve as semanas em que a hora diária não acontece.</li>
+  </ul>
+
+  <footer class="docnote">
+    Documento gerado a partir do plano completo em
+    <i>Economizei_Analise_Pesquisa_e_Plano_6_Semanas.md</i> — consulte o .md para personas,
+    copy pronta, posicionamento, plano de marketing, métricas e riscos.
+  </footer>
+
+</div>
+
+</body>
+</html>
