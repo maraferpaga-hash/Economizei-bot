@@ -14,6 +14,19 @@ const {
   buscarGastosPorCategoria,
   buscarMesMaisRecenteComGastos,
   setOptOutPrecos,
+  gerarCodigoIndicacao,
+  registrarIndicacaoPendente,
+  ativarIndicacao,
+  converterIndicacao,
+  marcarProAtivo,
+  buscarStatusIndicacoes,
+  setPendentePlano,
+  limparPendentePlano,
+  salvarAssinaturaPreapproval,
+  atualizarStatusAssinatura,
+  buscarPorPreapprovalId,
+  registrarEventoAssinatura,
+  buscarDadosAssinatura,
   // salvarWaitlist — DEPRECATED em 2026-05-22 (waitlist removida); função
   // mantida em supabase.js para reativação futura se necessário.
 } = require('./supabase');
@@ -33,10 +46,32 @@ const {
   montarMensagemGastos,
   montarMensagemPrivacidade,
   montarMensagemEnviarComoArquivo,
+  montarMensagemConvite,
+  montarBoasVindasIndicado,
+  montarAvisoIndicacaoAtivada,
+  montarAvisoIndicacaoConvertida,
+  montarMensagemPix,
+  montarMensagemPedirEmail,
+  montarMensagemLinkAssinatura,
+  montarMensagemAssinaturaAtivada,
+  montarMensagemAssinaturaCancelada,
+  montarMensagemEmailInvalido,
+  montarMensagemErroAssinatura,
+  montarMensagemPagamentoFalhou,
+  montarMensagemJaAssinante,
   nomeDoMes,
 } = require('./formatter');
+const {
+  PLANOS,
+  normalizarPlano,
+  criarAssinatura,
+  consultarAssinatura,
+  consultarPagamentoRecorrente,
+  cancelarAssinatura,
+  validarAssinaturaWebhook,
+} = require('./mercadopago');
 const { gerarUrlGraficoCategorias } = require('./charts');
-const { verificarAlerta } = require('./alerts');
+const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
 const { log, maskPhone } = require('./logger');
 const { iniciar: iniciarScheduler } = require('./scheduler');
 const { executarResumoMensal } = require('./monthlySummary');
@@ -78,6 +113,26 @@ setInterval(() => {
     if (dados.resetAt < agora) rateLimiter.delete(phone);
   }
 }, 5 * 60 * 1000);
+
+// ---------------------------------------------------------------
+// Indicação (/convidar) — helpers de código e link wa.me
+// ---------------------------------------------------------------
+const REGEX_CODIGO_INDICACAO = /CONV-[A-Z0-9]{4,8}/i;
+
+function extrairCodigoIndicacao(texto) {
+  const m = (texto || '').match(REGEX_CODIGO_INDICACAO);
+  return m ? m[0].toUpperCase() : null;
+}
+
+function montarLinkConvite(codigo) {
+  const numero = (process.env.BOT_PHONE || '').replace(/\D/g, '');
+  if (!numero) {
+    // Sem BOT_PHONE configurado: evita gerar link quebrado
+    return `(configure BOT_PHONE no .env) — seu código: ${codigo}`;
+  }
+  const texto = encodeURIComponent(`Quero começar no Economizei ${codigo}`);
+  return `https://wa.me/${numero}?text=${texto}`;
+}
 
 // ---------------------------------------------------------------
 // POST /webhook — ponto de entrada de todos os eventos do Z-API
@@ -132,6 +187,18 @@ app.post('/webhook', (req, res) => {
 });
 
 // ---------------------------------------------------------------
+// POST /webhook/mercadopago — eventos de assinatura do Mercado Pago
+// O MP espera 200/201 em até 22s, senão reenvia. Respondemos na hora e
+// processamos de forma assíncrona. A autenticidade é garantida de duas
+// formas: (1) validação HMAC do x-signature e (2) reconsulta do recurso
+// na API do MP com nosso access token antes de ligar is_pro.
+// ---------------------------------------------------------------
+app.post('/webhook/mercadopago', (req, res) => {
+  res.sendStatus(200);
+  processarWebhookMP(req).catch((err) => log('mp_webhook_erro', { erro: err.message }));
+});
+
+// ---------------------------------------------------------------
 // GET /health
 // ---------------------------------------------------------------
 app.get('/health', (req, res) => {
@@ -153,6 +220,39 @@ app.get('/admin/metrics', async (req, res) => {
     res.json(metricas);
   } catch (err) {
     log('admin_metrics_erro', { erro: err.message });
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// ---------------------------------------------------------------
+// POST /admin/ativar-pro — ativa o Pro de um usuário (PIX manual) e,
+// se ele veio por indicação, concede a recompensa de conversão ao indicador.
+// Centraliza o passo manual que antes era editar o is_pro direto no Supabase.
+// Uso: curl -X POST -H "X-Admin-Secret: SEU_SECRET" \
+//        "https://seu-bot.up.railway.app/admin/ativar-pro?phone=5517999999999"
+// ---------------------------------------------------------------
+app.post('/admin/ativar-pro', async (req, res) => {
+  const secret = req.header('X-Admin-Secret');
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
+    return res.status(401).json({ erro: 'unauthorized' });
+  }
+  const phone = typeof req.query.phone === 'string' ? req.query.phone.replace(/^\+/, '') : null;
+  if (!phone || !/^\d{10,15}$/.test(phone)) {
+    return res.status(400).json({ erro: 'phone inválido (use DDI+DDD+numero, ex: 5517999999999)' });
+  }
+
+  try {
+    await marcarProAtivo(phone);
+    const conv = await converterIndicacao(phone);
+    res.json({ ok: true, pro_ativado: maskPhone(phone), indicacao_convertida: conv?.converteu ?? false });
+
+    // Notifica o indicador (best-effort, fora da resposta HTTP)
+    if (conv?.converteu) {
+      enviarMensagem(conv.indicadorPhone, montarAvisoIndicacaoConvertida(conv.dias))
+        .catch((err) => log('indicacao_conversao_aviso_erro', { erro: err.message }));
+    }
+  } catch (err) {
+    log('admin_ativar_pro_erro', { phone: maskPhone(phone), erro: err.message });
     res.status(500).json({ erro: err.message });
   }
 });
@@ -228,6 +328,17 @@ async function processarTexto(phone, texto) {
   const usuario = await upsertUsuario(phone);
   const step = usuario.onboarding_step ?? 0;
 
+  // Detecção de código de indicação no 1º contato (step 0 = nunca respondeu antes).
+  // Registra a aresta indicador→indicado; fire-and-forget (não bloqueia onboarding).
+  if (step === 0) {
+    const codigo = extrairCodigoIndicacao(texto);
+    if (codigo) {
+      registrarIndicacaoPendente(codigo, phone).catch((err) =>
+        log('indicacao_registro_erro', { phone: maskPhone(phone), erro: err.message })
+      );
+    }
+  }
+
   // Steps 0 e 1: onboarding intercepta qualquer texto
   if (step === 0 || step === 1) {
     await gerenciarOnboarding(phone, step, 'texto', null);
@@ -238,6 +349,28 @@ async function processarTexto(phone, texto) {
   const msg = (texto || '').toLowerCase().trim();
   const palavras = msg.replace(/[.,!?;:]/g, '').split(/\s+/);
   const ehComando = (...cmds) => cmds.some((c) => palavras.includes(c) || msg === c);
+
+  // --- Fluxo de assinatura: aguardando o e-mail do usuário ---------------
+  // Se o usuário escolheu um plano via /assinar e ainda não mandou o e-mail,
+  // a próxima mensagem (que não seja um comando) é interpretada como o e-mail.
+  if (usuario.assinatura_pendente_plano) {
+    if (ehComando('/cancelar', 'cancelar', '/sair', 'sair', '/parar', 'parar')) {
+      await limparPendentePlano(phone);
+      await enviarMensagem(phone, 'Tudo bem, cancelei o processo de assinatura. Quando quiser ver os planos de novo: */planos*. 👍');
+      return;
+    }
+    // Comando explícito (começa com "/") abandona o fluxo de e-mail e segue normal
+    if (!msg.startsWith('/')) {
+      const email = extrairEmail(texto);
+      if (!email) {
+        await enviarMensagem(phone, montarMensagemEmailInvalido());
+        return;
+      }
+      await finalizarAssinatura(phone, usuario.assinatura_pendente_plano, email);
+      return;
+    }
+    await limparPendentePlano(phone); // usou outro comando: limpa a pendência e continua
+  }
 
   if (msg.includes('quantos cupons') || msg.includes('meu plano') || msg.includes('meu limite')) {
     const status = await buscarStatusUsuario(phone);
@@ -251,13 +384,40 @@ async function processarTexto(phone, texto) {
     return;
   }
 
-  if (ehComando('/planos', 'planos', '/plano', 'plano', '/pro', 'pro', '/upgrade', 'upgrade', '/assinar', 'assinar', '/preco', 'preço', 'preco')) {
+  // "/assinar <plano>" inicia a assinatura no cartão. Sem plano válido, cai
+  // no menu de planos. Precisa vir ANTES do bloco /planos (que também casa /assinar).
+  if (palavras[0] === '/assinar' || palavras[0] === 'assinar') {
+    const plano = normalizarPlano(palavras.slice(1).join(' '));
+    if (!plano) {
+      await enviarMensagem(phone, montarMensagemPlanos());
+      return;
+    }
+    await iniciarAssinatura(phone, usuario, plano);
+    return;
+  }
+
+  if (ehComando('/planos', 'planos', '/plano', 'plano', '/pro', 'pro', '/upgrade', 'upgrade', '/preco', 'preço', 'preco')) {
     await enviarMensagem(phone, montarMensagemPlanos());
+    return;
+  }
+
+  if (ehComando('/pix', 'pix')) {
+    await enviarMensagem(phone, montarMensagemPix());
+    return;
+  }
+
+  if (ehComando('/cancelar', 'cancelar', '/cancelar-assinatura', 'cancelar-assinatura')) {
+    await cancelarAssinaturaUsuario(phone);
     return;
   }
 
   if (ehComando('/gastos', 'gastos', '/categorias', 'categorias', '/grafico', 'gráfico')) {
     await mostrarGastos(phone);
+    return;
+  }
+
+  if (ehComando('/convidar', 'convidar', '/indicar', 'indicar', '/convite', 'convite')) {
+    await mostrarConvite(phone);
     return;
   }
 
@@ -371,20 +531,256 @@ async function processarImagem(phone, imageUrl) {
       await gerenciarOnboarding(phone, step, 'imagem', { dados, totalMes: historico.totalMes });
     }
 
-    const alerta = verificarAlerta(dados.total, media);
-    if (alerta) {
-      log('alerta_disparado', { phone: maskPhone(phone), percentual: Math.round(alerta.percentual) });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      await enviarMensagem(phone, montarMensagemAlerta(alerta.percentual, alerta.media));
+    // Comparação com a média histórica — só para compras de mercado.
+    // Cupom não-mercado (farmácia/posto) não tem padrão de gasto comparável.
+    if (dados.tipo !== 'outros') {
+      const avaliacao = avaliarCompra(dados.total, media);
+      if (avaliacao && deveEnviarMensagem(avaliacao.nivel)) {
+        log('alerta_disparado', {
+          phone: maskPhone(phone),
+          nivel: avaliacao.nivel,
+          percentual: Math.round(avaliacao.percentual),
+        });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await enviarMensagem(phone, montarMensagemAlerta(avaliacao));
+      }
     }
 
     log('cupom_registrado', { phone: maskPhone(phone), loja: dados.loja, total: dados.total });
+
+    // Marco de ativação de indicação: se este usuário veio por indicação e ainda
+    // estava pendente, este 1º cupom libera a recompensa pros dois lados.
+    // Self-contained (nunca lança) — não pode derrubar o fluxo do cupom já salvo.
+    await processarAtivacaoIndicacao(phone);
   } catch (err) {
     log('cupom_erro_interno', { phone: maskPhone(phone), erro: err.message });
     // Best-effort: tentar avisar o usuário, mas não deixar o erro do envio derrubar o handler
     try {
       await enviarMensagem(phone, montarMensagemErro('Erro interno ao processar imagem'));
     } catch (_) { /* já logado em zapi_erro */ }
+  }
+}
+
+// ---------------------------------------------------------------
+// Indicação — responde ao /convidar com link + status
+// ---------------------------------------------------------------
+async function mostrarConvite(phone) {
+  try {
+    const [codigo, status] = await Promise.all([
+      gerarCodigoIndicacao(phone),
+      buscarStatusIndicacoes(phone),
+    ]);
+    const link = montarLinkConvite(codigo);
+    await enviarMensagem(phone, montarMensagemConvite(codigo, link, status));
+  } catch (err) {
+    log('convite_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, 'Não consegui gerar seu link de convite agora. Tenta de novo em instantes? 🙏');
+  }
+}
+
+// Marco de ativação: chamado após o usuário registrar um cupom com sucesso.
+// Se houver indicação pendente, ativa e notifica os dois lados. Nunca lança.
+async function processarAtivacaoIndicacao(phone) {
+  try {
+    const r = await ativarIndicacao(phone);
+    if (!r?.ativou) return;
+
+    // Avisa o indicado (este número) que ganhou a recompensa
+    await enviarMensagem(phone, montarBoasVindasIndicado(r.dias));
+    // Avisa o indicador que a indicação dele deu certo
+    await enviarMensagem(r.indicadorPhone, montarAvisoIndicacaoAtivada(r.dias))
+      .catch((err) => log('indicacao_aviso_erro', { erro: err.message }));
+    log('indicacao_ativacao_notificada', { indicado: maskPhone(phone), indicador: maskPhone(r.indicadorPhone) });
+  } catch (err) {
+    log('indicacao_ativacao_erro', { phone: maskPhone(phone), erro: err.message });
+  }
+}
+
+// ---------------------------------------------------------------
+// Assinaturas (Mercado Pago) — fluxo de comandos
+// ---------------------------------------------------------------
+
+// Extrai um e-mail válido de um texto livre, ou null.
+function extrairEmail(texto) {
+  const m = (texto || '').match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
+  return m ? m[0].trim().toLowerCase() : null;
+}
+
+// Passo 1: usuário escolheu um plano. Se já for Pro, avisa; senão pede o e-mail.
+async function iniciarAssinatura(phone, usuario, plano) {
+  try {
+    if (usuario.is_pro) {
+      const label = PLANOS[usuario.plano]?.label || 'Pro';
+      await enviarMensagem(phone, montarMensagemJaAssinante(label));
+      return;
+    }
+    await setPendentePlano(phone, plano);
+    await enviarMensagem(phone, montarMensagemPedirEmail(PLANOS[plano].label));
+  } catch (err) {
+    log('assinatura_iniciar_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, montarMensagemErroAssinatura());
+  }
+}
+
+// Passo 2: usuário mandou o e-mail. Cria o preapproval no MP e envia o link.
+async function finalizarAssinatura(phone, plano, email) {
+  try {
+    const r = await criarAssinatura({ phone, email, plano });
+    if (!r.ok) {
+      await limparPendentePlano(phone);
+      log('assinatura_criar_falhou', { phone: maskPhone(phone), erro: r.error });
+      await enviarMensagem(phone, montarMensagemErroAssinatura());
+      return;
+    }
+    // salvarAssinaturaPreapproval grava o preapproval e limpa o pendente_plano
+    await salvarAssinaturaPreapproval(phone, {
+      preapprovalId: r.preapprovalId,
+      plano,
+      email,
+      status: r.status || 'pending',
+    });
+    const valorTexto = PLANOS[plano].valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    await enviarMensagem(phone, montarMensagemLinkAssinatura(PLANOS[plano].label, valorTexto, r.initPoint));
+    log('assinatura_link_enviado', { phone: maskPhone(phone), plano });
+  } catch (err) {
+    log('assinatura_finalizar_erro', { phone: maskPhone(phone), erro: err.message });
+    await limparPendentePlano(phone).catch(() => {});
+    await enviarMensagem(phone, montarMensagemErroAssinatura());
+  }
+}
+
+// Comando /cancelar (quando não há fluxo de e-mail pendente): cancela a assinatura.
+async function cancelarAssinaturaUsuario(phone) {
+  try {
+    const dados = await buscarDadosAssinatura(phone);
+    if (!dados?.mp_preapproval_id || dados.assinatura_status === 'cancelled') {
+      await enviarMensagem(phone, 'Você não tem uma assinatura ativa por cartão no momento. Para ver os planos: */planos*.');
+      return;
+    }
+    const r = await cancelarAssinatura(dados.mp_preapproval_id);
+    if (!r.ok) {
+      await enviarMensagem(phone, 'Não consegui cancelar agora. Tenta de novo em instantes, por favor. 🙏');
+      return;
+    }
+    await atualizarStatusAssinatura(phone, 'cancelled');
+    await enviarMensagem(phone, montarMensagemAssinaturaCancelada());
+    log('assinatura_cancelada_usuario', { phone: maskPhone(phone) });
+  } catch (err) {
+    log('assinatura_cancelar_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, 'Não consegui cancelar agora. Tenta de novo em instantes, por favor. 🙏');
+  }
+}
+
+// ---------------------------------------------------------------
+// Assinaturas (Mercado Pago) — processamento do webhook
+// ---------------------------------------------------------------
+async function processarWebhookMP(req) {
+  const tipo   = req.body?.type || req.query.type || req.query.topic || null;
+  const dataId = req.body?.data?.id || req.query['data.id'] || req.query.id || null;
+  const acao   = req.body?.action || null;
+  // id único da notificação (idempotência). Cada entrega tem um id; transições
+  // de status do mesmo preapproval vêm com ids diferentes → todas processadas.
+  const notifId = req.body?.id ? String(req.body.id) : (dataId ? `${dataId}-${Date.now()}` : null);
+
+  if (!tipo || !dataId) {
+    log('mp_webhook_payload_incompleto', { tipo, tem_data_id: !!dataId });
+    return;
+  }
+
+  // Validação de assinatura (defesa em profundidade). Se houver secret e não
+  // bater, rejeita. Sem secret, segue — a verdade é reconfirmada no GET do MP.
+  const val = validarAssinaturaWebhook({
+    xSignature: req.header('x-signature'),
+    xRequestId: req.header('x-request-id'),
+    dataId,
+  });
+  if (process.env.MP_WEBHOOK_SECRET && !val.validado) {
+    log('mp_webhook_rejeitado', { tipo, motivo: val.motivo });
+    return;
+  }
+
+  // Idempotência via índice único (topico, recurso_id=notifId).
+  const ev = await registrarEventoAssinatura({
+    preapprovalId: tipo === 'subscription_preapproval' ? String(dataId) : null,
+    topico: String(tipo),
+    recursoId: notifId,
+    acao,
+    payload: req.body || null,
+  });
+  if (ev.duplicado) {
+    log('mp_webhook_duplicado', { tipo, notif_id: notifId });
+    return;
+  }
+
+  if (tipo === 'subscription_preapproval') {
+    await conciliarPreapproval(String(dataId));
+  } else if (tipo === 'subscription_authorized_payment') {
+    await conciliarPagamentoRecorrente(String(dataId));
+  } else {
+    log('mp_webhook_tipo_ignorado', { tipo });
+  }
+}
+
+// Concilia o estado de uma assinatura: lê o status real no MP e atualiza is_pro.
+async function conciliarPreapproval(preapprovalId) {
+  const info = await consultarAssinatura(preapprovalId);
+  if (!info.ok) {
+    log('mp_conciliar_preapproval_falha', { preapproval_id: preapprovalId });
+    return;
+  }
+  const phone = String(info.externalReference || '').replace(/^\+/, '');
+  if (!/^\d{10,15}$/.test(phone)) {
+    log('mp_conciliar_sem_phone', { preapproval_id: preapprovalId });
+    return;
+  }
+
+  const { statusAnterior } = await atualizarStatusAssinatura(phone, info.status, { preapprovalId });
+
+  // Notifica só na TRANSIÇÃO para authorized (evita mensagem repetida)
+  if (info.status === 'authorized' && statusAnterior !== 'authorized') {
+    const dados = await buscarDadosAssinatura(phone);
+    const label = PLANOS[dados?.plano]?.label || 'Pro';
+    await enviarMensagem(phone, montarMensagemAssinaturaAtivada(label))
+      .catch((err) => log('mp_aviso_ativada_erro', { erro: err.message }));
+
+    // Marco de conversão de indicação: assinante pagante converte a indicação
+    const conv = await converterIndicacao(phone).catch(() => null);
+    if (conv?.converteu) {
+      enviarMensagem(conv.indicadorPhone, montarAvisoIndicacaoConvertida(conv.dias))
+        .catch((err) => log('mp_indicacao_conversao_erro', { erro: err.message }));
+    }
+  }
+
+  // Notifica cancelamento vindo do lado do MP (ex: usuário cancelou na conta MP)
+  if (info.status === 'cancelled' && statusAnterior !== 'cancelled') {
+    await enviarMensagem(phone, montarMensagemAssinaturaCancelada())
+      .catch((err) => log('mp_aviso_cancelada_erro', { erro: err.message }));
+  }
+}
+
+// Concilia uma cobrança recorrente (renovação): avisa o usuário se recusada.
+async function conciliarPagamentoRecorrente(authorizedPaymentId) {
+  const pg = await consultarPagamentoRecorrente(authorizedPaymentId);
+  if (!pg.ok || !pg.preapprovalId) {
+    log('mp_conciliar_pagamento_falha', { id: authorizedPaymentId });
+    return;
+  }
+  const usuario = await buscarPorPreapprovalId(pg.preapprovalId);
+  if (!usuario?.phone_number) {
+    log('mp_pagamento_sem_usuario', { preapproval_id: pg.preapprovalId });
+    return;
+  }
+
+  if (pg.statusPagamento === 'rejected') {
+    log('mp_renovacao_recusada', { phone: maskPhone(usuario.phone_number) });
+    await enviarMensagem(usuario.phone_number, montarMensagemPagamentoFalhou())
+      .catch((err) => log('mp_aviso_falha_erro', { erro: err.message }));
+  } else if (pg.statusPagamento === 'approved') {
+    log('mp_renovacao_aprovada', { phone: maskPhone(usuario.phone_number) });
+    // Reativa is_pro se por algum motivo a assinatura tinha sido pausada
+    if (!usuario.is_pro) {
+      await atualizarStatusAssinatura(usuario.phone_number, 'authorized', { preapprovalId: pg.preapprovalId });
+    }
   }
 }
 
@@ -474,3 +870,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Bot Economizei rodando na porta ${PORT}`);
   iniciarScheduler();
 });
+// fim do arquivo

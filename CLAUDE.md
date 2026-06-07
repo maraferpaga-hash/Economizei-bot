@@ -501,6 +501,35 @@ Mesmo com 1 pessoa, há sinais de que a operação está saudável ou em sobreca
 
 *Esta seção registra as instruções e princípios que o Gabriel deu explicitamente, para preservar a intenção original em decisões futuras.*
 
+### 2026-06-07 — Sessão de correção dos outputs incoerentes do bot
+
+**Briefing inicial (verbatim):**
+> "Tenho visto inconsistencias nas gravações dos cupons, mandando o mesmo cupom eu tive varios resultados, sendo 38,39 ou 40 produtos registrados do mesmo cupom (...) a mensagem que é mandada logo em seguida não faz sentido, ela sempre manda compra acima do padrão, precisamos colocar outros tipos de respostas dependendo da compra, ficar sempre alertando também não é ideal. E mais grave que isso é que os numeros não fazem sentido, normalmente o numero de porcentagem e o valor em reais é inventado ou não fazem sentido (...) faça o que for preciso para investigar esses outputs incoerentes."
+
+**Diagnóstico (3 sintomas, nenhum era erro de fórmula — eram entradas ruins):**
+1. **Contagem de itens oscilando (38/39/40):** Gemini rodava com temperatura padrão (~1.0) = não-determinístico. Sem reconciliação item×total, item perdido passava despercebido.
+2. **Alerta sempre "acima do padrão":** `calcularMedia` misturava compras de mercado com não-mercado (farmácia/posto, valores baixos), derrubando a média; e só existia 1 template de follow-up (o alerta de "acima").
+3. **Números que não batem:** duas fontes de verdade para "total" sem conciliação — `compras.total` (Gemini) vs. soma dos itens. E `itens_compra` só guardava `preco` (unitário), recalculando `preco×qtd` na categoria (dobra valor de item por peso).
+
+**Decisões do Gabriel nas perguntas de clarificação:**
+- **Escopo:** implementar os 4 fixes — determinismo do Gemini, total único de verdade, alerta inteligente em 3 níveis, e reconciliação item×total.
+- **Comportamento do alerta:** "Você decide depois" → implementar a estrutura dos 3 níveis (abaixo/dentro/acima) mas deixar o gatilho **configurável por env**; afinar numa próxima rodada. Default escolhido: `ALERTA_MODO=relevante` (só fala quando foge do padrão).
+
+**Implementado nesta sessão:**
+- `supabase/migration_2026-06-07_coerencia_outputs.sql` (novo): `itens_compra.preco_total` + `compras.tipo` + índice. **Rodar antes do push.**
+- `gemini.js`: `generationConfig {temperature:0, responseMimeType:'application/json'}`; `reconciliarItens` + log `gemini_reconciliacao_divergente`; `lerRecibo` escolhe a melhor das 2 tentativas via `_scoreReconciliacao`.
+- `supabase.js`: grava `preco_total` e `tipo`; `calcularMedia` filtra `tipo='mercado'`; `buscarGastosPorCategoria` agrega por `preco_total` (fallback `preco×qtd`) + fatia resíduo `nao_identificado` fechando com o total do cupom.
+- `alerts.js`: reescrito — `avaliarCompra` (níveis + limiares por env), `deveEnviarMensagem` (modo por env), `verificarAlerta` mantido como wrapper de compat.
+- `formatter.js` + `charts.js`: `montarMensagemAlerta` recebe objeto de avaliação e tem 3 tons; label+cor de `nao_identificado`.
+- `index.js`: usa `avaliarCompra`/`deveEnviarMensagem`; não-mercado nunca alerta.
+- `.env.example`: `ALERTA_LIM_ACIMA`, `ALERTA_LIM_ABAIXO`, `ALERTA_MODO`.
+
+**Pré-requisitos de deploy (nesta ordem):** (1) rodar `supabase/migration_2026-06-07_coerencia_outputs.sql` no SQL Editor; (2) `git push` (Gabriel, na máquina dele). Opcional: ajustar as envs `ALERTA_*` no Railway.
+
+**Pendências/ressalvas deixadas:** (1) linhas antigas de `itens_compra` sem `preco_total` caem no fallback `preco×qtd` — comportamento idêntico ao anterior, não retroativo; (2) `compras.tipo` antigas viram 'mercado' por default (não-mercado antigas entram na média até serem substituídas pelo fluxo novo); (3) a "lei 5" do CODE_GUIDE (idempotência via messageId) segue **documentada mas não implementada** — o webhook não deduplica por messageId; mandar o mesmo cupom 2× ainda cria 2 compras (fora do escopo desta sessão, candidato a próxima).
+
+**Nota operacional recorrente:** push pro GitHub é sempre feito pelo Gabriel na máquina dele — o ambiente Cowork não tem credencial. Nesta sessão o mount Linux do sandbox serviu versões em cache defasadas de `formatter.js`/`CLAUDE.md`/`CODE_GUIDE.md`; as edições foram aplicadas nos arquivos reais (Edit guardou contra cache via "modified since read") e `node --check` passou nos 6 arquivos.
+
 ### 2026-06-07 — Sessão de criação do comando `/convidar` (indicação)
 
 **Briefing inicial (verbatim):**

@@ -16,6 +16,7 @@ const LABELS_CATEGORIA = {
   doces:      'Doces e Petiscos',
   outros:     'Outros',
   nao_mercado:'Outros (não-mercado)',
+  nao_identificado: 'Não identificado',
 };
 
 // Chave PIX configurável via env. Em desenvolvimento, mostra placeholder.
@@ -208,6 +209,7 @@ function montarMensagemBemVindo() {
     `• */historico* ou */resumo* — suas últimas compras\n` +
     `• */limite* — quantos cupons restam esse mês\n` +
     `• */planos* — ver os planos disponíveis\n` +
+    `• */convidar* — convide um amigo e os dois ganham funções Pro\n` +
     `• */privacidade* — sobre como usamos seus dados\n` +
     `• */apagar* — apaga todo seu histórico\n` +
     `• */ajuda* — vê esta mensagem de novo\n\n` +
@@ -285,13 +287,101 @@ function montarMensagemPlanos() {
     `✓ Comparação de gastos por membro\n\n` +
     `*👨‍👩‍👧‍👦 Família+ — R$22/mês* (até 5 pessoas)\n` +
     `Igual ao Família, com 2 vagas adicionais.\n\n` +
-    `*Como assinar via PIX:*\n` +
-    `1. Pague o valor do plano no PIX abaixo:\n` +
-    `   📱 Chave PIX: ${pixKey()}\n` +
-    `   💰 R$9,90 (Individual) / R$15 (Família) / R$22 (Família+)\n` +
-    `2. Manda o comprovante aqui no chat\n` +
-    `3. Em até 1h eu ativo seu plano\n\n` +
+    `*💳 Assinar no cartão (cobrança automática):*\n` +
+    `Você cadastra o cartão uma vez e a renovação é automática todo mês — sem precisar pagar de novo. Para começar, mande:\n` +
+    `• */assinar individual*\n` +
+    `• */assinar familia*\n` +
+    `• */assinar familia+*\n\n` +
+    `*📱 Prefere PIX?* Mande */pix* e eu te passo a chave.\n\n` +
     `*Pode continuar usando o Grátis* — ele resolve o básico bem. 👍`
+  );
+}
+
+// Instruções de pagamento via PIX (alternativa manual ao cartão).
+function montarMensagemPix() {
+  return (
+    `📱 *Pagar via PIX*\n\n` +
+    `1. Faça um PIX do valor do plano para a chave:\n` +
+    `   *${pixKey()}*\n` +
+    `   💰 R$9,90 (Individual) / R$15 (Família) / R$22 (Família+)\n` +
+    `2. Envie o comprovante aqui no chat\n` +
+    `3. Em até 1h eu ativo seu plano\n\n` +
+    `_Dica: no cartão (*/planos*) a renovação é automática — você não precisa repetir o pagamento todo mês._`
+  );
+}
+
+// Pede o e-mail após o usuário escolher um plano para assinar no cartão.
+function montarMensagemPedirEmail(planoLabel) {
+  return (
+    `Ótimo! Você escolheu o plano *${planoLabel}*. 💳\n\n` +
+    `Me passa o seu *e-mail*? Preciso dele para gerar a sua assinatura no Mercado Pago e te enviar o link de pagamento.\n\n` +
+    `_É só responder com o e-mail. Para cancelar, mande */cancelar*._`
+  );
+}
+
+// Envia o link de checkout do Mercado Pago.
+function montarMensagemLinkAssinatura(planoLabel, valorTexto, initPoint) {
+  return (
+    `Pronto! Aqui está o link para assinar o plano *${planoLabel}* (R$ ${valorTexto}/mês): 👇\n\n` +
+    `${initPoint}\n\n` +
+    `No link você cadastra o cartão com segurança pelo *Mercado Pago* (eu não tenho acesso aos dados do seu cartão). A partir daí, a cobrança é *automática todo mês* — sem repetir nada.\n\n` +
+    `Assim que o pagamento for aprovado, eu ativo seu plano aqui e te aviso. ✅`
+  );
+}
+
+// Confirmação enviada quando a assinatura é aprovada (webhook authorized).
+function montarMensagemAssinaturaAtivada(planoLabel) {
+  return (
+    `🎉 *Plano ${planoLabel} ativado!*\n\n` +
+    `Sua assinatura está confirmada e a renovação será automática todo mês. Agora você tem:\n` +
+    `✓ Cupons *ilimitados*\n` +
+    `✓ Comparativo entre mercados\n` +
+    `✓ Alerta inteligente\n\n` +
+    `Obrigado por apoiar o Economizei! 💚\n` +
+    `_Para gerenciar ou cancelar a qualquer momento: */cancelar*._`
+  );
+}
+
+// Confirmação de cancelamento.
+function montarMensagemAssinaturaCancelada() {
+  return (
+    `Sua assinatura foi *cancelada*. Não haverá novas cobranças. ✅\n\n` +
+    `Você volta para o plano *Grátis* (10 cupons/mês) e seu histórico continua salvo normalmente.\n\n` +
+    `Se mudar de ideia, é só mandar */planos*. 👍`
+  );
+}
+
+// E-mail inválido durante o fluxo de assinatura.
+function montarMensagemEmailInvalido() {
+  return (
+    `Hmm, esse e-mail não parece válido. 🤔\n\n` +
+    `Me manda de novo no formato *nome@email.com*, por favor.\n\n` +
+    `_Para desistir, mande */cancelar*._`
+  );
+}
+
+// Falha ao gerar o link de assinatura (erro técnico no MP).
+function montarMensagemErroAssinatura() {
+  return (
+    `Ops, não consegui gerar seu link de assinatura agora. 😕\n\n` +
+    `Pode tentar de novo em alguns minutos mandando */planos*. Se preferir, dá para pagar via PIX: */pix*.`
+  );
+}
+
+// Cobrança recorrente recusada (cartão sem saldo/expirado etc.).
+function montarMensagemPagamentoFalhou() {
+  return (
+    `⚠️ *Não consegui renovar sua assinatura*\n\n` +
+    `A cobrança no seu cartão foi recusada. O Mercado Pago vai tentar de novo automaticamente nos próximos dias.\n\n` +
+    `Se quiser, verifique o cartão cadastrado ou troque a forma de pagamento. Seu plano segue ativo enquanto as tentativas continuam.`
+  );
+}
+
+// Usuário já é assinante ativo.
+function montarMensagemJaAssinante(planoLabel) {
+  return (
+    `Você já tem o plano *${planoLabel}* ativo. 💚\n\n` +
+    `Cupons ilimitados liberados. Para gerenciar ou cancelar: */cancelar*.`
   );
 }
 
@@ -337,11 +427,33 @@ function montarMensagemPrivacidade() {
   );
 }
 
-function montarMensagemAlerta(percentual, mediaHistorica) {
+// Mensagem de comparação com a média histórica. Recebe a avaliação de alerts.js:
+//   { nivel: 'abaixo'|'normal'|'acima', percentual, media }
+// Cada nível tem um tom próprio — acima alerta, abaixo elogia, normal tranquiliza.
+function montarMensagemAlerta(avaliacao) {
+  const { nivel, percentual, media } = avaliacao || {};
+  const mediaFmt = `R$ ${brl(media)}`;
+  const pctAbs = Math.abs(Math.round(percentual));
+
+  if (nivel === 'acima') {
+    return (
+      `📈 *Compra acima do seu padrão*\n\n` +
+      `Esta compra ficou *${pctAbs}% acima* da sua média, que é de ${mediaFmt} por compra.\n\n` +
+      `Pode ser só a compra do mês — mas se quiser ver o que pesou, mande */historico*.`
+    );
+  }
+
+  if (nivel === 'abaixo') {
+    return (
+      `📉 *Compra abaixo da média — economia!* 🎉\n\n` +
+      `Esta compra ficou *${pctAbs}% abaixo* da sua média de ${mediaFmt} por compra. Continue assim!`
+    );
+  }
+
+  // normal
   return (
-    `📊 *Compra acima do seu padrão*\n\n` +
-    `Esta compra ficou ${Math.round(percentual)}% acima da sua média, que é de R$ ${brl(mediaHistorica)} por compra.\n\n` +
-    `Pode ser só a compra do mês — mas se quiser ver o que pesou, mande */historico*.`
+    `✅ *Compra dentro do seu padrão*\n\n` +
+    `Ficou bem perto da sua média de ${mediaFmt} por compra. Tudo sob controle. 👍`
   );
 }
 
@@ -511,6 +623,58 @@ function montarLembreteFimMes(qtdComprasMes) {
   );
 }
 
+// ---------------------------------------------------------------
+// Sistema de indicação (/convidar) — copy aprovada em 2026-06-07.
+// Recompensa = dias de funções Pro (comparativo + alerta inteligente),
+// sem mexer no limite de cupons. Números 7/30 sourced no CLAUDE.md.
+// ---------------------------------------------------------------
+
+// Resposta ao comando /convidar — link + como funciona + status atual.
+function montarMensagemConvite(codigo, link, status) {
+  const { ativados = 0, convertidos = 0 } = status || {};
+  const linhaStatus = (ativados > 0 || convertidos > 0)
+    ? `\n📊 *Suas indicações até agora:* ${ativados} ${ativados === 1 ? 'amigo ativou' : 'amigos ativaram'}` +
+      (convertidos > 0 ? ` · ${convertidos} ${convertidos === 1 ? 'virou' : 'viraram'} Pro` : '') +
+      `\n`
+    : '';
+
+  return (
+    `🤝 *Convide um amigo — e os dois ganham*\n\n` +
+    `Compartilhe seu link. Quando seu amigo registrar o primeiro cupom, *vocês dois ganham 7 dias das funções Pro* (comparativo entre mercados + alerta inteligente).\n\n` +
+    `E se ele assinar um plano Pro, *você ganha mais 30 dias.* 🎉\n\n` +
+    `👉 *Seu link:*\n${link}\n\n` +
+    `_Seu código: ${codigo}_${linhaStatus}\n` +
+    `Mande pra família, amigos e grupos do WhatsApp. Quanto mais gente economizando junto, melhor. 💚`
+  );
+}
+
+// Enviada ao INDICADO quando ele registra o primeiro cupom (marco de ativação).
+function montarBoasVindasIndicado(dias) {
+  return (
+    `🎁 *Você ganhou ${dias} dias das funções Pro!*\n\n` +
+    `Como você chegou pela indicação de um amigo e já registrou seu primeiro cupom, liberei pra você o *comparativo entre mercados* e o *alerta inteligente* por ${dias} dias.\n\n` +
+    `Continue mandando os cupons pra aproveitar. 📸`
+  );
+}
+
+// Enviada ao INDICADOR quando o amigo dele ativa (registra o 1º cupom).
+function montarAvisoIndicacaoAtivada(dias) {
+  return (
+    `🎉 *Sua indicação deu certo!*\n\n` +
+    `Um amigo que você convidou acabou de registrar o primeiro cupom. Você ganhou *${dias} dias das funções Pro* (comparativo entre mercados + alerta inteligente).\n\n` +
+    `Quer ganhar mais? Convide outras pessoas: */convidar*`
+  );
+}
+
+// Enviada ao INDICADOR quando o amigo dele assina um plano Pro (marco de conversão).
+function montarAvisoIndicacaoConvertida(dias) {
+  return (
+    `🙌 *Boa! Sua indicação assinou o Pro.*\n\n` +
+    `Como agradecimento, você ganhou *mais ${dias} dias das funções Pro*. Obrigado por espalhar o Economizei! 💚\n\n` +
+    `Convide mais gente: */convidar*`
+  );
+}
+
 // Segmento D — perto do limite gratuito
 function montarLembreteLimite8() {
   return (
@@ -529,6 +693,15 @@ module.exports = {
   montarMensagemLimite,
   montarMensagemStatusLimite,
   montarMensagemPlanos,
+  montarMensagemPix,
+  montarMensagemPedirEmail,
+  montarMensagemLinkAssinatura,
+  montarMensagemAssinaturaAtivada,
+  montarMensagemAssinaturaCancelada,
+  montarMensagemEmailInvalido,
+  montarMensagemErroAssinatura,
+  montarMensagemPagamentoFalhou,
+  montarMensagemJaAssinante,
   montarMensagemAlerta,
   montarOnboarding1,
   montarOnboarding2,
@@ -546,4 +719,8 @@ module.exports = {
   montarLembreteInativoD60,
   montarLembreteFimMes,
   montarLembreteLimite8,
+  montarMensagemConvite,
+  montarBoasVindasIndicado,
+  montarAvisoIndicacaoAtivada,
+  montarAvisoIndicacaoConvertida,
 };

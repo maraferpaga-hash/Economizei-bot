@@ -21,7 +21,7 @@ async function upsertUsuario(phoneNumber) {
 
     const { data, error } = await supabase
       .from('usuarios')
-      .select('phone_number, compras_mes_atual, is_pro, beta_fundador, onboarding_step')
+      .select('phone_number, compras_mes_atual, is_pro, beta_fundador, onboarding_step, features_pro_ate, plano, assinatura_status, assinatura_pendente_plano, mp_preapproval_id')
       .eq('phone_number', phoneNumber)
       .single();
 
@@ -38,22 +38,27 @@ async function salvarCompra(phoneNumber, dados) {
   const { loja, total, data_compra, itens = [], tipo = 'mercado' } = dados;
 
   try {
-    // 1. Insere a compra e recupera o id gerado
+    // 1. Insere a compra e recupera o id gerado.
+    // `tipo` (mercado/outros) é gravado para a média de gastos poder filtrar
+    // só compras de mercado (decisão 2026-06-07).
     const { data: compra, error: erroCompra } = await supabase
       .from('compras')
-      .insert({ phone_number: phoneNumber, loja, total, data_compra })
+      .insert({ phone_number: phoneNumber, loja, total, data_compra, tipo })
       .select()
       .single();
 
     if (erroCompra) throw erroCompra;
 
-    // 2. Insere os itens vinculados ao id da compra
+    // 2. Insere os itens vinculados ao id da compra.
+    // preco       = preço unitário (mantido para compatibilidade/exibição)
+    // preco_total = total da linha como impresso no cupom — fonte de verdade
+    //               para agregação por categoria (decisão 2026-06-07).
     if (itens.length > 0) {
       const linhasItens = itens.map((item) => ({
         compra_id:     compra.id,
         nome:          item.nome,
-        // Gemini retorna preco_unitario; fallback para preco (compatibilidade futura)
         preco:         item.preco_unitario ?? item.preco ?? null,
+        preco_total:   item.preco_total ?? null,
         quantidade:    item.quantidade,
         categoria:     item.categoria     ?? null,
         nome_canonico: item.nome_canonico ?? null,
@@ -134,7 +139,10 @@ async function buscarHistorico(phoneNumber, limite = 5) {
   }
 }
 
-// Retorna a média de gastos dos últimos 90 dias, ou null se menos de 3 compras
+// Retorna a média de gastos dos últimos 90 dias, ou null se menos de 3 compras.
+// Considera SÓ compras de mercado (tipo='mercado'): incluir não-mercado
+// (farmácia, posto, padaria de rua) derrubava a média e fazia o alerta disparar
+// "acima do padrão" quase sempre (decisão 2026-06-07).
 async function calcularMedia(phoneNumber) {
   try {
     const noventaDiasAtras = new Date();
@@ -144,6 +152,7 @@ async function calcularMedia(phoneNumber) {
       .from('compras')
       .select('total')
       .eq('phone_number', phoneNumber)
+      .eq('tipo', 'mercado')
       .gte('data_compra', noventaDiasAtras.toISOString().split('T')[0]);
 
     if (error) throw error;
@@ -372,7 +381,7 @@ async function buscarGastosPorCategoria(phoneNumber, mesReferencia) {
 
     const { data: compras, error: errC } = await supabase
       .from('compras')
-      .select('id')
+      .select('id, total')
       .eq('phone_number', phoneNumber)
       .gte('data_compra', primeiroDia)
       .lt('data_compra', proximoMes);
@@ -381,26 +390,51 @@ async function buscarGastosPorCategoria(phoneNumber, mesReferencia) {
     if (!compras || compras.length === 0) return [];
 
     const ids = compras.map(c => c.id);
+    const totalCupons = compras.reduce((s, c) => s + (Number(c.total) || 0), 0);
+
     const { data: itens, error: errI } = await supabase
       .from('itens_compra')
-      .select('categoria, preco, quantidade')
+      .select('categoria, preco, preco_total, quantidade')
       .in('compra_id', ids)
       .not('categoria', 'is', null);
 
     if (errI) throw errI;
     if (!itens || itens.length === 0) return [];
 
-    // Agrega totais por categoria em JS (volume pequeno por usuário/mês)
+    // Agrega por categoria usando preco_total (fonte de verdade da linha).
+    // Fallback para preco*quantidade só em linhas antigas sem preco_total.
     const catMap = {};
+    let somaItens = 0;
     for (const item of itens) {
       const cat = item.categoria || 'outros';
-      if (!catMap[cat]) catMap[cat] = 0;
-      catMap[cat] += (Number(item.preco) || 0) * (Number(item.quantidade) || 1);
+      const valor = item.preco_total != null
+        ? Number(item.preco_total) || 0
+        : (Number(item.preco) || 0) * (Number(item.quantidade) || 1);
+      catMap[cat] = (catMap[cat] || 0) + valor;
+      somaItens += valor;
     }
 
-    return Object.entries(catMap)
+    const categorias = Object.entries(catMap)
       .map(([categoria, total]) => ({ categoria, total: Math.round(total * 100) / 100 }))
       .sort((a, b) => b.total - a.total);
+
+    // Resíduo: diferença entre o total dos cupons (verdade) e a soma dos itens
+    // categorizados. Vira a fatia "Não identificado" para o /gastos fechar com o
+    // valor real gasto. Só entra se for relevante (> R$2 e > 2% do total).
+    const residuo = Math.round((totalCupons - somaItens) * 100) / 100;
+    const limiarResiduo = Math.max(2, totalCupons * 0.02);
+    if (residuo > limiarResiduo) {
+      categorias.push({ categoria: 'nao_identificado', total: residuo });
+    } else if (residuo < -limiarResiduo) {
+      // Itens somam mais que o total dos cupons — indica dupla contagem do Gemini.
+      log('gastos_itens_excedem_total', {
+        phone: maskPhone(phoneNumber), mes: mesReferencia,
+        total_cupons: Math.round(totalCupons * 100) / 100,
+        soma_itens: Math.round(somaItens * 100) / 100,
+      });
+    }
+
+    return categorias;
   } catch (err) {
     log('supabase_erro', { fn: 'buscarGastosPorCategoria', erro: err.message });
     return [];
@@ -454,6 +488,249 @@ async function setOptOutPrecos(phoneNumber, valor) {
     log('supabase_erro', { fn: 'setOptOutPrecos', erro: err.message });
     throw err;
   }
+}
+
+// ---------------------------------------------------------------
+// Sistema de indicação (/convidar) — decisão CLAUDE.md 2026-06-07
+// Programa de 2 lados e 2 marcos. Recompensa = dias de "features Pro"
+// (comparativo + alerta inteligente), SEM mexer no limite de cupons.
+// A janela vive em usuarios.features_pro_ate, separada de is_pro.
+// ---------------------------------------------------------------
+
+const INDICACAO_DIAS_ATIVACAO  = 7;   // marco 1: amigo manda o 1º cupom (os dois ganham)
+const INDICACAO_DIAS_CONVERSAO = 30;  // marco 2: amigo vira Pro pagante (indicador ganha)
+const INDICACAO_TETO_DIAS      = 60;  // teto de acúmulo de features Pro na conta
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+// Alfabeto sem caracteres ambíguos (sem 0/O, 1/I/L)
+const _ALFABETO_CODIGO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+function _gerarCodigoAleatorio(tamanho = 4) {
+  const bytes = require('crypto').randomBytes(tamanho);
+  let out = '';
+  for (let i = 0; i < tamanho; i++) {
+    out += _ALFABETO_CODIGO[bytes[i] % _ALFABETO_CODIGO.length];
+  }
+  return `CONV-${out}`;
+}
+
+// Retorna o código estável de indicação do usuário; cria no primeiro /convidar.
+async function gerarCodigoIndicacao(phoneNumber) {
+  try {
+    const { data: usuario, error } = await supabase
+      .from('usuarios')
+      .select('codigo_indicacao')
+      .eq('phone_number', phoneNumber)
+      .single();
+    if (error) throw error;
+    if (usuario?.codigo_indicacao) return usuario.codigo_indicacao;
+
+    // Tenta gerar um código único — em colisão (23505), tenta outro
+    for (let tentativa = 0; tentativa < 6; tentativa++) {
+      const codigo = _gerarCodigoAleatorio(4);
+      const { error: errUpd } = await supabase
+        .from('usuarios')
+        .update({ codigo_indicacao: codigo })
+        .eq('phone_number', phoneNumber);
+      if (!errUpd) return codigo;
+      if (errUpd.code !== '23505') throw errUpd;
+    }
+    throw new Error('não foi possível gerar código único de indicação');
+  } catch (err) {
+    log('supabase_erro', { fn: 'gerarCodigoIndicacao', erro: err.message });
+    throw err;
+  }
+}
+
+// Registra indicação pendente no 1º contato do indicado.
+// Guardas: código existe, não é auto-indicação, indicado ainda não foi indicado.
+// Retorna { ok, motivo }. Nunca lança — é fire-and-forget no fluxo de onboarding.
+async function registrarIndicacaoPendente(codigo, indicadoPhone) {
+  try {
+    const cod = (codigo || '').toUpperCase().trim();
+    if (!cod) return { ok: false, motivo: 'codigo_vazio' };
+
+    const { data: indicador, error } = await supabase
+      .from('usuarios')
+      .select('phone_number')
+      .eq('codigo_indicacao', cod)
+      .maybeSingle();
+    if (error) throw error;
+    if (!indicador) return { ok: false, motivo: 'codigo_inexistente' };
+    if (indicador.phone_number === indicadoPhone) return { ok: false, motivo: 'auto_indicacao' };
+
+    // UNIQUE(indicado_phone) garante 1 indicação por pessoa (o 1º vence)
+    const { error: errIns } = await supabase
+      .from('indicacoes')
+      .insert({
+        codigo: cod,
+        indicador_phone: indicador.phone_number,
+        indicado_phone: indicadoPhone,
+        status: 'pendente',
+      });
+
+    if (errIns) {
+      if (errIns.code === '23505') return { ok: false, motivo: 'ja_indicado' };
+      throw errIns;
+    }
+    log('indicacao_registrada', {
+      indicador: maskPhone(indicador.phone_number),
+      indicado: maskPhone(indicadoPhone),
+    });
+    return { ok: true };
+  } catch (err) {
+    log('supabase_erro', { fn: 'registrarIndicacaoPendente', erro: err.message });
+    return { ok: false, motivo: 'erro' };
+  }
+}
+
+// Concede `dias` de features Pro, empilhando sobre a janela atual com teto de 60 dias.
+// Retorna a nova data de expiração (ISO) ou null em erro.
+async function concederFeaturesPro(phoneNumber, dias) {
+  try {
+    const { data: usuario, error } = await supabase
+      .from('usuarios')
+      .select('features_pro_ate')
+      .eq('phone_number', phoneNumber)
+      .single();
+    if (error) throw error;
+
+    const agora = Date.now();
+    const atual = usuario?.features_pro_ate ? new Date(usuario.features_pro_ate).getTime() : 0;
+    const base = Math.max(agora, atual);            // empilha sobre janela ativa, nunca encurta
+    const alvo = base + dias * DIA_MS;
+    const teto = agora + INDICACAO_TETO_DIAS * DIA_MS;
+    const novaExpiracao = new Date(Math.min(alvo, teto)).toISOString();
+
+    const { error: errUpd } = await supabase
+      .from('usuarios')
+      .update({ features_pro_ate: novaExpiracao })
+      .eq('phone_number', phoneNumber);
+    if (errUpd) throw errUpd;
+
+    log('features_pro_concedidas', { phone: maskPhone(phoneNumber), dias, ate: novaExpiracao });
+    return novaExpiracao;
+  } catch (err) {
+    log('supabase_erro', { fn: 'concederFeaturesPro', erro: err.message });
+    return null;
+  }
+}
+
+// Marco 1: indicado mandou o 1º cupom. Se houver indicação pendente, ativa e
+// concede 7 dias de features Pro aos DOIS lados. Idempotente (pendente→ativado).
+// Retorna { ativou, indicadorPhone, dias } — index.js usa pra notificar os dois.
+async function ativarIndicacao(indicadoPhone) {
+  try {
+    const { data: indic, error } = await supabase
+      .from('indicacoes')
+      .select('id, indicador_phone, status')
+      .eq('indicado_phone', indicadoPhone)
+      .maybeSingle();
+    if (error) throw error;
+    if (!indic || indic.status !== 'pendente') return { ativou: false };
+
+    // Flip condicional: só ativa se ainda pendente (guarda contra corrida de webhook)
+    const { data: upd, error: errUpd } = await supabase
+      .from('indicacoes')
+      .update({ status: 'ativado', ativado_em: new Date().toISOString() })
+      .eq('id', indic.id)
+      .eq('status', 'pendente')
+      .select('id');
+    if (errUpd) throw errUpd;
+    if (!upd || upd.length === 0) return { ativou: false }; // outra execução já ativou
+
+    await Promise.all([
+      concederFeaturesPro(indic.indicador_phone, INDICACAO_DIAS_ATIVACAO),
+      concederFeaturesPro(indicadoPhone, INDICACAO_DIAS_ATIVACAO),
+    ]);
+
+    log('indicacao_ativada', {
+      indicador: maskPhone(indic.indicador_phone),
+      indicado: maskPhone(indicadoPhone),
+    });
+    return { ativou: true, indicadorPhone: indic.indicador_phone, dias: INDICACAO_DIAS_ATIVACAO };
+  } catch (err) {
+    log('supabase_erro', { fn: 'ativarIndicacao', erro: err.message });
+    return { ativou: false };
+  }
+}
+
+// Marco 2: indicado virou Pro pagante. Concede +30 dias de features Pro ao indicador.
+// Cobre qualquer status != convertido (normalmente 'ativado', mas também o caso de
+// pagar antes de mandar cupom). Idempotente. Retorna { converteu, indicadorPhone, dias }.
+async function converterIndicacao(indicadoPhone) {
+  try {
+    const { data: indic, error } = await supabase
+      .from('indicacoes')
+      .select('id, indicador_phone, status')
+      .eq('indicado_phone', indicadoPhone)
+      .maybeSingle();
+    if (error) throw error;
+    if (!indic || indic.status === 'convertido') return { converteu: false };
+
+    const { data: upd, error: errUpd } = await supabase
+      .from('indicacoes')
+      .update({ status: 'convertido', convertido_em: new Date().toISOString() })
+      .eq('id', indic.id)
+      .neq('status', 'convertido')
+      .select('id');
+    if (errUpd) throw errUpd;
+    if (!upd || upd.length === 0) return { converteu: false };
+
+    await concederFeaturesPro(indic.indicador_phone, INDICACAO_DIAS_CONVERSAO);
+    log('indicacao_convertida', {
+      indicador: maskPhone(indic.indicador_phone),
+      indicado: maskPhone(indicadoPhone),
+    });
+    return { converteu: true, indicadorPhone: indic.indicador_phone, dias: INDICACAO_DIAS_CONVERSAO };
+  } catch (err) {
+    log('supabase_erro', { fn: 'converterIndicacao', erro: err.message });
+    return { converteu: false };
+  }
+}
+
+// Marca o usuário como Pro pagante (usado pelo endpoint admin de ativação manual).
+async function marcarProAtivo(phoneNumber) {
+  try {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ is_pro: true })
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+    log('pro_ativado_manual', { phone: maskPhone(phoneNumber) });
+  } catch (err) {
+    log('supabase_erro', { fn: 'marcarProAtivo', erro: err.message });
+    throw err;
+  }
+}
+
+// Contagem de indicações do indicador, para exibir no /convidar.
+async function buscarStatusIndicacoes(phoneNumber) {
+  try {
+    const { data, error } = await supabase
+      .from('indicacoes')
+      .select('status')
+      .eq('indicador_phone', phoneNumber);
+    if (error) throw error;
+
+    const linhas = data || [];
+    const ativados    = linhas.filter(r => r.status === 'ativado' || r.status === 'convertido').length;
+    const convertidos = linhas.filter(r => r.status === 'convertido').length;
+    return { total: linhas.length, ativados, convertidos };
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarStatusIndicacoes', erro: err.message });
+    return { total: 0, ativados: 0, convertidos: 0 };
+  }
+}
+
+// Helper puro: o usuário tem acesso às funções Pro? (assinante OU janela de recompensa ativa)
+// Usar como gate de comparativo entre mercados + alerta inteligente QUANDO essas features
+// forem implementadas. NÃO usar pro limite de cupons (decisão 2026-06-07).
+function temFeaturesProAtivas(usuario) {
+  if (!usuario) return false;
+  if (usuario.is_pro) return true;
+  if (!usuario.features_pro_ate) return false;
+  return new Date(usuario.features_pro_ate).getTime() > Date.now();
 }
 
 // ---------------------------------------------------------------
@@ -650,6 +927,163 @@ async function registrarLembreteEnviado(phoneNumber, lembreteId, mesReferencia =
   }
 }
 
+// ---------------------------------------------------------------
+// Assinaturas recorrentes (Mercado Pago)
+// ---------------------------------------------------------------
+
+// Marca o plano escolhido como "pendente de e-mail" — a próxima mensagem
+// do usuário será interpretada como o e-mail da assinatura.
+async function setPendentePlano(phoneNumber, plano) {
+  try {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ assinatura_pendente_plano: plano })
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+  } catch (err) {
+    log('supabase_erro', { fn: 'setPendentePlano', erro: err.message });
+    throw err;
+  }
+}
+
+async function limparPendentePlano(phoneNumber) {
+  try {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ assinatura_pendente_plano: null })
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+  } catch (err) {
+    log('supabase_erro', { fn: 'limparPendentePlano', erro: err.message });
+    throw err;
+  }
+}
+
+// Persiste a assinatura recém-criada (status inicial 'pending') e limpa o
+// estado conversacional de "aguardando e-mail".
+async function salvarAssinaturaPreapproval(phoneNumber, { preapprovalId, plano, email, status = 'pending' }) {
+  try {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({
+        mp_preapproval_id: preapprovalId,
+        plano,
+        assinatura_email: email,
+        assinatura_status: status,
+        assinatura_pendente_plano: null,
+        assinatura_atualizada_em: new Date().toISOString(),
+      })
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+  } catch (err) {
+    log('supabase_erro', { fn: 'salvarAssinaturaPreapproval', erro: err.message });
+    throw err;
+  }
+}
+
+// Atualiza o status da assinatura e liga/desliga is_pro de acordo.
+// is_pro = TRUE apenas quando authorized. Retorna { statusAnterior, isProAnterior }.
+async function atualizarStatusAssinatura(phoneNumber, status, extras = {}) {
+  try {
+    const { data: atual } = await supabase
+      .from('usuarios')
+      .select('assinatura_status, is_pro')
+      .eq('phone_number', phoneNumber)
+      .single();
+
+    const isPro = status === 'authorized';
+    const update = {
+      assinatura_status: status,
+      is_pro: isPro,
+      assinatura_atualizada_em: new Date().toISOString(),
+    };
+    if (extras.preapprovalId) update.mp_preapproval_id = extras.preapprovalId;
+    if (extras.plano) update.plano = extras.plano;
+
+    const { error } = await supabase
+      .from('usuarios')
+      .update(update)
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+
+    log('assinatura_status_atualizado', {
+      phone: maskPhone(phoneNumber),
+      de: atual?.assinatura_status ?? null,
+      para: status,
+      is_pro: isPro,
+    });
+
+    return {
+      statusAnterior: atual?.assinatura_status ?? null,
+      isProAnterior: atual?.is_pro ?? false,
+    };
+  } catch (err) {
+    log('supabase_erro', { fn: 'atualizarStatusAssinatura', erro: err.message });
+    throw err;
+  }
+}
+
+// Conciliação reversa: do preapproval_id (vindo no webhook) para o usuário.
+async function buscarPorPreapprovalId(preapprovalId) {
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('phone_number, plano, assinatura_status, is_pro, mp_preapproval_id')
+      .eq('mp_preapproval_id', preapprovalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarPorPreapprovalId', erro: err.message });
+    throw err;
+  }
+}
+
+// Registra o evento de webhook. Retorna { ok, duplicado } — duplicado=true
+// quando o mesmo (topico, recurso_id) já foi gravado (idempotência via índice
+// único uq_assinatura_eventos_topico_recurso).
+async function registrarEventoAssinatura({ phone = null, preapprovalId = null, topico, recursoId, acao = null, status = null, payload = null }) {
+  try {
+    const { error } = await supabase
+      .from('assinatura_eventos')
+      .insert({
+        phone_number: phone,
+        preapproval_id: preapprovalId,
+        topico,
+        recurso_id: String(recursoId),
+        acao,
+        status,
+        payload,
+      });
+
+    if (error) {
+      // 23505 = unique_violation → evento já processado
+      if (error.code === '23505') return { ok: true, duplicado: true };
+      throw error;
+    }
+    return { ok: true, duplicado: false };
+  } catch (err) {
+    log('supabase_erro', { fn: 'registrarEventoAssinatura', erro: err.message });
+    return { ok: false, duplicado: false, error: err.message };
+  }
+}
+
+// Dados da assinatura do usuário — usado em /cancelar-assinatura e status.
+async function buscarDadosAssinatura(phoneNumber) {
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('mp_preapproval_id, plano, assinatura_status, assinatura_email, is_pro')
+      .eq('phone_number', phoneNumber)
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarDadosAssinatura', erro: err.message });
+    throw err;
+  }
+}
+
 module.exports = {
   upsertUsuario,
   salvarCompra,
@@ -672,4 +1106,19 @@ module.exports = {
   buscarElegiveisFinsDeMes,
   lembreteFoiEnviado,
   registrarLembreteEnviado,
+  gerarCodigoIndicacao,
+  registrarIndicacaoPendente,
+  concederFeaturesPro,
+  ativarIndicacao,
+  converterIndicacao,
+  marcarProAtivo,
+  buscarStatusIndicacoes,
+  temFeaturesProAtivas,
+  setPendentePlano,
+  limparPendentePlano,
+  salvarAssinaturaPreapproval,
+  atualizarStatusAssinatura,
+  buscarPorPreapprovalId,
+  registrarEventoAssinatura,
+  buscarDadosAssinatura,
 };

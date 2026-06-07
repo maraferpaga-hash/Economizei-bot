@@ -95,6 +95,31 @@ function coerceNumber(valor) {
   return NaN;
 }
 
+// ---------------------------------------------------------------
+// Reconciliação item × total — detecta extração incompleta.
+// Tolerância: maior entre R$ 2,00 e 15% do total declarado.
+// confere = null quando não há itens para conferir (cupom só com total).
+// ---------------------------------------------------------------
+function reconciliarItens(total, itens) {
+  if (!Array.isArray(itens) || itens.length === 0) {
+    return { somaItens: 0, total, diferenca: total, divergencia_pct: null, confere: null };
+  }
+  const somaItens = itens.reduce((acc, i) => {
+    const v = coerceNumber(i.preco_total ?? i.preco_unitario);
+    return acc + (isNaN(v) ? 0 : v);
+  }, 0);
+  const diferenca = Math.round((total - somaItens) * 100) / 100;
+  const tolerancia = Math.max(2, total * 0.15);
+  const divergencia_pct = total > 0 ? Math.round((Math.abs(diferenca) / total) * 100) : 100;
+  return {
+    somaItens: Math.round(somaItens * 100) / 100,
+    total,
+    diferenca,
+    divergencia_pct,
+    confere: Math.abs(diferenca) <= tolerancia,
+  };
+}
+
 function inferirCategoria(motivo) {
   if (typeof motivo !== 'string') return 'outro';
   const m = motivo.toLowerCase();
@@ -209,6 +234,18 @@ function validarSchema(dados) {
     }
   }
 
+  const reconciliacao = reconciliarItens(total, itens);
+  if (reconciliacao.confere === false) {
+    log('gemini_reconciliacao_divergente', {
+      loja,
+      total,
+      soma_itens: reconciliacao.somaItens,
+      diferenca: reconciliacao.diferenca,
+      divergencia_pct: reconciliacao.divergencia_pct,
+      qtd_itens: itens.length,
+    });
+  }
+
   return {
     sucesso: true,
     tipo,
@@ -217,6 +254,7 @@ function validarSchema(dados) {
     data_compra,
     total,
     itens,
+    reconciliacao,
   };
 }
 
@@ -254,7 +292,15 @@ async function lerRecibo(imageBuffer) {
     return { sucesso: false, categoria_erro: 'borrado', motivo: 'Imagem inválida ou muito pequena' };
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  // temperature:0 → extração determinística (mata a variação 38/39/40 do mesmo cupom).
+  // responseMimeType JSON → Gemini devolve JSON puro, sem markdown, reduzindo falha de parse.
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    generationConfig: {
+      temperature: 0,
+      responseMimeType: 'application/json',
+    },
+  });
 
   // Pré-processa — se Sharp falhar, bufferProcessado = null e pulamos pro original
   const bufferProcessado = await preprocessarImagem(imageBuffer);
@@ -266,6 +312,7 @@ async function lerRecibo(imageBuffer) {
   ];
 
   let ultimoResultado = null;
+  let melhorSucesso = null;
 
   for (const tentativa of tentativas) {
     try {
@@ -290,8 +337,23 @@ async function lerRecibo(imageBuffer) {
       const resultado = validarSchema(dados);
       ultimoResultado = resultado;
 
-      // Se sucesso ou erro não relacionado a qualidade de imagem → retorna já
-      if (resultado.sucesso) return resultado;
+      if (resultado.sucesso) {
+        // Guarda o melhor sucesso por reconciliação (soma dos itens × total).
+        if (!melhorSucesso || _scoreReconciliacao(resultado) > _scoreReconciliacao(melhorSucesso)) {
+          melhorSucesso = resultado;
+        }
+        // Se os itens fecham com o total, é o resultado ideal — retorna já.
+        if (resultado.reconciliacao?.confere === true) return resultado;
+        // Itens não fecham (ou cupom sem itens): tenta a próxima imagem buscando
+        // uma extração melhor; no fim retorna o melhor candidato visto.
+        log('gemini_buscando_extracao_melhor', {
+          tentativa: tentativa.label,
+          divergencia_pct: resultado.reconciliacao?.divergencia_pct ?? null,
+        });
+        continue;
+      }
+
+      // Erro não relacionado a qualidade de imagem → retorna já
       if (resultado.categoria_erro !== 'borrado') return resultado;
 
       // borrado → tenta próxima versão da imagem (se houver)
@@ -305,7 +367,18 @@ async function lerRecibo(imageBuffer) {
     }
   }
 
-  return ultimoResultado ?? { sucesso: false, categoria_erro: 'borrado', motivo: 'Imagem ilegível' };
+  // Prioriza o melhor sucesso (mesmo que não reconcilie) sobre erros.
+  return melhorSucesso ?? ultimoResultado ?? { sucesso: false, categoria_erro: 'borrado', motivo: 'Imagem ilegível' };
+}
+
+// Score de reconciliação para escolher entre tentativas:
+// itens que fecham com o total (100) > itens divergentes (quanto menor a
+// divergência, melhor) > cupom sem itens (0).
+function _scoreReconciliacao(resultado) {
+  const rc = resultado.reconciliacao;
+  if (!rc || rc.confere === null) return 0;
+  if (rc.confere === true) return 100;
+  return Math.max(0, 100 - Math.min(100, rc.divergencia_pct ?? 100));
 }
 
 module.exports = { lerRecibo, avaliarQualidadeCanonicoItem };
