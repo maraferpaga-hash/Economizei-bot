@@ -407,6 +407,40 @@ async function buscarGastosPorCategoria(phoneNumber, mesReferencia) {
   }
 }
 
+// Retorna o "YYYY-MM" mais recente (por data_compra do cupom) que tem itens
+// com categoria definida, ou null se não houver nenhum. Usado como fallback no
+// /gastos quando o mês atual ainda não tem gastos categorizados.
+async function buscarMesMaisRecenteComGastos(phoneNumber) {
+  try {
+    const { data: compras, error: errC } = await supabase
+      .from('compras')
+      .select('id, data_compra')
+      .eq('phone_number', phoneNumber)
+      .order('data_compra', { ascending: false });
+
+    if (errC) throw errC;
+    if (!compras || compras.length === 0) return null;
+
+    const ids = compras.map(c => c.id);
+    const { data: itens, error: errI } = await supabase
+      .from('itens_compra')
+      .select('compra_id')
+      .in('compra_id', ids)
+      .not('categoria', 'is', null);
+
+    if (errI) throw errI;
+    if (!itens || itens.length === 0) return null;
+
+    const comCategoria = new Set(itens.map(i => i.compra_id));
+    // compras já vem ordenado por data_compra desc → primeira com categoria define o mês
+    const compraAlvo = compras.find(c => comCategoria.has(c.id));
+    return compraAlvo?.data_compra ? compraAlvo.data_compra.slice(0, 7) : null;
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarMesMaisRecenteComGastos', erro: err.message });
+    return null;
+  }
+}
+
 // Opt-out/in do compartilhamento anônimo de preços
 async function setOptOutPrecos(phoneNumber, valor) {
   try {
@@ -630,6 +664,7 @@ module.exports = {
   verificarResumoJaEnviado,
   marcarResumoEnviado,
   buscarGastosPorCategoria,
+  buscarMesMaisRecenteComGastos,
   setOptOutPrecos,
   buscarElegiveisOnboarding,
   buscarElegiveisInativos,

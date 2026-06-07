@@ -12,6 +12,7 @@ const {
   buscarStatusUsuario,
   atualizarOnboardingStep,
   buscarGastosPorCategoria,
+  buscarMesMaisRecenteComGastos,
   setOptOutPrecos,
   // salvarWaitlist — DEPRECATED em 2026-05-22 (waitlist removida); função
   // mantida em supabase.js para reativação futura se necessário.
@@ -392,18 +393,43 @@ async function processarImagem(phone, imageUrl) {
 // ---------------------------------------------------------------
 async function mostrarGastos(phone) {
   const mesAtual = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-  const dadosCat = await buscarGastosPorCategoria(phone, mesAtual);
+
+  // Agrupa por data_compra (data impressa no cupom). Se o mês atual ainda não
+  // tem gastos categorizados, cai pro mês mais recente que tem — e avisa qual é.
+  let mesAlvo   = mesAtual;
+  let dadosCat  = await buscarGastosPorCategoria(phone, mesAtual);
+  let usouFallback = false;
+
+  if (!dadosCat || dadosCat.length === 0) {
+    const mesRecente = await buscarMesMaisRecenteComGastos(phone);
+    if (mesRecente && mesRecente !== mesAtual) {
+      mesAlvo = mesRecente;
+      dadosCat = await buscarGastosPorCategoria(phone, mesRecente);
+      usouFallback = true;
+    }
+  }
 
   if (!dadosCat || dadosCat.length === 0) {
     await enviarMensagem(
       phone,
-      '📊 Ainda não tenho dados de categoria para esse mês.\n\n' +
+      '📊 Ainda não tenho dados de categoria para nenhum mês.\n\n' +
       'Continue mandando os cupons — a partir de agora cada cupom registra a categoria de cada item automaticamente. 📸'
     );
     return;
   }
 
-  const titulo   = nomeDoMes(mesAtual);
+  const titulo = nomeDoMes(mesAlvo);
+
+  // Avisa quando está mostrando um mês diferente do atual (data do cupom)
+  if (usouFallback) {
+    await enviarMensagem(
+      phone,
+      `📊 Você ainda não tem cupons de *${nomeDoMes(mesAtual)}*.\n\n` +
+      `Mostrando seus gastos de *${titulo}* (mês mais recente com compras):`
+    );
+    await new Promise(r => setTimeout(r, 400));
+  }
+
   const chartUrl = gerarUrlGraficoCategorias(dadosCat, titulo);
 
   // Envia o gráfico — fallback silencioso se a imagem falhar
@@ -417,7 +443,7 @@ async function mostrarGastos(phone) {
   }
 
   // Sempre envia o texto com os valores detalhados
-  await enviarMensagem(phone, montarMensagemGastos(dadosCat, mesAtual));
+  await enviarMensagem(phone, montarMensagemGastos(dadosCat, mesAlvo));
 }
 
 // ---------------------------------------------------------------
