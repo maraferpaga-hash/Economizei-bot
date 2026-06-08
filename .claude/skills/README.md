@@ -32,6 +32,7 @@ O Economizei está nas **6 semanas de validação**: produto técnico já existe
 | 7 | `economizei-copywriter` | Toda mensagem do bot, landing, anúncio passa aqui. É o que vende. **Sempre acompanhada de `financial-firewall` quando há número.** |
 | 8 | `economizei-debugging` | Bot quebrado = produto morto. Reduz tempo de fogo de horas pra minutos. Sempre acompanhada de `automation-triage`. |
 | 9 | `economizei-growth-analyst` | Decide se a Semana 6 vira paywall ou não. |
+| 9b | `economizei-code-decisions` | **Skill gêmea** da `memory-system`, mas para `CODE_GUIDE.md`. Mantém memória técnica (stack, padrões, decisões de código, aprendizados de bug). Carregar em toda sessão que envolva código. |
 
 ## 📦 Pacote Secondary (instalar quando o core estiver rodando — Semanas 2–4)
 

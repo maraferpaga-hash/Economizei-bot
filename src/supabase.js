@@ -1068,6 +1068,50 @@ async function registrarEventoAssinatura({ phone = null, preapprovalId = null, t
   }
 }
 
+// ---------------------------------------------------------------
+// Idempotência do webhook Z-API (lei 5 do CODE_GUIDE)
+// ---------------------------------------------------------------
+
+// Registra o messageId do evento. Retorna { duplicado } — true quando o mesmo
+// messageId já foi processado antes (reentrega do Z-API). A PK em message_id
+// garante a atomicidade: em corrida de 2 entregas simultâneas, uma insere e a
+// outra recebe 23505. Nunca lança — em erro inesperado, deixa processar (não
+// bloquear o usuário por uma falha de dedup), mas loga.
+async function registrarMensagemProcessada(messageId, phoneNumber, tipo) {
+  try {
+    const { error } = await supabase
+      .from('mensagens_processadas')
+      .insert({ message_id: messageId, phone_number: phoneNumber, tipo });
+
+    if (error) {
+      if (error.code === '23505') return { duplicado: true };  // já processado
+      throw error;
+    }
+    return { duplicado: false };
+  } catch (err) {
+    log('supabase_erro', { fn: 'registrarMensagemProcessada', erro: err.message });
+    // Falha de dedup não pode travar o atendimento — segue como não-duplicado.
+    return { duplicado: false };
+  }
+}
+
+// Purga registros de dedup com mais de `dias` dias. Chamada por cron diário.
+// A janela só precisa cobrir o intervalo de reentrega do Z-API (minutos/horas);
+// 7 dias é folga de sobra e mantém a tabela pequena.
+async function purgarMensagensProcessadas(dias = 7) {
+  try {
+    const corte = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
+    const { error } = await supabase
+      .from('mensagens_processadas')
+      .delete()
+      .lt('criado_em', corte);
+    if (error) throw error;
+    log('mensagens_processadas_purgadas', { antes_de: corte });
+  } catch (err) {
+    log('supabase_erro', { fn: 'purgarMensagensProcessadas', erro: err.message });
+  }
+}
+
 // Dados da assinatura do usuário — usado em /cancelar-assinatura e status.
 async function buscarDadosAssinatura(phoneNumber) {
   try {
@@ -1121,4 +1165,6 @@ module.exports = {
   buscarPorPreapprovalId,
   registrarEventoAssinatura,
   buscarDadosAssinatura,
+  registrarMensagemProcessada,
+  purgarMensagensProcessadas,
 };

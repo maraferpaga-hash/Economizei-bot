@@ -4,6 +4,7 @@ const { logarMetricasDiarias } = require('./metrics');
 const { executarDigestSemanal } = require('./weeklyDigest');
 const { verificarConexao, enviarMensagem } = require('./zapi');
 const { executarReengajamento } = require('./reengagement');
+const { purgarMensagensProcessadas } = require('./supabase');
 const { log } = require('./logger');
 
 function ehUltimoDiaDoMes(date = new Date()) {
@@ -42,6 +43,12 @@ function iniciar() {
       await logarMetricasDiarias();
     } catch (err) {
       log('metricas_cron_erro', { erro: err.message });
+    }
+    // Purga o dedup de webhook (TTL ~7 dias) — mantém a tabela pequena.
+    try {
+      await purgarMensagensProcessadas(7);
+    } catch (err) {
+      log('purga_mensagens_cron_erro', { erro: err.message });
     }
   }, { timezone: 'America/Sao_Paulo' });
 
@@ -100,7 +107,7 @@ function iniciar() {
   }, { timezone: 'America/Sao_Paulo' });
 
   log('scheduler_jobs_registrados', {
-    jobs: ['resumo_mensal (9h dias 28-31)', 'metricas_diarias (7h)', 'zapi_health (8h)', 'digest_semanal (9h sexta)', 'reengajamento (10h)'],
+    jobs: ['resumo_mensal (9h dias 28-31)', 'metricas_diarias + purga_dedup (7h)', 'zapi_health (8h)', 'digest_semanal (9h sexta)', 'reengajamento (10h)'],
   });
 }
 

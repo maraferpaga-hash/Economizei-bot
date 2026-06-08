@@ -27,6 +27,7 @@ const {
   buscarPorPreapprovalId,
   registrarEventoAssinatura,
   buscarDadosAssinatura,
+  registrarMensagemProcessada,
   // salvarWaitlist — DEPRECATED em 2026-05-22 (waitlist removida); função
   // mantida em supabase.js para reativação futura se necessário.
 } = require('./supabase');
@@ -135,6 +136,25 @@ function montarLinkConvite(codigo) {
 }
 
 // ---------------------------------------------------------------
+// Dedup de eventos do webhook por messageId (lei 5 do CODE_GUIDE).
+// O Z-API pode reentregar o mesmo evento (retry/rede/reconexão). Se o
+// messageId já foi processado, ignora — não duplica compra nem contador.
+// Sem messageId no payload, processa normalmente (sem dedup possível).
+// ---------------------------------------------------------------
+async function despacharComDedup(messageId, phone, tipo, fn) {
+  if (messageId) {
+    const { duplicado } = await registrarMensagemProcessada(messageId, phone, tipo);
+    if (duplicado) {
+      log('webhook_evento_duplicado', { phone: maskPhone(phone), tipo, message_id: messageId });
+      return;
+    }
+  } else {
+    log('webhook_sem_message_id', { phone: maskPhone(phone), tipo });
+  }
+  await fn();
+}
+
+// ---------------------------------------------------------------
 // POST /webhook — ponto de entrada de todos os eventos do Z-API
 // ---------------------------------------------------------------
 app.post('/webhook', (req, res) => {
@@ -166,12 +186,19 @@ app.post('/webhook', (req, res) => {
   const tipo = body.text ? 'texto' : body.image ? 'imagem' : 'ignorado';
   log('webhook_recebido', { tipo });
 
+  // messageId do Z-API: chave de idempotência. Reentrega do mesmo evento não
+  // pode gerar compra/contador duplicado (lei 5 do CODE_GUIDE).
+  const messageId = typeof body.messageId === 'string' && body.messageId.trim()
+    ? body.messageId.trim()
+    : null;
+
   if (body.text) {
     if (typeof body.text.message !== 'string' || body.text.message.trim() === '') {
       log('payload_invalido', { motivo: 'text.message ausente' });
       return;
     }
-    processarTexto(phone, body.text.message).catch((err) =>
+    const mensagem = body.text.message;
+    despacharComDedup(messageId, phone, 'texto', () => processarTexto(phone, mensagem)).catch((err) =>
       log('cupom_erro_interno', { phone: maskPhone(phone), erro: err.message })
     );
   } else if (body.image) {
@@ -179,7 +206,8 @@ app.post('/webhook', (req, res) => {
       log('payload_invalido', { motivo: 'image.imageUrl ausente' });
       return;
     }
-    processarImagem(phone, body.image.imageUrl).catch((err) =>
+    const imageUrl = body.image.imageUrl;
+    despacharComDedup(messageId, phone, 'imagem', () => processarImagem(phone, imageUrl)).catch((err) =>
       log('cupom_erro_interno', { phone: maskPhone(phone), erro: err.message })
     );
   }

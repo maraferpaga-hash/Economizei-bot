@@ -106,6 +106,8 @@
     <ul>
       <li><strong>Número de WhatsApp</strong> — para identificar você no bot e enviar respostas.</li>
       <li><strong>Dados dos cupons fiscais</strong> enviados por você: nome da loja, CNPJ do estabelecimento, data da compra, valor total e lista de itens com preços.</li>
+      <!-- PUBLICAR SÓ JUNTO COM A FEATURE DE REESCANEAMENTO (Opção A) -->
+      <li><strong>Imagem de cupom não lido</strong> — quando não conseguimos ler um cupom que você enviou, guardamos a foto temporariamente para tentar processá-la de novo. Veja o prazo na seção de retenção. Você pode desativar isso mandando <strong>/nao-guardar</strong> no bot.</li>
       <li><strong>Dados de uso</strong>: data e hora das mensagens, erros de processamento (sem conteúdo pessoal).</li>
       <li><strong>Plano contratado</strong>: se você é usuário gratuito ou pagante (Plano Pro).</li>
     </ul>
@@ -158,6 +160,13 @@
       <li><strong>Dados de uso (logs):</strong> 90 dias, depois deletados automaticamente.</li>
       <li><strong>Dados de pagamento (PIX):</strong> não armazenamos comprovantes; apenas o
         status do plano é registrado no banco de dados.</li>
+      <!-- PUBLICAR SÓ JUNTO COM A FEATURE DE REESCANEAMENTO (Opção A) -->
+      <li><strong>Imagem de cupom não lido:</strong> quando não conseguimos ler um cupom,
+        guardamos a foto por até 7 dias para tentar processá-la de novo e te lembrar.
+        Assim que o cupom é lido com sucesso, a imagem é apagada em até 48 horas.
+        Cupons lidos normalmente <strong>não</strong> têm a imagem guardada — ela é descartada
+        logo após a leitura. Você pode desativar o armazenamento a qualquer momento mandando
+        <strong>/nao-guardar</strong> no bot.</li>
     </ul>
     <p>
       Se você solicitar a exclusão (veja abaixo), todos os dados são removidos em até 15 dias úteis.

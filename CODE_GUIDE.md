@@ -10,7 +10,7 @@
 
 > **Critério editorial:** só entra aqui o que rege escolhas técnicas futuras. Implementação descartável fica fora.
 
-**Última atualização:** 2026-06-07
+**Última atualização:** 2026-06-07 (lei 5 — idempotência por messageId — implementada; backfill de dados antigos: tipo + preco_total)
 
 ---
 
@@ -116,7 +116,7 @@ E:\Economizei Bot\
 2. **Usuário nunca vê stack trace.** Stack vai pro log; usuário recebe mensagem amigável via `formatter.js`.
 3. **Falhas externas (Gemini, Z-API, Supabase) viram `{ok:false, error}`**, nunca exceção que vaza pro caller.
 4. **Retry só onde tem sentido** — `gemini.js` retenta em `borrado`/JSON inválido, **não** em `nao_e_cupom`/`muito_longo`. Z-API download retenta até 2x com guard de tamanho mínimo.
-5. **Idempotência via `messageId`** — webhook chamado 2x pelo mesmo evento não duplica compra.
+5. **Idempotência via `messageId`** — webhook chamado 2x pelo mesmo evento não duplica compra. **Implementado em 2026-06-07** (`despacharComDedup` em `index.js` + tabela `mensagens_processadas`).
 
 ### Padrão `safeParse` (referência: `gemini.js`)
 ```js
@@ -247,4 +247,6 @@ Cada dependência nova vira **linha na seção 8** (Decisões técnicas em vigor
 | 2026-06-07 | **`/gastos` fecha com o total do cupom via resíduo `nao_identificado`** | `buscarGastosPorCategoria` soma os itens e adiciona a fatia "Não identificado" = `total_cupons − soma_itens` (quando > max(R$2, 2%)). Elimina a divergência entre o total da confirmação e o total do /gastos. Resíduo negativo (itens > total) vira log `gastos_itens_excedem_total`. |
 | 2026-06-07 | **`compras.tipo` + média de gastos só de `tipo='mercado'`** | Misturar não-mercado (farmácia/posto) derrubava a média e fazia o alerta disparar "acima" quase sempre. `calcularMedia` agora filtra `tipo='mercado'`. Migration adiciona a coluna (default 'mercado'). |
 | 2026-06-07 | **Alerta de gasto em 3 níveis configurável por env** | `alerts.js`: `avaliarCompra` retorna `nivel` abaixo/normal/acima (limiares `ALERTA_LIM_ACIMA`/`ALERTA_LIM_ABAIXO`); `deveEnviarMensagem` decide o envio por `ALERTA_M
+| 2026-06-07 | **Lei 5 implementada — idempotência do webhook Z-API por `messageId`** | `despacharComDedup(messageId, phone, tipo, fn)` em `index.js` envolve o dispatch: grava o `messageId` em `mensagens_processadas` (PK em `message_id`) via `registrarMensagemProcessada`; se já existe (23505) loga `webhook_evento_duplicado` e ignora. Reentrega do mesmo evento (retry/rede/reconexão do Z-API) não duplica compra nem incremento de contador. Atômico por corrida (a PK resolve 2 entregas simultâneas). Sem `messageId` no payload, processa normal (loga `webhook_sem_message_id`). Falha de dedup nunca trava o atendimento (retorna não-duplicado). Mesmo padrão do `assinatura_eventos` do MP. Purga diária (TTL 7d) no cron das 7h via `purgarMensagensProcessadas`. Migration `migration_2026-06-07_idempotencia_messageid.sql`. **Rodar antes do push.** |
+| 2026-06-07 | **Backfill de dados antigos pós coerência de outputs** | `supabase/backfill_2026-06-07_dados_antigos.sql` (backfill de DADOS, não schema — rodar bloco a bloco com revisão humana). Parte 1: reclassifica `compras.tipo='outros'` em cupons não-mercado antigos por heurística no nome da loja (PREVIEW `SELECT` antes do `UPDATE`; sem ground truth porque a imagem não é guardada). Parte 2 (OPCIONAL, comentada): `itens_compra.preco_total = preco*quantidade` em linhas NULL — **no-op nos números** (idêntico ao fallback já existente); serve só pra completar a coluna. Ressalva honesta no arquivo: cupons antigos com total-da-linha gravado em `preco` ficariam congelados com valor dobrado, irrecuperável. |
 | 2026-06-07 | **`/gastos` usa gráfico de BARRAS HORIZONTAIS (era doughnut)** | `charts.js gerarUrlGraficoCategorias` reescrita: `type:'horizontalBar'`, barras ordenadas desc por gasto, cor por categoria, valor R$ + % no fim de cada barra via datalabels (injetado por placeholder `__FORMATTER__` pós-`JSON.stringify`, pois função não serializa em JSON), altura dinâmica `max(280,110+n*52)`, legenda/eixo X off. Assinatura `(dados, titulo)` inalterada → `index.js`/`monthlySummary.js` intactos. Doughnut ficava ruim de ler com muitas fatias pequenas. |
