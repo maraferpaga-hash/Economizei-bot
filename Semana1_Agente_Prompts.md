@@ -5,7 +5,7 @@
 > - Tarefas marcadas com 🤖 podem ser executadas colando o prompt direto em uma sessão do Claude (Cowork, Claude Code, ou API).
 > - Tarefas marcadas com 👤 requerem ação manual sua — estão explicadas passo a passo.
 > - Execute as tarefas **na ordem listada** — algumas dependem de anteriores.
-> - Cada prompt assume que o agente tem acesso à pasta `E:\Economizei Bot\` e pode editar arquivos.
+> - Cada prompt assume que o agente tem acesso à pasta `C:\Economizei\` e pode editar arquivos.
 >
 > **Objetivo da semana:** Bot pronto pro modelo Spotify-style, com limite correto, segurança básica, onboarding real e logging funcional.
 
@@ -76,7 +76,7 @@ O repositório não tem `.env.example`. Qualquer novo desenvolvedor ou deploy em
 ```
 Você está trabalhando no bot WhatsApp Economizei em Node.js.
 
-TAREFA: Criar o arquivo `.env.example` na raiz do projeto `E:\Economizei Bot\`
+TAREFA: Criar o arquivo `.env.example` na raiz do projeto `C:\Economizei\`
 
 As variáveis de ambiente necessárias para o bot funcionar são:
 

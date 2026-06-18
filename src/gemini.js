@@ -133,7 +133,7 @@ function inferirCategoria(motivo) {
 
 // ---------------------------------------------------------------
 // Quality check de nome_canonico
-// Retorna: 'ok' | 'ausente' | 'igual_ao_nome' | 'muito_longo' | 'pouco_simplificado'
+// Retorna: 'ok' | 'ausente' | 'igual_ao_nome' | 'muito_longo' | 'muito_curto' | 'pouco_simplificado'
 // ---------------------------------------------------------------
 function avaliarQualidadeCanonicoItem(item) {
   const { nome, nome_canonico } = item;
@@ -149,8 +149,12 @@ function avaliarQualidadeCanonicoItem(item) {
   // Gemini não simplificou nada — nome original apenas lowercaseado
   if (canonico === nomeNorm) return 'igual_ao_nome';
 
-  // Comprimento praticamente igual ao original (reduziu < 20%) — pouca simplificação
-  if (nomeNorm.length > 15 && canonico.length > nomeNorm.length * 0.80) return 'pouco_simplificado';
+  // Pouca simplificação: só sinaliza quando o nome ORIGINAL é longo (>25 chars,
+  // logo tinha espaço real pra encurtar) E o canônico quase não reduziu (>=95%).
+  // Critério afrouxado em 2026-06-08: o limiar antigo (>15 chars e >80%) dava
+  // falso positivo em nomes de cupom que já vêm muito abreviados — virava ruído
+  // de log sem problema real. Não afeta dado nenhum (o canônico é gravado igual).
+  if (nomeNorm.length > 25 && canonico.length >= nomeNorm.length * 0.95) return 'pouco_simplificado';
 
   return 'ok';
 }

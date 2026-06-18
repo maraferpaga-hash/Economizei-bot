@@ -21,7 +21,7 @@ Transformar "revisar o projeto" de evento manual e improvisado em **rotina repet
 - Revisão de uma copy/landing específica → `copy-review` / `economizei-copywriter`.
 
 ## Entradas ideais
-- Acesso de leitura ao repositório `E:\Economizei Bot\` (docs + `src/` + `supabase/`).
+- Acesso de leitura ao repositório `C:\Economizei\` (docs + `src/` + `supabase/`).
 - `git status` e `git log --oneline` recentes (estado de deploy é parte do diagnóstico).
 - Opcional: a pergunta de decisão por trás ("posso escalar?", "o Pro tá pronto?").
 

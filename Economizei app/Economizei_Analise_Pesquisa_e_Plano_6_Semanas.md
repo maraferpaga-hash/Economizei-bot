@@ -2,7 +2,7 @@
 
 **Documento estratégico-executivo — versão 2.0**
 Atualizado: 2026-05-08
-Base: 30 respostas qualitativas únicas + auditoria do código em `E:\Economizei Bot` + decisões tomadas em sessão de discussão estratégica
+Base: 30 respostas qualitativas únicas + auditoria do código em `C:\Economizei` + decisões tomadas em sessão de discussão estratégica
 Restrição operacional: 1 pessoa, ~1h/dia (≈42h em 6 semanas)
 
 ---
@@ -536,4 +536,4 @@ Frame: contra a planilha (que falhou) e contra "mais um app" (que dá preguiça 
 
 ---
 
-*Documento gerado a partir de 30 respostas qualitativas únicas + auditoria do código em E:\Economizei Bot + decisões tomadas em sessão de discussão estratégica em 2026-05-08. Atualizar após Semana 2 com dados de tráfego reais.*
+*Documento gerado a partir de 30 respostas qualitativas únicas + auditoria do código em C:\Economizei + decisões tomadas em sessão de discussão estratégica em 2026-05-08. Atualizar após Semana 2 com dados de tráfego reais.*

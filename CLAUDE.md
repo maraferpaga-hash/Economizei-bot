@@ -1,8 +1,8 @@
 # 🧠 Memória Institucional — Economizei
 
-> **🛠️ Sistema de skills ativo:** veja `E:\Economizei Bot\.claude\skills\README.md` (índice das 15 skills + 10 regras de ouro).
-> **🚀 Instruções do projeto:** veja `E:\Economizei Bot\PROJECT_INSTRUCTIONS.md` (boot sequence + comportamentos default).
-> **💻 Memória técnica de código:** veja `E:\Economizei Bot\CODE_GUIDE.md` (stack, padrões, decisões técnicas em vigor). Ler quando a sessão envolver código.
+> **🛠️ Sistema de skills ativo:** veja `C:\Economizei\.claude\skills\README.md` (índice das 18 skills + 10 regras de ouro).
+> **🚀 Instruções do projeto:** veja `C:\Economizei\PROJECT_INSTRUCTIONS.md` (boot sequence + comportamentos default).
+> **💻 Memória técnica de código:** veja `C:\Economizei\CODE_GUIDE.md` (stack, padrões, decisões técnicas em vigor). Ler quando a sessão envolver código.
 > Leia os 3 no início de cada sessão, junto com este arquivo.
 
 > Este arquivo é o **cérebro da empresa**. Leia-o no início de cada sessão para ter contexto completo
@@ -19,12 +19,12 @@
 **Operação:** 1 pessoa (fundador, Gabriel), com vasto conhecimento em administração
 **Restrição operacional:** ~12h/semana (média 10–14h, ver seção 6)
 **Praça inicial de lançamento:** Fernandópolis-SP e região (interior noroeste de SP) — ver seção 7.1
-**Última atualização:** 2026-06-07 (resolvidas as 2 ressalvas abertas: **idempotência por messageId** implementada no webhook — migration `migration_2026-06-07_idempotencia_messageid.sql`; e **backfill de dados antigos** — `supabase/backfill_2026-06-07_dados_antigos.sql` para reclassificar `tipo` de não-mercado antigos + completar `preco_total`. Pendências anteriores seguem: correção dos outputs `migration_2026-06-07_coerencia_outputs.sql`; assinatura MP migration + ativação; indicação `/convidar` migration 003)
+**Última atualização:** 2026-06-09 (documento de **Posicionamento & Norte Estratégico** criado — `Economizei app/Posicionamento_Norte_Estrategico_2026-06-09.md` + nova **seção 1.5** no CLAUDE.md: missão por inteiro — IA que dá ciência e inteligência sobre o gasto do brasileiro médio —, as **3 camadas de valor** (Ciência → Inteligência → Habilidade) e o **Teste de Norte** como filtro de toda decisão de produto/copy/roadmap. Na mesma data, pesquisa profunda de finanças pessoais → catálogo de 12 funções candidatas (Camadas 2/3) em `Economizei app/Pesquisa_Dicas_Financeiras_Funcoes_Bot_2026-06-09.md`. Skills: contagem padronizada e `economizei-strategic-review` instalada em `.claude/skills/`. Sessão anterior 2026-06-07: resolvidas as 2 ressalvas abertas: **idempotência por messageId** implementada no webhook — migration `migration_2026-06-07_idempotencia_messageid.sql`; e **backfill de dados antigos** — `supabase/backfill_2026-06-07_dados_antigos.sql` para reclassificar `tipo` de não-mercado antigos + completar `preco_total`. Pendências anteriores seguem: correção dos outputs `migration_2026-06-07_coerencia_outputs.sql`; assinatura MP migration + ativação; indicação `/convidar` migration 003)
 
 > **📂 Arquitetura modular atual:**
 > A modularização da memória institucional foi materializada via **sistema de skills** + **instruções de projeto**, não via quebra do CLAUDE.md em múltiplos `.md`.
 > - `CLAUDE.md` (este arquivo) — estratégia, princípios, persona, pricing atual, stack atual, áreas reais, decisões em vigor, comandos recentes. Lido em toda sessão.
-> - `.claude/skills/` — 14 skills operacionais (princípios, copy, debug, métricas, etc.). Disparam automaticamente por gatilho.
+> - `.claude/skills/` — 18 skills (16 `economizei-*` + 2 legadas `copy-review`/`roadmap-deps`). Disparam automaticamente por gatilho. Índice e contagem oficial no README de skills.
 > - `PROJECT_INSTRUCTIONS.md` — boot sequence + comportamentos default + ritual de fim de sessão.
 > - `Economizei app/Auditoria_Consultoria_Economizei_2026-05-19.md` — auditoria crítica externa, pontos abertos.
 > - `Economizei app/Projecao_6_meses.md` — projeção 3 cenários + gatilhos semáforo.
@@ -44,6 +44,32 @@ Bot de WhatsApp que analisa cupons fiscais via foto usando IA (Gemini 2.5). O us
 
 > **"Bom, barato e útil — grátis funciona de verdade, pago é a versão melhor."** *(princípio do Gabriel)*
 > Modelo Spotify, não freemium-trial. O free deve resolver a dor central; o pago é genuinamente melhor, nunca o grátis quebrado pra forçar upgrade. Capitalizar EM CIMA do produto, nunca pensando inverso.
+
+---
+
+## 1.5. 🧭 Posicionamento & Norte Estratégico *(definido 2026-06-09)*
+
+> **📄 Documento completo:** `Economizei app/Posicionamento_Norte_Estrategico_2026-06-09.md` (missão por inteiro, 3 camadas de valor, Teste de Norte com exemplos, mapa das funções atuais). Esta seção é o resumo que se lê em toda sessão.
+
+**Missão dita por inteiro:** *fazer o brasileiro médio entender o próprio gasto — e usar IA para trazer conhecimento, informação e inteligência a esse gasto.* Não somos um leitor de cupom; somos a **camada de inteligência** que transforma o gasto bruto da pessoa em entendimento, e o entendimento em habilidade financeira real (gastar melhor, economizar, ter mais valor sobre o próprio dinheiro). Isso dá nome e eixo oficial ao reframe "assistente de compras / inteligência sobre o gasto" discutido em 2026-05-19.
+
+**O Norte (frase-bússola que decide discussão):**
+
+> **"A cada interação, o usuário sai sabendo algo sobre o dinheiro dele que ele não sabia antes."**
+
+Se uma feature, mensagem ou fluxo não passa mais ciência, clareza ou inteligência sobre o gasto, ele não pertence ao produto — por mais técnico ou bonito que seja. O norte responde **"para onde"**; os princípios (zero atrito, grátis funciona, frame brasileiro) respondem **"de que jeito"**. O norte não revoga nenhuma decisão da seção 8.
+
+**As 3 camadas de valor (a escada — prefira sempre subir):**
+
+1. **Ciência (saber):** o gasto vira informação organizada — leitura do cupom, categorização, `/gastos`, resumo mensal.
+2. **Inteligência (entender):** a IA tira a conclusão que a pessoa não tiraria — alerta em 3 níveis, insight de categoria, comparativo entre mercados, alerta preditivo.
+3. **Habilidade (agir melhor):** com ciência + inteligência, a pessoa gasta melhor e economiza de verdade. É o resultado que justifica o produto existir.
+
+> Feature que para na Camada 1 (só mostra dado) tem valor limitado. O diferencial é puxar pra Camada 2 e 3. Em dúvida, construa o que **sobe a escada**.
+
+**O Teste de Norte (filtro antes de construir feature / escrever copy / priorizar roadmap):**
+
+Pergunta-mãe: **"Isso deixa o usuário com mais ciência ou inteligência sobre o gasto dele?"** Se não, pare e questione o esforço. Depois, as 4 sub-perguntas: (1) **Camada** — joga em qual? Sobe a escada? (2) **Atrito** — entrega sem pedir mais trabalho da pessoa? (3) **Quem faz** — é a IA fazendo o peso, ou empurra esforço pro usuário? (4) **Honestidade** — a inteligência prometida é real hoje? (passa pelo `financial-firewall`). Veredito: passa com folga → construir; passa raspando → só se barato ou repensar pra subir a escada; não passa → cortar/reformular.
 
 ---
 
@@ -398,6 +424,8 @@ Mesmo com 1 pessoa, há sinais de que a operação está saudável ou em sobreca
 
 | Data | Decisão | Racional |
 |------|----------|----------|
+| 2026-06-09 | **Pesquisa de finanças pessoais transformada em catálogo de 12 funções candidatas (Camadas 2/3) — primeira aplicação prática do Norte** | Gabriel pediu pesquisa "extremamente profunda" na web (finanças pessoais, gastos do dia a dia, economia de mercado, finanças comportamentais) e a tradução de cada dica-chave numa função que suba a escada (Inteligência → Habilidade), trabalhando a IA + o dado do cupom. Entregue `Economizei app/Pesquisa_Dicas_Financeiras_Funcoes_Bot_2026-06-09.md`: 12 funções com dica de origem, exemplo de mensagem, camada, veredito do Teste de Norte, triagem 🤖/🤝/🛠️/🧍, dado necessário, esforço e candidato Free/Pro — em 3 tiers + tabela priorizada + sequência recomendada. **Tier 1 (constrói já, usa o dado que já temos):** F1 inflação pessoal por item, F2 raio-X de categoria com conclusão (evolui o `/gastos`), F3 onde cortar sem doer, F4 quanto você já economizou, F5 comparativo entre mercados (já no roadmap — pesquisa valida como feature mais alavancada). **Reprovados/fora de escopo (honestidade):** G1 assinaturas/gastos invisíveis (bot só vê cupom, não fatura), G2 validade/desperdício (dado insuficiente → vira conteúdo), G3 técnica do elástico no pulso (**excluída por bem-estar** — não usamos desconforto físico como freio; combate ao impulso é informacional). Recomendação de início: F2 → F1 → F4 → F3. Nenhuma decisão de pricing fechada (passa pelo `financial-firewall`); Free/Pro nas funções é candidato a decidir. |
+| 2026-06-09 | **Posicionamento & Norte Estratégico oficializado — IA que dá ciência e inteligência sobre o gasto, com Teste de Norte como filtro de decisão** | Gabriel pediu cristalizar a missão e dar um norte único a tudo daqui pra frente. Missão dita por inteiro: *fazer o brasileiro médio entender o próprio gasto e usar IA para trazer conhecimento, informação e inteligência a esse gasto* — o produto não é leitor de cupom, é a camada de inteligência que vira habilidade financeira (gastar melhor, economizar, ter mais valor sobre o dinheiro). Oficializa o reframe "assistente de compras" (discutido em 2026-05-19). Entregues: doc completo `Economizei app/Posicionamento_Norte_Estrategico_2026-06-09.md` + nova **seção 1.5** no CLAUDE.md (lida toda sessão). Estrutura: **3 camadas de valor** (Ciência → Inteligência → Habilidade — prefira sempre subir a escada) e o **Teste de Norte** — pergunta-mãe "isso aumenta a ciência/inteligência do usuário sobre o gasto dele?" + 4 sub-perguntas (camada, atrito, quem faz o trabalho, honestidade/`financial-firewall`). **Não revoga** nenhuma decisão desta seção; é a lente que organiza as próximas — quando 2 features competem pela mesma 1h, ganha a que sobe mais a escada do gasto. Guarda-rails mantidos (zero atrito, WhatsApp é o produto, grátis funciona, frame brasileiro, LGPD, copy honesta). |
 | 2026-06-07 | **Lei 5 (idempotência por messageId) implementada + backfill dos dados antigos — fecham as 2 ressalvas abertas da sessão de coerência** | Gabriel pediu pra resolver os 2 pontos honestos deixados em aberto. **(1) Idempotência:** o webhook agora deduplica por `messageId` do Z-API (`despacharComDedup` + tabela `mensagens_processadas`, PK em `message_id`). Reentrega do mesmo evento (retry/rede/reconexão) não cria mais compra/contador duplicado. Purga diária TTL 7d. Migration `migration_2026-06-07_idempotencia_messageid.sql`. **(2) Backfill:** `supabase/backfill_2026-06-07_dados_antigos.sql` reclassifica `compras.tipo='outros'` em não-mercado antigos (heurística por nome da loja, com PREVIEW antes do UPDATE — sem ground truth porque a imagem não é guardada) e, opcionalmente, completa `itens_compra.preco_total` (no-op nos números, só formaliza a coluna; cupons antigos com total-da-linha em `preco` seguem irrecuperáveis). Detalhe técnico no `CODE_GUIDE.md`. **Pré-requisitos de deploy:** rodar a migration de idempotência + (opcional) rodar o backfill bloco a bloco no SQL Editor; depois `git push`. |
 | 2026-06-07 | **`/gastos`: gráfico trocado de rosca (doughnut) para barras horizontais** | Gabriel achou a pizza ruim de ler. `src/charts.js` (`gerarUrlGraficoCategorias`) reescrita para barras horizontais ordenadas do maior pro menor gasto, cor por categoria, valor R$ + % no fim de cada barra, título com mês + total, altura dinâmica conforme nº de categorias (legenda e eixo X removidos). A assinatura `(dados, titulo)` não mudou, então `index.js` (`/gastos`) e `monthlySummary.js` (resumo mensal) usam o novo gráfico sem alteração. Continua via QuickChart.io (URL GET, zero dependência). Detalhe técnico no `CODE_GUIDE.md`. Sem migration; deploy é só `git push`. |
 | 2026-06-07 | **Correção dos outputs incoerentes do bot (4 fixes) — determinismo, total único, alerta em 3 níveis, reconciliação** | Gabriel reportou 3 sintomas: (1) mesmo cupom dava 38/39/40 itens; (2) follow-up sempre dizia "compra acima do padrão"; (3) os números (% e R$) "não faziam sentido". Diagnóstico: nenhum era erro de fórmula, eram entradas ruins. **Fix 1 — determinismo:** Gemini passa a rodar com `temperature:0` + `responseMimeType:JSON` (mata a variação de contagem). **Fix 2 — total único de verdade:** `itens_compra` agora guarda `preco_total` da linha e a agregação por categoria usa ele (antes recalculava `preco×qtd`, dobrando valor de itens por peso); o `/gastos` passa a fechar com o total do cupom via fatia "Não identificado". **Fix 3 — alerta inteligente:** a média de gastos passa a considerar só compras de mercado (`compras.tipo`), e o alerta vira 3 níveis (abaixo 🎉 / dentro ✅ / acima 📈) com limiares e modo configuráveis por env (`ALERTA_LIM_ACIMA`, `ALERTA_LIM_ABAIXO`, `ALERTA_MODO`); default = só fala quando foge do padrão. **Fix 4 — reconciliação:** soma dos itens é comparada ao total declarado e a melhor das 2 tentativas do Gemini é escolhida. Detalhes técnicos no `CODE_GUIDE.md`. **Pré-requisito de deploy:** rodar `supabase/migration_2026-06-07_coerencia_outputs.sql` antes do push. |
@@ -483,13 +511,15 @@ Mesmo com 1 pessoa, há sinais de que a operação está saudável ou em sobreca
 ## 10. 🔗 Recursos
 
 ### Documentos da empresa
+- **Posicionamento & Norte Estratégico:** `Economizei app/Posicionamento_Norte_Estrategico_2026-06-09.md` *(missão, 3 camadas de valor, Teste de Norte — ver também seção 1.5)*
+- **Da Dica à Função (pesquisa de finanças → 12 funções candidatas):** `Economizei app/Pesquisa_Dicas_Financeiras_Funcoes_Bot_2026-06-09.md`
 - **Plano completo de pesquisa + estratégia (com copy pronta):** `Economizei app/Economizei_Analise_Pesquisa_e_Plano_6_Semanas.md`
 - **Roadmap visual 6 semanas (HTML para impressão/PDF):** `Economizei app/Economizei_Roadmap_6_Semanas.html` *(abrir no navegador, Ctrl+P → "Salvar como PDF")*
 - **Apresentação Blueprint Empresarial:** `economizei-blueprint.pptx` (na pasta de outputs do Cowork)
 - **Pesquisas brutas:** `local_*/uploads/Pesquisa de Hábitos de Compra no Supermercado*.csv`
 
 ### Repositório
-- **Código:** `E:\Economizei Bot\src\`
+- **Código:** `C:\Economizei\src\`
 
 ### APIs em uso
 - Z-API (WhatsApp gateway)
@@ -501,6 +531,40 @@ Mesmo com 1 pessoa, há sinais de que a operação está saudável ou em sobreca
 ## 11. 💬 Histórico de comandos importantes do Gabriel
 
 *Esta seção registra as instruções e princípios que o Gabriel deu explicitamente, para preservar a intenção original em decisões futuras.*
+
+### 2026-06-09 — Sessão de pesquisa de finanças → funções do bot
+
+**Briefing inicial (verbatim):**
+> "Então agora que a gente já tem esse documento, eu quero que você faça uma pesquisa extremamente profunda na internet, sobre assuntos relacionados à finanças do mercado, à finanças de gastos no dia a dia, e eu quero que você pegue cada dica e pense como que você pode transformar ela numa função pra o nosso bot. Então eu quero que você pesquise em vídeos, sites, tudo que seja relacionado à finanças pessoais, a gastos do dia a dia, gastos de mercado, gastos pessoais, e que todas as dicas que forem de ponto chave (...) consigam trazer um benefício de economia ou de melhor gasto para, o usuário, vamos tentar transformar ela numa função pra melhorar como você disse a etapa dois e três, de ter o que fazer com isso, e como trabalhar com a IA e os dados que a gente vai receber."
+
+**O que foi entregue:**
+- `Economizei app/Pesquisa_Dicas_Financeiras_Funcoes_Bot_2026-06-09.md` (novo): pesquisa web em 5 frentes (orçamento/50-30-20; economia no supermercado; finanças comportamentais; apps de comparação/cashback; hábitos de poupança/inflação pessoal/custo em horas) → **12 funções candidatas** organizadas em 3 tiers, cada uma com dica de origem, exemplo de mensagem, camada, veredito do Teste de Norte, triagem 🤖/🤝/🛠️/🧍, dado necessário, esforço e candidato Free/Pro. Tabela priorizada + sequência recomendada (F2 → F1 → F4 → F3). Fontes linkadas.
+- `CLAUDE.md`: linha na tabela de Decisões (seção 8), entrada em Recursos (seção 10) e este registro.
+
+**Princípios honrados na curadoria:** (1) só virou função a dica que a **IA consegue concluir a partir do dado do cupom** sem pedir trabalho novo da pessoa (zero atrito); (2) **honestidade** — gastos invisíveis/assinaturas reprovados porque o bot não vê fatura de cartão; (3) **bem-estar** — a "técnica do elástico no pulso" (que apareceu na pesquisa) foi **deliberadamente excluída**: não usamos desconforto físico como freio de comportamento, o combate ao impulso é informacional; (4) **nenhum preço/promessa fechado** — Free/Pro das funções é candidato a decidir, passa pelo `financial-firewall`.
+
+### 2026-06-09 — Sessão de criação do documento de Posicionamento & Norte Estratégico
+
+**Briefing inicial (verbatim):**
+> "Vamos lá, agora eu quero trabalhar num documento de posicionamento que vai ficar registrado no Claude MD (...) tendo em vista de que o economizei, tem como função e tem como missão Fazer com que o brasileiro médio entenda os seus gastos e fazer a utilizacao da inteligência artificial pra, trazer conhecimento, informação, e inteligência por si só, ao gasto do brasileiro médio. (...) o norte que devemos seguir pras nossas funções, pra tudo que devemos seguir agora é pensar em, levar ao brasileiro médio a ciência de em que ele está gastando, como está gastando. e que isso traga pra ele uma habilidade financeira melhor. Faça com que ele gaste seu dinheiro melhor, faça com que ele economize dinheiro e tenha mais valor. Sobre o seu dinheiro."
+
+**Decisões do Gabriel nas perguntas de clarificação:**
+- **Onde registrar:** "Seção no CLAUDE.md + doc completo" — nova seção 1.5 no CLAUDE.md (lida toda sessão) + documento detalhado em `Economizei app/`.
+- **Função do doc:** "Norte + filtro de decisão" — além de declarar missão/posicionamento, embutir um **Teste de Norte** acionável que toda feature/copy/roadmap precisa passar.
+
+**O que foi entregue:**
+- `Economizei app/Posicionamento_Norte_Estrategico_2026-06-09.md` (novo): missão por inteiro, o reframe de "leitor de cupom" → "inteligência financeira do brasileiro médio", o que somos/não somos, **3 camadas de valor** (Ciência → Inteligência → Habilidade), o **Teste de Norte** (pergunta-mãe + 4 sub-perguntas + exemplos PASSA/NÃO PASSA), mapa das funções atuais contra as camadas, implicações pro roadmap, guarda-rails e ritual de revisão.
+- `CLAUDE.md`: nova **seção 1.5** (resumo do norte + camadas + Teste de Norte) + linha na tabela de Decisões (seção 8) + este registro + cabeçalho "Última atualização".
+
+**Princípio-chave reforçado:** *"o cupom é a porta; a inteligência é o produto. A cada foto, a pessoa sai mais esperta com o próprio dinheiro."* O norte responde "para onde"; os princípios em vigor (zero atrito, grátis funciona, frame brasileiro) respondem "de que jeito". O norte não revoga nenhuma decisão anterior — é a lente que organiza as próximas.
+
+### 2026-06-09 — Sessão de mudança de pasta + restauração + correção de skills
+
+**Briefing (resumo):** Gabriel moveu a pasta do projeto de `E:\Economizei Bot` para `C:\Economizei` e pediu para (1) atualizar todas as referências ao caminho antigo, (2) corrigir a contagem inconsistente de skills e verificar a estrutura (`/engineering:system-design`).
+
+**Achado crítico:** a pasta reconectada `C:\Economizei` era uma **cópia mais antiga** (estado 2026-06-07) — não continha os 2 documentos de 06-09 nem as edições do CLAUDE.md feitas nas sessões anteriores desta conversa (que tinham sido salvas na `E:\Economizei Bot`, agora desconectada/vazia). Decisão do Gabriel: **tornar `C:\Economizei` a versão oficial e restaurar tudo**. Os 2 documentos foram recriados a partir do conteúdo em memória e as edições do CLAUDE.md reaplicadas.
+
+**O que foi feito:** (1) substituição de todas as referências `E:\Economizei Bot` → `C:\Economizei` em 12 arquivos + `.claude/settings.local.json` (mantidas as menções ao **nome** do projeto); (2) restauração dos 2 docs de 06-09 + reaplicação das seções/decisões/comandos no CLAUDE.md; (3) padronização da contagem de skills e instalação da `economizei-strategic-review` em `.claude/skills/`.
 
 ### 2026-06-07 — Sessão de fechamento das 2 ressalvas (idempotência + backfill)
 
@@ -570,7 +634,7 @@ Mesmo com 1 pessoa, há sinais de que a operação está saudável ou em sobreca
 
 **Pendências/ressalvas deixadas:** (1) as funções Pro recompensadas (comparativo + alerta inteligente) ainda não existem no código — a recompensa está gravada mas só vira valor visível quando essas features forem implementadas e usarem `temFeaturesProAtivas()` como gate; (2) `/apagar` é citado na copy mas ainda não tem handler — quando for criado, deve limpar `indicacoes` também; (3) descoberto sistema de assinaturas Mercado Pago em construção paralela no `supabase.js` — o `/admin/ativar-pro` (PIX manual) seta `is_pro` direto e coexiste com o fluxo MP (`atualizarStatusAssinatura`).
 
-**Nota operacional recorrente:** push pro GitHub é sempre feito pelo Gabriel na máquina dele; o ambiente Cowork não tem credencial. Edits de código são salvos direto em `E:\Economizei Bot`. (Nesta sessão o mount Linux do sandbox serviu versões truncadas em cache desses `.js` — sintaxe foi validada por bloco isolado + revisão das fronteiras; recomendado rodar `node --check src/*.js` localmente antes do push como gate final.)
+**Nota operacional recorrente:** push pro GitHub é sempre feito pelo Gabriel na máquina dele; o ambiente Cowork não tem credencial. Edits de código são salvos direto em `C:\Economizei`. (Nesta sessão o mount Linux do sandbox serviu versões truncadas em cache desses `.js` — sintaxe foi validada por bloco isolado + revisão das fronteiras; recomendado rodar `node --check src/*.js` localmente antes do push como gate final.)
 
 ### 2026-06-07 — Sessão de debug: categoria/nome_canonico "NULL" no /gastos
 
@@ -593,7 +657,7 @@ Mesmo com 1 pessoa, há sinais de que a operação está saudável ou em sobreca
 
 **Pendências deixadas:** (1) afrouxar a heurística `avaliarQualidadeCanonicoItem` que dá falso positivo de `pouco_simplificado`; (2) as linhas NULL antigas (código antigo) são inofensivas — `/gastos` as ignora, não dá pra preencher retroativamente (imagens não guardadas).
 
-**Nota operacional recorrente:** o push para o GitHub é sempre feito pelo Gabriel na própria máquina — o ambiente Cowork não tem credencial do GitHub e o `.git/index.lock` precisa de `del .git\index.lock` antes do commit. Edits de código são salvos direto em `E:\Economizei Bot`, mas o `git add/commit/push` é manual.
+**Nota operacional recorrente:** o push para o GitHub é sempre feito pelo Gabriel na própria máquina — o ambiente Cowork não tem credencial do GitHub e o `.git/index.lock` precisa de `del .git\index.lock` antes do commit. Edits de código são salvos direto em `C:\Economizei`, mas o `git add/commit/push` é manual.
 
 ### 2026-05-08 — Análise da pesquisa e plano de lançamento *(condensado)*
 
@@ -654,7 +718,7 @@ Mesmo com 1 pessoa, há sinais de que a operação está saudável ou em sobreca
 
 **Sobre skills criadas nesta sessão:**
 > "crie a skill de auditoria de landing/copy review (...). Eu gostaria também de desenvolver mais sobre [dependency mapping] e até criar uma skill que ativasse sempre que um roadmap ou um planejamento fosse feito"
-> *Aplicação: 2 skills criadas em `E:\Economizei Bot\.claude\skills\` — `copy-review` e `roadmap-deps`. Pendente: empacotar como `.skill` e instalar no perfil global.*
+> *Aplicação: 2 skills criadas em `C:\Economizei\.claude\skills\` — `copy-review` e `roadmap-deps`. Pendente: empacotar como `.skill` e instalar no perfil global.*
 
 ### 2026-05-21 — Sessão de projeção 6 meses + estruturação de time
 
@@ -772,11 +836,11 @@ Mesmo com 1 pessoa, há sinais de que a operação está saudável ou em sobreca
 **Briefing inicial:**
 > "Eu tenho visto pouco a utilização dessas skills nos meus utlimos chats, devo dar algum comando para que elas sejam usadas ou talvez esteja usando de forma errada. Me fale mais sobre e juntando esse assunto quero desenvolver instruções para o projeto para que ele seja estruturado de uma melhor maneira, sabendo da estrutura do claude e suas divisoes em projetos e skills desenvolva essa descrição para que eu possa usar"
 
-**Diagnóstico:** as 14 skills criadas estavam em `E:\Economizei Bot\skills\` — pasta que Claude não auto-descobre. O path padrão de descoberta é `.claude/skills/`. Sistema também precisava de **instruções de projeto** que carregam em toda sessão para amarrar tudo.
+**Diagnóstico:** as 14 skills criadas estavam em `C:\Economizei\skills\` — pasta que Claude não auto-descobre. O path padrão de descoberta é `.claude/skills/`. Sistema também precisava de **instruções de projeto** que carregam em toda sessão para amarrar tudo.
 
 **Ações executadas:**
-1. Movidas as 14 skills + 2 antigas (`copy-review`, `roadmap-deps`) + `README.md` para `E:\Economizei Bot\.claude\skills\`.
-2. Criado `E:\Economizei Bot\PROJECT_INSTRUCTIONS.md` com boot sequence, gatilhos automáticos das 6 transversais, formato `dual-format`, ritual de fim de sessão.
+1. Movidas as 14 skills + 2 antigas (`copy-review`, `roadmap-deps`) + `README.md` para `C:\Economizei\.claude\skills\`.
+2. Criado `C:\Economizei\PROJECT_INSTRUCTIONS.md` com boot sequence, gatilhos automáticos das 6 transversais, formato `dual-format`, ritual de fim de sessão.
 3. Adicionado bloco no topo do CLAUDE.md apontando para o sistema de skills + project instructions.
 
 **Comando complementar do Gabriel:**

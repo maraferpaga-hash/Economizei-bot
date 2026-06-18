@@ -1,8 +1,8 @@
 # 💻 Memória Técnica — Economizei
 
-> **🛠️ Sistema de skills:** veja `E:\Economizei Bot\.claude\skills\README.md`.
-> **🧠 Memória estratégica:** veja `E:\Economizei Bot\CLAUDE.md`.
-> **🚀 Boot do projeto:** veja `E:\Economizei Bot\PROJECT_INSTRUCTIONS.md`.
+> **🛠️ Sistema de skills:** veja `C:\Economizei\.claude\skills\README.md`.
+> **🧠 Memória estratégica:** veja `C:\Economizei\CLAUDE.md`.
+> **🚀 Boot do projeto:** veja `C:\Economizei\PROJECT_INSTRUCTIONS.md`.
 
 > Este arquivo é o **cérebro técnico do código** do Economizei. Sempre que for codar, refatorar,
 > adicionar dependência, mudar schema, ou debugar bug não-trivial, **leia este arquivo primeiro**
@@ -10,7 +10,7 @@
 
 > **Critério editorial:** só entra aqui o que rege escolhas técnicas futuras. Implementação descartável fica fora.
 
-**Última atualização:** 2026-06-07 (lei 5 — idempotência por messageId — implementada; backfill de dados antigos: tipo + preco_total)
+**Última atualização:** 2026-06-08 (limpeza de deps: `axios`→`fetch` no `zapi.js`, removidos `cors`/`@vercel/analytics`; Node alinhado a ≥22; linha do alerta completada; `ws` documentado — reaplicado após a migração de pasta E:→C:)
 
 ---
 
@@ -27,7 +27,7 @@ Express.js (src/index.js)
 
 | Camada | Tecnologia | Por quê (decisão registrada) |
 |---|---|---|
-| Runtime | Node.js ≥ 18 | ESM + fetch nativo + Sharp ok |
+| Runtime | Node.js ≥ 22 | fetch nativo + Sharp + AbortSignal.timeout (Dockerfile: node:22-bullseye-slim) |
 | HTTP | Express.js | Mínimo viável; sem framework pesado |
 | WhatsApp | Z-API | Sem CNPJ ainda; sem restrição de template (CLAUDE.md decisão 2026-05-08) |
 | IA Vision | Google Gemini 2.5 Flash | Custo/benefício pra OCR + JSON estruturado |
@@ -44,6 +44,9 @@ Express.js (src/index.js)
 - `sharp` — preprocessamento (decisão 2026-06-04).
 - `node-cron` — agendamento.
 - `dotenv` — env loading.
+- `ws` — transporte realtime do Supabase (importado em `supabase.js` e `metrics.js`). Dependência real, não remover.
+
+> **Removidos em 2026-06-08:** `axios` (o `zapi.js` migrou para `fetch` nativo), `cors` e `@vercel/analytics` (sem uso em `src/`). O projeto usa um único cliente HTTP: `fetch` nativo.
 
 ### Variáveis de ambiente (sempre em `.env.example` sem valores reais)
 - `GEMINI_API_KEY`
@@ -58,7 +61,7 @@ Express.js (src/index.js)
 ## 2. 📁 Estrutura de pastas
 
 ```
-E:\Economizei Bot\
+C:\Economizei\
 ├── src/
 │   ├── index.js           # Express + webhook + roteamento texto/imagem + comandos
 │   ├── zapi.js            # Cliente Z-API (download imagem, send texto, send imagem)
@@ -77,7 +80,7 @@ E:\Economizei Bot\
 ├── supabase/              # SQL migrations + monitoring queries
 ├── landing/               # Landing page (HTML/CSS/JS estático, deploy Vercel)
 ├── docs/                  # Documentação técnica adicional
-├── .claude/skills/        # 14 skills operacionais
+├── .claude/skills/        # 18 skills (16 economizei-* + 2 legadas)
 ├── Economizei app/        # Pesquisas, análises, roadmap, histórico
 ├── package.json
 ├── Dockerfile             # Container para Railway
@@ -246,7 +249,8 @@ Cada dependência nova vira **linha na seção 8** (Decisões técnicas em vigor
 | 2026-06-07 | **`itens_compra.preco_total` gravado e usado como verdade na agregação por categoria** | Antes só `preco` (unitário) era guardado e a categoria recalculava `preco*quantidade` — dobrava o valor quando o Gemini devolvia o total da linha em `preco_unitario`. Agora agrega por `preco_total` (fallback `preco*qtd` em linhas antigas). Migration `migration_2026-06-07_coerencia_outputs.sql`. |
 | 2026-06-07 | **`/gastos` fecha com o total do cupom via resíduo `nao_identificado`** | `buscarGastosPorCategoria` soma os itens e adiciona a fatia "Não identificado" = `total_cupons − soma_itens` (quando > max(R$2, 2%)). Elimina a divergência entre o total da confirmação e o total do /gastos. Resíduo negativo (itens > total) vira log `gastos_itens_excedem_total`. |
 | 2026-06-07 | **`compras.tipo` + média de gastos só de `tipo='mercado'`** | Misturar não-mercado (farmácia/posto) derrubava a média e fazia o alerta disparar "acima" quase sempre. `calcularMedia` agora filtra `tipo='mercado'`. Migration adiciona a coluna (default 'mercado'). |
-| 2026-06-07 | **Alerta de gasto em 3 níveis configurável por env** | `alerts.js`: `avaliarCompra` retorna `nivel` abaixo/normal/acima (limiares `ALERTA_LIM_ACIMA`/`ALERTA_LIM_ABAIXO`); `deveEnviarMensagem` decide o envio por `ALERTA_M
+| 2026-06-07 | **Alerta de gasto em 3 níveis configurável por env** | `alerts.js`: `avaliarCompra` retorna `nivel` abaixo/normal/acima (limiares `ALERTA_LIM_ACIMA`/`ALERTA_LIM_ABAIXO`); `deveEnviarMensagem` decide o envio por `ALERTA_MODO` (relevante/sempre/so_acima); default `relevante` = só fala quando o gasto foge do padrão (acima/abaixo). Limiares e modo afináveis por env, sem novo deploy. |
 | 2026-06-07 | **Lei 5 implementada — idempotência do webhook Z-API por `messageId`** | `despacharComDedup(messageId, phone, tipo, fn)` em `index.js` envolve o dispatch: grava o `messageId` em `mensagens_processadas` (PK em `message_id`) via `registrarMensagemProcessada`; se já existe (23505) loga `webhook_evento_duplicado` e ignora. Reentrega do mesmo evento (retry/rede/reconexão do Z-API) não duplica compra nem incremento de contador. Atômico por corrida (a PK resolve 2 entregas simultâneas). Sem `messageId` no payload, processa normal (loga `webhook_sem_message_id`). Falha de dedup nunca trava o atendimento (retorna não-duplicado). Mesmo padrão do `assinatura_eventos` do MP. Purga diária (TTL 7d) no cron das 7h via `purgarMensagensProcessadas`. Migration `migration_2026-06-07_idempotencia_messageid.sql`. **Rodar antes do push.** |
+| 2026-06-08 | **Limpeza de dependências + migração do `zapi.js` para `fetch` nativo (reaplicado pós-mudança de pasta E:→C:)** | Removidos `axios`, `cors` e `@vercel/analytics` do `package.json`. `zapi.js` reescrito com `fetch` + `AbortSignal.timeout` — um só cliente HTTP no projeto, alinhado ao `mercadopago.js`. Comportamento preservado: mesmas assinaturas, retornos, chaves de log e contagem de retries. Node alinhado a ≥22 (o Dockerfile já usava node:22). `gemini.js`: heurística `pouco_simplificado` afrouxada (era só ruído de log) + contrato do retorno corrigido. **Smoke obrigatório pós-deploy:** receber 1 cupom (download de imagem), a resposta de texto e o gráfico do `/gastos` (send-image). |
 | 2026-06-07 | **Backfill de dados antigos pós coerência de outputs** | `supabase/backfill_2026-06-07_dados_antigos.sql` (backfill de DADOS, não schema — rodar bloco a bloco com revisão humana). Parte 1: reclassifica `compras.tipo='outros'` em cupons não-mercado antigos por heurística no nome da loja (PREVIEW `SELECT` antes do `UPDATE`; sem ground truth porque a imagem não é guardada). Parte 2 (OPCIONAL, comentada): `itens_compra.preco_total = preco*quantidade` em linhas NULL — **no-op nos números** (idêntico ao fallback já existente); serve só pra completar a coluna. Ressalva honesta no arquivo: cupons antigos com total-da-linha gravado em `preco` ficariam congelados com valor dobrado, irrecuperável. |
 | 2026-06-07 | **`/gastos` usa gráfico de BARRAS HORIZONTAIS (era doughnut)** | `charts.js gerarUrlGraficoCategorias` reescrita: `type:'horizontalBar'`, barras ordenadas desc por gasto, cor por categoria, valor R$ + % no fim de cada barra via datalabels (injetado por placeholder `__FORMATTER__` pós-`JSON.stringify`, pois função não serializa em JSON), altura dinâmica `max(280,110+n*52)`, legenda/eixo X off. Assinatura `(dados, titulo)` inalterada → `index.js`/`monthlySummary.js` intactos. Doughnut ficava ruim de ler com muitas fatias pequenas. |

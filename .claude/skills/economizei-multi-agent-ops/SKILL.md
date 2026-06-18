@@ -94,7 +94,7 @@ Saber **quando** e **como** delegar trabalho a subagentes para entregar mais em 
 Subagent: Explore
 Objetivo: Encontrar onde o parser do Gemini está no projeto Economizei.
 Procure por: arquivos que importam Gemini SDK ou que tenham função `parseGeminiResponse` ou similar.
-Caminho-raiz: E:\Economizei Bot\src
+Caminho-raiz: C:\Economizei\src
 Retorne: caminho do arquivo + linhas relevantes (máx 30 linhas).
 ```
 
@@ -126,7 +126,7 @@ Foco da auditoria:
 1. Tratamento de erro (parser retorna ok:false em vez de explodir?)
 2. Logs (vazam dado sensível? CPF, telefone?)
 3. Timeout do Gemini (existe? cai gracefully?)
-Caminho: E:\Economizei Bot\src\gemini.js
+Caminho: C:\Economizei\src\gemini.js
 Retorne: lista numerada de problemas encontrados, cada um com linha + sugestão de fix em 1 frase. ≤300 palavras.
 ```
 

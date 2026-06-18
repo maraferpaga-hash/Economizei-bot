@@ -60,7 +60,7 @@ Data: <YYYY-MM-DD> · Avaliador: Claude (skill copy-review)
 
 ### Passo 4 — Entregar
 
-Salvar relatório em `E:\Economizei Bot\Economizei app\copy-reviews\<YYYY-MM-DD>_<slug>.md` e apresentar via `mcp__cowork__present_files`. Mostrar TL;DR + 3 problemas mais críticos inline na resposta do chat (resto fica no arquivo).
+Salvar relatório em `C:\Economizei\Economizei app\copy-reviews\<YYYY-MM-DD>_<slug>.md` e apresentar via `mcp__cowork__present_files`. Mostrar TL;DR + 3 problemas mais críticos inline na resposta do chat (resto fica no arquivo).
 
 ## Anti-padrões a evitar no relatório
 

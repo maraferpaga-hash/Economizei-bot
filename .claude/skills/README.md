@@ -43,6 +43,18 @@ O Economizei está nas **6 semanas de validação**: produto técnico já existe
 | 12 | `economizei-security-lgpd` | Antes de publicar a política (Semana 3) e antes de qualquer Meta Ads (Semana 5). |
 | 13 | `economizei-tdd` | Quando o bot for além do MVP (Mês 2+). |
 | 14 | `economizei-multi-agent-ops` | Quando começar a delegar tarefas paralelas a subagents (Mês 2+). |
+| 15 | `economizei-strategic-review` | Revisão geral por gatilho ("faz um SWOT", "audita o projeto", antes de decisão de direção). Entrega SWOT + matriz Eisenhower em dual-format. |
+
+## 📦 Skills legadas (mantidas, fora da numeração do kit)
+
+Criadas na sessão 2026-05-19 e ainda presentes em `.claude/skills/`. Disparam por tópico, não fazem parte do fluxo Core/Secondary.
+
+| Skill | Quando ativar |
+|---|---|
+| `copy-review` | Auditoria de copy/landing (TL;DR + problemas mais críticos). Complementa `economizei-copywriter`. |
+| `roadmap-deps` | Quando um roadmap/planejamento é montado — mapeia dependências entre itens. |
+
+> **Contagem oficial:** **18 skills** em `.claude/skills/` = **16 `economizei-*`** (Core 1-9b + Secondary 10-15) + **2 legadas** (`copy-review`, `roadmap-deps`). Manter este número sincronizado com o `CLAUDE.md`, o `CODE_GUIDE.md` e o `PROJECT_INSTRUCTIONS.md`.
 
 ---
 

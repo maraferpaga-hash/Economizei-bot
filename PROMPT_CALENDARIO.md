@@ -27,7 +27,7 @@ Você segue instruções na ordem em que aparecem e não pula etapas.
 <contexto_do_projeto>
 Economizei é um bot de WhatsApp que analisa cupons fiscais via foto usando IA (Gemini 2.5).
 Fundador: Gabriel. Operação solo. Estágio: pré-lançamento, em validação comercial.
-Arquivos principais do projeto estão em E:\Economizei Bot\
+Arquivos principais do projeto estão em C:\Economizei\
 O arquivo de memória institucional é CLAUDE.md — lido no início de cada sessão.
 </contexto_do_projeto>
 
@@ -45,7 +45,7 @@ nas próximas sessões. Prazos só devem entrar no CLAUDE.md depois de medidos e
 ## PASSO A PASSO
 
 ### Passo 1.1 — Ler o arquivo
-Leia o arquivo completo: E:\Economizei Bot\CLAUDE.md
+Leia o arquivo completo: C:\Economizei\CLAUDE.md
 
 ### Passo 1.2 — Identificar o que deve ser REMOVIDO
 Remover qualquer texto que:
@@ -72,7 +72,7 @@ Quando remover uma estimativa de tempo, preserve a intenção com uma das fórmu
 - "em 60 dias" atrelado a gatilho → manter apenas o gatilho, remover o prazo (ex: "≥ 5 pagantes via PIX" sem "em 60 dias")
 
 ### Passo 1.5 — Salvar o arquivo
-Salve as alterações em E:\Economizei Bot\CLAUDE.md
+Salve as alterações em C:\Economizei\CLAUDE.md
 Não altere nenhum outro conteúdo além das referências temporais identificadas.
 Informe ao final: quantas referências foram removidas ou ajustadas e em quais seções.
 
@@ -81,7 +81,7 @@ Informe ao final: quantas referências foram removidas ou ajustadas e em quais s
 <parte_2_criacao_do_calendario>
 
 ## OBJETIVO DA PARTE 2
-Criar o arquivo E:\Economizei Bot\CALENDARIO.md com as metas e rotinas do projeto Economizei,
+Criar o arquivo C:\Economizei\CALENDARIO.md com as metas e rotinas do projeto Economizei,
 organizadas em três frequências: diária, semanal e mensal.
 
 ## REGRAS DO ARQUIVO
@@ -173,7 +173,7 @@ Começa vazia. Exemplos de como preencher:
   [2026-07-10] — CHECKPOINT C — W2 = 34%. Hábito validado. Iniciando escala de conteúdo.
 
 ## SALVAR O ARQUIVO
-Salve em: E:\Economizei Bot\CALENDARIO.md
+Salve em: C:\Economizei\CALENDARIO.md
 Informe ao final que o arquivo foi criado e liste as seções geradas.
 
 </parte_2_criacao_do_calendario>

@@ -5,7 +5,7 @@
 > - Tarefas marcadas com 🤖 podem ser executadas colando o prompt direto em uma sessão do Claude (Cowork, Claude Code, ou API).
 > - Tarefas marcadas com 👤 requerem ação manual sua — estão explicadas passo a passo.
 > - Execute as tarefas **na ordem listada** — a landing page depende do domínio, e a waitlist depende da landing page.
-> - Cada prompt assume acesso à pasta `E:\Economizei Bot\` e conhece o CLAUDE.md do projeto.
+> - Cada prompt assume acesso à pasta `C:\Economizei\` e conhece o CLAUDE.md do projeto.
 >
 > **Objetivo da semana:** Ter uma URL para onde mandar tráfego, com pricing ancorado na cabeça do usuário antes do lançamento.
 
@@ -243,7 +243,7 @@ CÓDIGO:
 - Deixar placeholder claro onde o número do WhatsApp deve ser inserido: `[SEU_NUMERO_WHATSAPP]`
 - Deixar placeholder claro onde as chaves do Supabase serão inseridas: `[SUPABASE_URL]` e `[SUPABASE_ANON_KEY]`
 
-Salve o arquivo como `index.html` na pasta raiz do projeto `E:\Economizei Bot\landing\`
+Salve o arquivo como `index.html` na pasta raiz do projeto `C:\Economizei\landing\`
 (criar a pasta se não existir).
 
 Ao final, mostre um resumo das seções criadas e qualquer decisão de design que tomou.
@@ -306,7 +306,7 @@ A Task 3B integrou o formulário da waitlist chamando o Supabase JS diretamente 
 ### Prompt
 
 ```
-Você está trabalhando na landing page do Economizei em `E:\Economizei Bot\landing\index.html`.
+Você está trabalhando na landing page do Economizei em `C:\Economizei\landing\index.html`.
 
 SITUAÇÃO ATUAL:
 O formulário de waitlist está integrado diretamente com o Supabase via CDN — há um 
@@ -464,7 +464,7 @@ UTM params são passados em links de campanhas (ex: posts TikTok, grupos de What
 ### Prompt
 
 ```
-Você está trabalhando na landing page do Economizei em `E:\Economizei Bot\landing\index.html`.
+Você está trabalhando na landing page do Economizei em `C:\Economizei\landing\index.html`.
 
 TAREFA: Adicionar captura de UTM parameters ao carregar a página.
 
@@ -529,7 +529,7 @@ Mostre apenas o bloco JavaScript da captura de UTMs adicionado ao arquivo.
 ### Teste rápido de sanidade — abrir no browser local antes do deploy
 ```bash
 # Servir a pasta landing localmente (Node.js)
-npx serve E:\Economizei Bot\landing
+npx serve C:\Economizei\landing
 
 # Acessar:
 # http://localhost:3000            → variant aleatório
@@ -554,6 +554,6 @@ npx serve E:\Economizei Bot\landing
 ```
 
 > **Dica de deploy:** Para fazer o primeiro deploy na Vercel sem CLI, basta arrastar a pasta 
-> `E:\Economizei Bot\landing\` (com o `index.html` dentro) no dashboard da Vercel. 
+> `C:\Economizei\landing\` (com o `index.html` dentro) no dashboard da Vercel. 
 > O servidor do bot (Express + endpoint /waitlist) continua separado — hospedado no Railway 
 > ou onde você já tem. São duas peças distintas.

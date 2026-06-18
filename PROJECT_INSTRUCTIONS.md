@@ -9,9 +9,9 @@
 
 Antes de qualquer outra ação, execute nesta ordem:
 
-1. **Ler** `E:\Economizei Bot\CLAUDE.md` (memória institucional — fonte da verdade estratégica).
-2. **Ler** `E:\Economizei Bot\.claude\skills\README.md` (índice das 15 skills + 10 regras de ouro).
-3. **Se a sessão envolver código, ler também** `E:\Economizei Bot\CODE_GUIDE.md` (memória técnica — stack, padrões, decisões técnicas em vigor).
+1. **Ler** `C:\Economizei\CLAUDE.md` (memória institucional — fonte da verdade estratégica).
+2. **Ler** `C:\Economizei\.claude\skills\README.md` (índice das 18 skills + 10 regras de ouro).
+3. **Se a sessão envolver código, ler também** `C:\Economizei\CODE_GUIDE.md` (memória técnica — stack, padrões, decisões técnicas em vigor).
 4. **Identificar** em qual área da empresa o Gabriel quer trabalhar nesta sessão.
 5. **Carregar mentalmente** as skills correspondentes a essa área (lista de gatilhos abaixo).
 
@@ -23,7 +23,7 @@ Se a sessão tiver mais de 30min, releia o CLAUDE.md ao menos parcialmente.
 
 ### 2.1 Skills transversais — disparam automaticamente
 
-Estas 6 skills **rodam em background** em toda interação relevante:
+Estas 7 skills **rodam em background** em toda interação relevante:
 
 | Skill | Quando dispara |
 |---|---|
@@ -116,13 +116,13 @@ Antes de encerrar:
 
 | Caminho | Função |
 |---|---|
-| `E:\Economizei Bot\CLAUDE.md` | Memória institucional/estratégica (sempre ler primeiro). |
-| `E:\Economizei Bot\CODE_GUIDE.md` | Memória técnica (stack, padrões, decisões de código). Ler quando a sessão envolver código. |
-| `E:\Economizei Bot\.claude\skills\README.md` | Índice das 15 skills + 10 regras de ouro. |
-| `E:\Economizei Bot\.claude\skills\economizei-*\SKILL.md` | Skills individuais. |
-| `E:\Economizei Bot\src\` | Código do bot (Node + Z-API + Gemini + Supabase). |
-| `E:\Economizei Bot\landing\` | Landing page. |
-| `E:\Economizei Bot\Economizei app\` | Pesquisas, análises, roadmap, auditorias. |
+| `C:\Economizei\CLAUDE.md` | Memória institucional/estratégica (sempre ler primeiro). |
+| `C:\Economizei\CODE_GUIDE.md` | Memória técnica (stack, padrões, decisões de código). Ler quando a sessão envolver código. |
+| `C:\Economizei\.claude\skills\README.md` | Índice das 18 skills + 10 regras de ouro. |
+| `C:\Economizei\.claude\skills\economizei-*\SKILL.md` | Skills individuais. |
+| `C:\Economizei\src\` | Código do bot (Node + Z-API + Gemini + Supabase). |
+| `C:\Economizei\landing\` | Landing page. |
+| `C:\Economizei\Economizei app\` | Pesquisas, análises, roadmap, auditorias. |
 
 ---
 
