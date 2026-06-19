@@ -13,6 +13,9 @@ const {
   atualizarOnboardingStep,
   buscarGastosPorCategoria,
   buscarMesMaisRecenteComGastos,
+  buscarHistoricoCategorias,
+  buscarHistoricoPrecoItens,
+  buscarTotaisMensais,
   setOptOutPrecos,
   gerarCodigoIndicacao,
   registrarIndicacaoPendente,
@@ -45,6 +48,8 @@ const {
   montarOnboarding3,
   montarOnboarding4,
   montarMensagemGastos,
+  montarMensagemInflacao,
+  montarMensagemEconomia,
   montarMensagemPrivacidade,
   montarMensagemEnviarComoArquivo,
   montarMensagemConvite,
@@ -72,6 +77,7 @@ const {
   validarAssinaturaWebhook,
 } = require('./mercadopago');
 const { gerarUrlGraficoCategorias } = require('./charts');
+const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia } = require('./insights');
 const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
 const { log, maskPhone } = require('./logger');
 const { iniciar: iniciarScheduler } = require('./scheduler');
@@ -441,6 +447,16 @@ async function processarTexto(phone, texto) {
 
   if (ehComando('/gastos', 'gastos', '/categorias', 'categorias', '/grafico', 'gráfico')) {
     await mostrarGastos(phone);
+    return;
+  }
+
+  if (ehComando('/inflacao', 'inflacao', '/inflação', 'inflação')) {
+    await mostrarInflacao(phone);
+    return;
+  }
+
+  if (ehComando('/economia', 'economia', '/economizei')) {
+    await mostrarEconomia(phone);
     return;
   }
 
@@ -866,8 +882,49 @@ async function mostrarGastos(phone) {
     }
   }
 
-  // Sempre envia o texto com os valores detalhados
-  await enviarMensagem(phone, montarMensagemGastos(dadosCat, mesAlvo));
+  // F2 — conclusão (raio-X): compara a maior categoria do mês com a média dos
+  // meses anteriores do próprio usuário. Degradação segura: se a análise falhar,
+  // o /gastos segue mandando o breakdown sem conclusão.
+  let analise = null;
+  try {
+    const historico = await buscarHistoricoCategorias(phone, mesAlvo, 3);
+    analise = analisarRaioXCategorias(dadosCat, historico);
+  } catch (err) {
+    log('gastos_analise_erro', { phone: maskPhone(phone), erro: err.message });
+  }
+
+  // Sempre envia o texto com os valores detalhados (+ conclusão quando houver)
+  await enviarMensagem(phone, montarMensagemGastos(dadosCat, mesAlvo, analise));
+}
+
+// ---------------------------------------------------------------
+// F1 — Inflação pessoal por item (/inflacao)
+// Compara o preço unitário dos itens recorrentes do usuário ao longo do tempo.
+// ---------------------------------------------------------------
+async function mostrarInflacao(phone) {
+  try {
+    const itens = await buscarHistoricoPrecoItens(phone, 6);
+    const analise = analisarInflacaoPessoal(itens);
+    await enviarMensagem(phone, montarMensagemInflacao(analise));
+  } catch (err) {
+    log('inflacao_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, 'Não consegui calcular a inflação dos seus itens agora. Tenta de novo em instantes? 🙏');
+  }
+}
+
+// ---------------------------------------------------------------
+// F4 — Quanto você já economizou (/economia)
+// Compara o gasto de mercado com a média móvel do próprio usuário.
+// ---------------------------------------------------------------
+async function mostrarEconomia(phone) {
+  try {
+    const totais = await buscarTotaisMensais(phone, 12);
+    const analise = calcularEconomia(totais);
+    await enviarMensagem(phone, montarMensagemEconomia(analise));
+  } catch (err) {
+    log('economia_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, 'Não consegui calcular sua economia agora. Tenta de novo em instantes? 🙏');
+  }
 }
 
 // ---------------------------------------------------------------

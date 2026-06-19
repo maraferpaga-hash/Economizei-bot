@@ -491,6 +491,186 @@ async function setOptOutPrecos(phoneNumber, valor) {
 }
 
 // ---------------------------------------------------------------
+// Análises (F1/F2/F4) — leituras agregadas pro módulo insights.js.
+// Toda agregação é feita em JS (volume pequeno no Beta), mesmo padrão de
+// buscarGastosPorCategoria. itens_compra não tem data própria — a data vem
+// sempre de compras.data_compra via JOIN em memória.
+// ---------------------------------------------------------------
+
+// Retorna 'YYYY-MM' de `n` meses antes de mesRef (n=1 → mês anterior).
+function _mesMenos(mesRef, n) {
+  let [ano, mes] = mesRef.split('-').map(Number);
+  mes -= n;
+  while (mes <= 0) { mes += 12; ano -= 1; }
+  return `${ano}-${String(mes).padStart(2, '0')}`;
+}
+
+function _primeiroDia(mesRef) {
+  return `${mesRef}-01`;
+}
+
+// F2 — breakdown por categoria dos `nMeses` meses ANTERIORES a mesReferencia.
+// Média da participação (%) e do valor de cada categoria nos meses com dados —
+// base pra dizer se a categoria do mês atual está acima/abaixo do próprio padrão.
+// Categoria ausente num mês conta como 0% naquele mês (a média divide por todos
+// os meses com dados). Devolve { mesesComDados, porCategoria, totalMedioMes }.
+async function buscarHistoricoCategorias(phoneNumber, mesReferencia, nMeses = 3) {
+  try {
+    const inicio = _primeiroDia(_mesMenos(mesReferencia, nMeses));
+    const fim = _primeiroDia(mesReferencia); // exclusivo: não inclui o mês atual
+
+    const { data: compras, error: errC } = await supabase
+      .from('compras')
+      .select('id, data_compra')
+      .eq('phone_number', phoneNumber)
+      .gte('data_compra', inicio)
+      .lt('data_compra', fim);
+    if (errC) throw errC;
+    if (!compras || compras.length === 0) return { mesesComDados: 0, porCategoria: {}, totalMedioMes: 0 };
+
+    const mesPorCompra = {};
+    for (const c of compras) mesPorCompra[c.id] = (c.data_compra || '').slice(0, 7);
+    const ids = compras.map((c) => c.id);
+
+    const { data: itens, error: errI } = await supabase
+      .from('itens_compra')
+      .select('compra_id, categoria, preco, preco_total, quantidade')
+      .in('compra_id', ids)
+      .not('categoria', 'is', null);
+    if (errI) throw errI;
+    if (!itens || itens.length === 0) return { mesesComDados: 0, porCategoria: {}, totalMedioMes: 0 };
+
+    const porMes = {}; // mes -> { total, cats: { cat: valor } }
+    for (const it of itens) {
+      const mes = mesPorCompra[it.compra_id];
+      if (!mes) continue;
+      const valor = it.preco_total != null
+        ? Number(it.preco_total) || 0
+        : (Number(it.preco) || 0) * (Number(it.quantidade) || 1);
+      if (!porMes[mes]) porMes[mes] = { total: 0, cats: {} };
+      porMes[mes].total += valor;
+      porMes[mes].cats[it.categoria] = (porMes[mes].cats[it.categoria] || 0) + valor;
+    }
+
+    const meses = Object.keys(porMes).filter((m) => porMes[m].total > 0);
+    const mesesComDados = meses.length;
+    if (mesesComDados === 0) return { mesesComDados: 0, porCategoria: {}, totalMedioMes: 0 };
+
+    const acumulado = {}; // cat -> { somaPct, somaValor }
+    let somaTotaisMes = 0;
+    for (const m of meses) {
+      somaTotaisMes += porMes[m].total;
+      for (const [cat, valor] of Object.entries(porMes[m].cats)) {
+        if (!acumulado[cat]) acumulado[cat] = { somaPct: 0, somaValor: 0 };
+        acumulado[cat].somaPct += (valor / porMes[m].total) * 100;
+        acumulado[cat].somaValor += valor;
+      }
+    }
+
+    const porCategoria = {};
+    for (const [cat, ac] of Object.entries(acumulado)) {
+      porCategoria[cat] = {
+        mediaPct: ac.somaPct / mesesComDados,
+        mediaValor: ac.somaValor / mesesComDados,
+      };
+    }
+
+    return { mesesComDados, porCategoria, totalMedioMes: somaTotaisMes / mesesComDados };
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarHistoricoCategorias', erro: err.message });
+    return { mesesComDados: 0, porCategoria: {}, totalMedioMes: 0 };
+  }
+}
+
+// F1 — histórico de preço unitário por item canônico recorrente (compras de
+// mercado dos últimos `nMeses` meses). Preço unitário normalizado:
+// preco_total/quantidade quando ambos válidos (robusto a item por peso), senão preco.
+// Devolve [{ nomeCanonico, categoria, observacoes: [{ data, preco }] }] com 2+ obs.
+async function buscarHistoricoPrecoItens(phoneNumber, nMeses = 6) {
+  try {
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const inicio = _primeiroDia(_mesMenos(mesAtual, nMeses));
+
+    const { data: compras, error: errC } = await supabase
+      .from('compras')
+      .select('id, data_compra')
+      .eq('phone_number', phoneNumber)
+      .eq('tipo', 'mercado')
+      .gte('data_compra', inicio);
+    if (errC) throw errC;
+    if (!compras || compras.length === 0) return [];
+
+    const dataPorCompra = {};
+    for (const c of compras) dataPorCompra[c.id] = c.data_compra;
+    const ids = compras.map((c) => c.id);
+
+    const { data: itens, error: errI } = await supabase
+      .from('itens_compra')
+      .select('compra_id, nome_canonico, categoria, preco, preco_total, quantidade')
+      .in('compra_id', ids)
+      .not('nome_canonico', 'is', null);
+    if (errI) throw errI;
+    if (!itens || itens.length === 0) return [];
+
+    const porItem = {}; // nome_canonico -> { nomeCanonico, categoria, observacoes }
+    for (const it of itens) {
+      const data = dataPorCompra[it.compra_id];
+      if (!data) continue;
+      const qtd = Number(it.quantidade) || 0;
+      const pTotal = it.preco_total != null ? Number(it.preco_total) : NaN;
+      const pUnit = it.preco != null ? Number(it.preco) : NaN;
+      let unit = (!isNaN(pTotal) && pTotal > 0 && qtd > 0) ? pTotal / qtd : pUnit;
+      if (isNaN(unit) || unit <= 0) continue;
+      unit = Math.round(unit * 100) / 100;
+
+      const chave = it.nome_canonico;
+      if (!porItem[chave]) porItem[chave] = { nomeCanonico: chave, categoria: it.categoria || 'outros', observacoes: [] };
+      porItem[chave].observacoes.push({ data, preco: unit });
+      if (it.categoria) porItem[chave].categoria = it.categoria;
+    }
+
+    return Object.values(porItem).filter((i) => i.observacoes.length >= 2);
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarHistoricoPrecoItens', erro: err.message });
+    return [];
+  }
+}
+
+// F4 — total de gastos de MERCADO por mês nos últimos `nMeses` meses.
+// Mesmo filtro de calcularMedia (tipo='mercado') pra a economia bater com o alerta.
+async function buscarTotaisMensais(phoneNumber, nMeses = 12) {
+  try {
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const inicio = _primeiroDia(_mesMenos(mesAtual, nMeses));
+
+    const { data: compras, error } = await supabase
+      .from('compras')
+      .select('total, data_compra')
+      .eq('phone_number', phoneNumber)
+      .eq('tipo', 'mercado')
+      .gte('data_compra', inicio);
+    if (error) throw error;
+    if (!compras || compras.length === 0) return [];
+
+    const porMes = {};
+    for (const c of compras) {
+      const mes = (c.data_compra || '').slice(0, 7);
+      if (!mes) continue;
+      if (!porMes[mes]) porMes[mes] = { mes, total: 0, qtdCompras: 0 };
+      porMes[mes].total += Number(c.total) || 0;
+      porMes[mes].qtdCompras += 1;
+    }
+
+    return Object.values(porMes)
+      .map((m) => ({ mes: m.mes, total: Math.round(m.total * 100) / 100, qtdCompras: m.qtdCompras }))
+      .sort((a, b) => (a.mes < b.mes ? -1 : 1));
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarTotaisMensais', erro: err.message });
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------
 // Sistema de indicação (/convidar) — decisão CLAUDE.md 2026-06-07
 // Programa de 2 lados e 2 marcos. Recompensa = dias de "features Pro"
 // (comparativo + alerta inteligente), SEM mexer no limite de cupons.
@@ -1143,6 +1323,9 @@ module.exports = {
   marcarResumoEnviado,
   buscarGastosPorCategoria,
   buscarMesMaisRecenteComGastos,
+  buscarHistoricoCategorias,
+  buscarHistoricoPrecoItens,
+  buscarTotaisMensais,
   setOptOutPrecos,
   buscarElegiveisOnboarding,
   buscarElegiveisInativos,

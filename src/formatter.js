@@ -61,7 +61,7 @@ function _mesProximoDe(mesRef) {
   return `${ano}-${String(mes + 1).padStart(2, '0')}`;
 }
 
-function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia) {
+function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia = null) {
   const { totalGasto, qtdCompras, ticketMedio, topLojas = [], topItens = [] } = dadosAtual;
 
   const labelCompras = qtdCompras === 1 ? 'compra' : 'compras';
@@ -96,12 +96,18 @@ function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia) {
     }
   }
 
+  // F4 — reforço de economia anual (só quando há economia acumulada no ano).
+  const linhaEconomia = (economia && economia.economiaAno > 0)
+    ? `💚 No ano, você já economizou R$ ${brl(economia.economiaAno)} nos meses em que gastou abaixo da média.\n\n`
+    : '';
+
   return (
     `🗓️ *Seu mês no Economizei — ${nomeDoMes(mesReferencia)}*\n\n` +
     `💰 Você gastou R$ ${brl(totalGasto)} em ${qtdCompras} ${labelCompras}${linhaTicket}\n\n` +
     `🏪 *Onde você mais gastou:*\n${linhasLojas}` +
     `${blocoItens}\n\n` +
     `${linhaComparacao}\n\n` +
+    `${linhaEconomia}` +
     `💡 *Continue mandando os cupons* — quanto mais dados, mais padrões eu vejo.`
   );
 }
@@ -205,7 +211,9 @@ function montarMensagemBemVindo() {
     `📸 *Economizei* — você manda a foto do cupom, eu organizo seus gastos no mercado. Sem app, sem planilha, só foto.\n\n` +
     `Manda uma foto de cupom aqui pra começar!\n\n` +
     `*Comandos:*\n` +
-    `• */gastos* — gráfico dos seus gastos por categoria esse mês\n` +
+    `• */gastos* — gráfico + raio-X dos seus gastos por categoria\n` +
+    `• */inflacao* — o que subiu ou caiu de preço nos seus itens\n` +
+    `• */economia* — quanto você já economizou perto da sua média\n` +
     `• */historico* ou */resumo* — suas últimas compras\n` +
     `• */limite* — quantos cupons restam esse mês\n` +
     `• */planos* — ver os planos disponíveis\n` +
@@ -390,7 +398,42 @@ function montarMensagemJaAssinante(planoLabel) {
  * @param {Array<{categoria: string, total: number}>} dados - Ordenado por total desc
  * @param {string} mesReferencia - "YYYY-MM"
  */
-function montarMensagemGastos(dados, mesReferencia) {
+// Capitaliza a primeira letra de um nome canônico (que vem em minúsculas).
+function _tituloItem(s) {
+  if (!s || typeof s !== 'string') return 'Item';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// F2 — bloco de conclusão do /gastos a partir da análise de insights.js.
+// Retorna '' quando não há conclusão (mantém o /gastos funcionando sem análise).
+function _blocoConclusaoRaioX(analise) {
+  if (!analise || !analise.temConclusao) return '';
+
+  const labelTop = LABELS_CATEGORIA[analise.top.categoria] || analise.top.categoria;
+  let linha = `🔎 *${labelTop}* foi seu maior gasto (${analise.top.pct}% do mês`;
+  if (analise.comparativo === 'acima') linha += ', acima da sua média';
+  else if (analise.comparativo === 'abaixo') linha += ', abaixo da sua média';
+  else if (analise.comparativo === 'em_linha') linha += ', em linha com sua média';
+  linha += ').';
+
+  let dica = '';
+  if (analise.candidatoCorte) {
+    const labelCorte = LABELS_CATEGORIA[analise.candidatoCorte.categoria] || analise.candidatoCorte.categoria;
+    dica = `\n💡 Pra aliviar sem mexer no essencial, *${labelCorte}* (R$ ${brl(analise.candidatoCorte.valor)}) costuma ser o ponto mais fácil de cortar.`;
+  } else if (analise.mesesHistorico === 0) {
+    dica = '\n💡 No mês que vem eu já comparo com sua média e te aviso o que saiu do padrão.';
+  }
+
+  return `\n\n${linha}${dica}`;
+}
+
+/**
+ * Texto de breakdown de gastos por categoria (enviado junto ou após o gráfico).
+ * @param {Array<{categoria: string, total: number}>} dados - Ordenado por total desc
+ * @param {string} mesReferencia - "YYYY-MM"
+ * @param {object|null} analise - resultado de analisarRaioXCategorias (F2), opcional
+ */
+function montarMensagemGastos(dados, mesReferencia, analise = null) {
   if (!dados || dados.length === 0) {
     return (
       '📊 Ainda não tenho dados de categoria para esse período.\n\n' +
@@ -409,8 +452,80 @@ function montarMensagemGastos(dados, mesReferencia) {
   return (
     `📊 *Gastos por categoria — ${nomeDoMes(mesReferencia)}*\n\n` +
     linhas.join('\n') +
-    `\n\n💰 *Total: R$ ${brl(total)}*\n\n` +
-    `_Mande /gastos a qualquer hora para ver o gráfico atualizado._`
+    `\n\n💰 *Total: R$ ${brl(total)}*` +
+    _blocoConclusaoRaioX(analise) +
+    `\n\n_Mande /gastos a qualquer hora para ver o gráfico atualizado._`
+  );
+}
+
+// F1 — mensagem de inflação pessoal. Recebe o resultado de analisarInflacaoPessoal.
+function montarMensagemInflacao(analise) {
+  if (!analise || !analise.temDados) {
+    return (
+      '📈 *Inflação dos seus itens*\n\n' +
+      'Ainda não tenho preços repetidos suficientes pra comparar. Assim que você comprar os mesmos itens de novo ao longo das semanas, eu te mostro o que subiu e o que caiu de preço — com base nos seus próprios cupons. 📸'
+    );
+  }
+
+  const subiram = analise.subiram.slice(0, 4);
+  const cairam = analise.cairam.slice(0, 2);
+  const partes = ['📈 *Inflação dos seus itens*\n'];
+
+  if (subiram.length > 0) {
+    partes.push('*Subiram de preço:*');
+    for (const m of subiram) {
+      partes.push(`• ${_tituloItem(m.nome)}: R$ ${brl(m.precoAntigo)} → R$ ${brl(m.precoNovo)} (+${m.variacaoPct}%)`);
+    }
+  }
+
+  if (cairam.length > 0) {
+    partes.push(`${subiram.length > 0 ? '\n' : ''}*Caíram de preço:* 🎉`);
+    for (const m of cairam) {
+      partes.push(`• ${_tituloItem(m.nome)}: R$ ${brl(m.precoAntigo)} → R$ ${brl(m.precoNovo)} (${m.variacaoPct}%)`);
+    }
+  }
+
+  partes.push('\n_Comparei o preço unitário desses itens nos seus cupons ao longo do tempo._');
+  return partes.join('\n');
+}
+
+// F4 — mensagem de "quanto você já economizou". Recebe o resultado de calcularEconomia.
+function montarMensagemEconomia(analise) {
+  if (!analise || !analise.temDados) {
+    return (
+      '💚 *Quanto você já economizou*\n\n' +
+      'Ainda preciso de pelo menos dois meses de compras pra calcular sua economia. Continue mandando os cupons que logo eu te mostro. 📸'
+    );
+  }
+
+  const media = `R$ ${brl(analise.mediaRef)}`;
+  const linhaAno = analise.economiaAno > 0
+    ? `\n\nNo ano, somando os meses em que você ficou abaixo da média, já são *R$ ${brl(analise.economiaAno)}* que ficaram no seu bolso. 🎉`
+    : '';
+
+  if (analise.economiaMes > 0.005) {
+    return (
+      '💚 *Boa notícia!*\n\n' +
+      `Esse mês você gastou *R$ ${brl(analise.economiaMes)} abaixo* da sua média de mercado (${media} por mês).` +
+      linhaAno
+    );
+  }
+
+  if (analise.economiaMes < -0.005) {
+    return (
+      '📊 *Sua economia*\n\n' +
+      `Esse mês você gastou cerca de R$ ${brl(Math.abs(analise.economiaMes))} a mais que sua média de mercado (${media} por mês). Acontece — o que conta é a tendência.` +
+      (analise.economiaAno > 0
+        ? `\n\nE no ano você já economizou *R$ ${brl(analise.economiaAno)}* nos meses em que ficou abaixo da média. Dá pra repetir. 💪`
+        : '')
+    );
+  }
+
+  // Praticamente em linha com a média
+  return (
+    '📊 *Sua economia*\n\n' +
+    `Esse mês você gastou bem em linha com sua média de mercado (${media} por mês).` +
+    linhaAno
   );
 }
 
@@ -709,6 +824,8 @@ module.exports = {
   montarOnboarding4,
   montarResumoMensal,
   montarMensagemGastos,
+  montarMensagemInflacao,
+  montarMensagemEconomia,
   montarMensagemPrivacidade,
   montarMensagemEnviarComoArquivo,
   montarLembreteOnboardingD2,

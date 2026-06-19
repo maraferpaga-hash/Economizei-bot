@@ -10,7 +10,7 @@
 
 > **Critério editorial:** só entra aqui o que rege escolhas técnicas futuras. Implementação descartável fica fora.
 
-**Última atualização:** 2026-06-08 (limpeza de deps: `axios`→`fetch` no `zapi.js`, removidos `cors`/`@vercel/analytics`; Node alinhado a ≥22; linha do alerta completada; `ws` documentado — reaplicado após a migração de pasta E:→C:)
+**Última atualização:** 2026-06-18 (módulo `src/insights.js` + funções de inteligência F2 raio-X de categoria / F1 inflação pessoal / F4 economia — sem migração)
 
 ---
 
@@ -70,6 +70,7 @@ C:\Economizei\
 │   ├── formatter.js       # Templates de mensagens (PT-BR, persona-aware)
 │   ├── alerts.js          # Lógica de alerta (>120% da média 90d)
 │   ├── charts.js          # URL do gráfico de BARRAS via QuickChart.io
+│   ├── insights.js        # Análise PURA (F2 raio-X categoria, F1 inflação, F4 economia)
 │   ├── metrics.js         # Coleta de métricas pra observabilidade
 │   ├── monthlySummary.js  # Resumo mensal automático (cron dia 1)
 │   ├── weeklyDigest.js    # Digest semanal opcional
@@ -226,6 +227,7 @@ Cada dependência nova vira **linha na seção 8** (Decisões técnicas em vigor
 
 | Data | Decisão | Racional |
 |---|---|---|
+| 2026-06-18 | **Módulo `src/insights.js` (funções puras de análise) + F2/F1/F4 — sem migração** | Inteligência sobre o gasto separada do acesso a dados (`supabase.js`) e dos templates (`formatter.js`), CODE_GUIDE "um arquivo por responsabilidade". **F2** `analisarRaioXCategorias`: maior categoria do mês + acima/abaixo da média (participação %) dos meses anteriores do próprio usuário + candidato discricionário a corte (`doces`/`bebidas` ≥10%); `montarMensagemGastos` ganhou 3º param opcional `analise`. **F1** `analisarInflacaoPessoal`: preço unitário normalizado `preco_total/quantidade` (fallback `preco`), exige 2+ obs, ≥14 dias e variação 8–150% (descarta ruído de unidade — honestidade); comando `/inflacao`. **F4** `calcularEconomia`: média móvel de 3 meses, `economiaMes` com sinal + `economiaAno` somando só meses abaixo da média (copy afirma exatamente isso); comando `/economia` + linha no resumo mensal (`montarResumoMensal` ganhou 4º param `economia`). Queries novas em `supabase.js`: `buscarHistoricoCategorias`, `buscarHistoricoPrecoItens`, `buscarTotaisMensais` — agregação em JS, `tipo='mercado'` (F1/F4), data sempre via `compras.data_compra` (itens_compra não tem data). **Nenhuma coluna/tabela nova — deploy é só `git push`.** |
 | 2026-06-07 | **Assinatura recorrente no cartão via Mercado Pago — `src/mercadopago.js` (fetch nativo, sem dep nova)** | Modelo "preapproval sem plano associado": 1 link de checkout por usuário com `external_reference=phone`. Cartão fica no checkout hospedado do MP (PCI fora do nosso servidor). Webhook `subscription_preapproval` → `POST /webhook/mercadopago` → reconsulta `GET /preapproval/{id}` (fonte da verdade) → liga/desliga `is_pro`. Segurança em 2 camadas: HMAC do `x-signature` + reconsulta no MP (webhook forjado não ativa Pro). Idempotência por `assinatura_eventos(topico, recurso_id=notif_id)`. Notifica só na transição de status. PIX manual continua como alternativa (`/pix`). PRÉ-REQUISITO: rodar `migration_2026-06-07_assinaturas_mp.sql`. |
 | 2026-05-07 | **Stack inicial:** Node + Express + Z-API + Gemini Vision + Supabase | MVP funcional com fricção mínima |
 | 2026-05-08 | **Manter Z-API até CNPJ + 50–100 usuários** | Meta Cloud API exige template aprovado que restringe alerta proativo |

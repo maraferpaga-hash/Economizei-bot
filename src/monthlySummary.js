@@ -1,8 +1,9 @@
 const { listarUsuariosAtivosNoMes, buscarComprasDoMes, verificarResumoJaEnviado,
-        marcarResumoEnviado, buscarGastosPorCategoria } = require('./supabase');
+        marcarResumoEnviado, buscarGastosPorCategoria, buscarTotaisMensais } = require('./supabase');
 const { enviarMensagem, enviarImagem } = require('./zapi');
 const { montarResumoMensal, nomeDoMes } = require('./formatter');
 const { gerarUrlGraficoCategorias } = require('./charts');
+const { calcularEconomia } = require('./insights');
 const { log, maskPhone } = require('./logger');
 
 function calcularMesAnterior(mesRef) {
@@ -30,7 +31,17 @@ async function executarResumoMensal(mesReferencia, phoneEspecifico = null) {
       if (!dadosAtual) { pulados++; continue; }
 
       const dadosAnterior = await buscarComprasDoMes(phone, mesAnterior);
-      const texto = montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia);
+
+      // F4 — economia anual pro reforço no resumo (degrada pra null em erro).
+      let economia = null;
+      try {
+        const totais = await buscarTotaisMensais(phone, 12);
+        economia = calcularEconomia(totais, { mesAlvo: mesReferencia });
+      } catch (errEco) {
+        log('resumo_economia_erro', { phone: maskPhone(phone), erro: errEco.message });
+      }
+
+      const texto = montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia);
 
       await enviarMensagem(phone, texto);
       await marcarResumoEnviado(phone, mesReferencia, dadosAtual.qtdCompras, dadosAtual.totalGasto);
