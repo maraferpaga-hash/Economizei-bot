@@ -1,0 +1,46 @@
+name: CI
+
+# Rede de segurança de TODO Pull Request (manual ou da máquina noturna).
+# Ordem importa: o firewall financeiro vem PRIMEIRO — se o PR tocar dinheiro,
+# falha logo e nem adianta o resto. Com branch protection exigindo este check,
+# um PR reprovado aqui não entra na main.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # precisa do histórico pra comparar o diff com a base
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 🔒 Firewall financeiro (bloqueia mudança de pagamento/cobrança)
+        run: node scripts/check-firewall.mjs
+
+      - name: 🧩 Sintaxe (node --check em src/ e scripts/)
+        run: |
+          erro=0
+          for f in src/*.js scripts/*.mjs; do
+            [ -e "$f" ] || continue
+            node --check "$f" || { echo "Sintaxe inválida: $f"; erro=1; }
+          done
+          exit $erro
+
+      - name: 🧪 Testes (node --test)
+        run: |
+          if ls test/*.test.js >/dev/null 2>&1; then
+            node --test test/*.test.js
+          else
+            echo "Sem testes em test/*.test.js — nada a rodar."
+          fi
+
+      - name: 📄 Páginas (valida HTML de landing/ e docs/)
+        run: node scripts/check-pages.mjs

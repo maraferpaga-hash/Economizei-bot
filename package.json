@@ -4,7 +4,8 @@
   "description": "Bot de WhatsApp para leitura de cupons fiscais via Z-API e Gemini Vision",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "validate:pages": "node scripts/check-pages.mjs"
   },
   "engines": {
     "node": ">=22"

@@ -1,0 +1,113 @@
+name: Maquina Noturna (Claude · codigo)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# A "maquina que trabalha sozinha". Roda de madrugada, le a AGENDA.md, pega a
+# proxima tarefa pronta, IMPLEMENTA no codigo (com testes) numa branch isolada
+# e abre um Pull Request em RASCUNHO. Nada entra na main sem o Gabriel revisar.
+#
+# Planejamento = Opus 4.8 (com o Gabriel, no chat). Execucao = Sonnet (aqui).
+#
+# BLINDAGEM FINANCEIRA: a maquina NUNCA mexe em pagamento/cobranca. Isso e
+# garantido por scripts/check-firewall.mjs, que roda no CI e reprova o PR se o
+# diff tocar dinheiro (e por branch protection, que torna o check obrigatorio).
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    # GitHub Actions usa SEMPRE UTC. Brasil (America/Sao_Paulo) e UTC-3 o ano
+    # todo (sem horario de verao desde 2019). Logo 08:00 UTC = 05:00 em SP.
+    # Obs.: runs agendados podem atrasar alguns minutos em horario de pico.
+    - cron: "0 8 * * *"
+  workflow_dispatch: # permite disparar manualmente pela aba Actions (teste)
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: maquina-noturna
+  cancel-in-progress: false
+
+jobs:
+  executar-tarefa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # historico completo (firewall compara o diff com a main)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Rodar a tarefa da noite
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--model claude-sonnet-4-6 --max-turns 40"
+          prompt: |
+            Voce e o engenheiro noturno do Economizei. Sua missao desta execucao:
+            pegar UMA tarefa da AGENDA.md e entrega-la como Pull Request em RASCUNHO,
+            com testes, sem NUNCA tocar em codigo financeiro.
+
+            LEIA PRIMEIRO, NESTA ORDEM:
+              1. AGENDA.md  (a fila e o protocolo de execucao no topo)
+              2. CLAUDE.md  e  CODE_GUIDE.md  (memoria de produto e de codigo)
+              3. As skills em .claude/skills/ relevantes — em especial
+                 economizei-financial-firewall, economizei-tdd e
+                 economizei-code-decisions
+              4. Os arquivos que a tarefa mencionar
+
+            ===================== ZONA PROIBIDA (NAO NEGOCIAVEL) =====================
+            Voce NAO pode criar, editar ou apagar nada relacionado a dinheiro:
+              - src/mercadopago.js (modulo de pagamento) — proibido tocar
+              - qualquer linha sobre: pagamento, assinatura, preapproval, Mercado
+                Pago, is_pro, /assinar, /pix, /cancelar, checkout, paywall, preco
+                de plano, montarMensagemPlanos, features_pro_ate, ativar-pro
+              - supabase/ (migrations/SQL), .env*, .github/, package.json,
+                package-lock.json, scripts/check-firewall.mjs, Dockerfile, Procfile
+            Se a tarefa parecer exigir mexer em qualquer um desses, PARE: nao faca,
+            mova a tarefa pra "Em revisão" com status "bloqueada-humano" e explique
+            no PR/agenda por que precisa do Gabriel. O CI roda o firewall financeiro
+            e vai te reprovar se passar a linha — entao nem tente contornar.
+            =========================================================================
+
+            ESCOLHA DA TAREFA:
+              - Va na secao "## 🌙 Fila pronta" da AGENDA.md.
+              - Pegue a PRIMEIRA tarefa (de cima pra baixo = maior prioridade) com
+                "status: pronta".
+              - PULE tarefa que ja tenha branch "claude/<id>-..." ou PR aberto.
+              - Se NAO houver tarefa elegivel, NAO faca nada e encerre.
+
+            EXECUCAO (so a tarefa escolhida, escopo apertado):
+              - Crie a branch: claude/<id>-<resumo-curto-kebab-case>
+              - Implemente EXATAMENTE objetivo / arquivos-alvo / criterios-de-aceite.
+                Respeite "fora-de-escopo". Siga os padroes do CODE_GUIDE (um arquivo
+                por responsabilidade; logica pura em src/insights.js separada de I/O;
+                portugues nos nomes e mensagens).
+              - TDD: toda logica nova vem com teste em test/<nome>.test.js no padrao
+                de test/insights.test.js (node:test). Sem teste, a tarefa nao esta pronta.
+
+            RODE A REDE DE SEGURANCA (corrija ate ficar verde):
+              - node scripts/check-firewall.mjs   (tem que passar — se falhar, voce
+                saiu da zona permitida: reverta a parte financeira)
+              - node --check nos .js que voce mexeu
+              - node --test test/*.test.js
+              - node scripts/check-pages.mjs       (se mexeu em pagina)
+
+            ATUALIZE A AGENDA (no mesmo commit/branch):
+              - Mova o bloco da tarefa da secao "## 🌙 Fila pronta" para a secao
+                "## 🔧 Em revisão", troque "status: pronta" por "status: em-revisao",
+                e anote a data e o link do PR.
+
+            ABRA O PULL REQUEST:
+              - Em modo RASCUNHO (draft).
+              - Titulo: "[maquina] <id> — <objetivo curto>"
+              - No corpo: o que foi feito, por que, arquivos mudados, COMO o Gabriel
+                testa, e o resultado dos checks (firewall/testes). Liste o que ficou
+                fora por exigir decisao ou por bater na zona proibida.
+
+            Uma tarefa por noite. PR pequeno e legivel. Decisao de produto/UX/preco
+            NAO e sua: deixe escrito no PR pro Gabriel decidir.
