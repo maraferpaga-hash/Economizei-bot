@@ -24,6 +24,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  id-token: write # exigido pela claude-code-action (token OIDC); sem isto a run falha
 
 concurrency:
   group: maquina-noturna
@@ -45,7 +46,12 @@ jobs:
       - name: Rodar a tarefa da noite
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # AUTENTICACAO: usa a SUA assinatura Claude Pro/Max via OAuth token
+          # (gerado com `claude setup-token` e guardado no secret abaixo). Assim a
+          # run noturna consome da cota da assinatura — sem comprar API a parte.
+          # Alternativa (API avulsa, cobranca por uso): comente a linha de baixo e
+          # use  anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: "--model claude-sonnet-4-6 --max-turns 40"
           prompt: |
             Voce e o engenheiro noturno do Economizei. Sua missao desta execucao:
