@@ -146,7 +146,8 @@ A cada execução noturna, o operador (Sonnet) faz:
 
 **Setup da automação (uma vez):**
 - [ ] `git push` dos arquivos novos.
-- [ ] Rodar `/install-github-app` no Claude Code dentro do repo (instala o app + cria o secret `ANTHROPIC_API_KEY`).
+- [ ] Rodar `/install-github-app` no Claude Code dentro do repo (instala o app).
+- [ ] Colocar o token de autenticação: `claude setup-token` → secret **`CLAUDE_CODE_OAUTH_TOKEN`** (usa sua assinatura Pro/Max, sem comprar API). *Alternativa:* secret `ANTHROPIC_API_KEY` + trocar a linha de auth no `claude-nightly.yml`.
 - [ ] Confirmar o secret em Settings → Secrets and variables → Actions.
 - [ ] Ativar **branch protection** na `main`: exigir PR + o check **"CI"** verde antes de mergear. (É o que torna o firewall financeiro obrigatório.)
 - [ ] Testar 1× na mão: aba **Actions → Maquina Noturna → Run workflow** com a `cod-0001` na fila. Conferir se o PR sai e se o check "CI" roda.

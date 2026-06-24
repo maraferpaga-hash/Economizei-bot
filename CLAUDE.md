@@ -575,7 +575,7 @@ Mesmo com 1 pessoa, há sinais de que a operação está saudável ou em sobreca
 
 **Validação no sandbox:** firewall selftest 16/16; 4 cenários git (limpo passa / `is_pro` escondido bloqueia / `package.json` bloqueia / `supabase/` bloqueia); 5 testes verdes; `node --check` ok; check-pages verde.
 
-**Pré-requisitos de ativação (HUMANO):** `git push`; `/install-github-app` (cria o secret `ANTHROPIC_API_KEY`); branch protection na `main` exigindo o check **"CI"**; testar 1× via Actions → *Run workflow* com a `cod-0001`. **Nota operacional recorrente:** push é sempre do Gabriel na máquina dele (Cowork sem credencial).
+**Pré-requisitos de ativação (HUMANO):** `git push`; `/install-github-app`; **autenticação por assinatura** — `claude setup-token` → secret **`CLAUDE_CODE_OAUTH_TOKEN`** (a run usa a cota Pro/Max do Gabriel, sem comprar API; alternativa é `ANTHROPIC_API_KEY` + trocar a linha de auth, já comentada no `claude-nightly.yml`); branch protection na `main` exigindo o check **"CI"**; testar 1× via Actions → *Run workflow* com a `cod-0001`. **Nota operacional recorrente:** push é sempre do Gabriel na máquina dele (Cowork sem credencial). **Decisão de auth (2026-06-24):** o Gabriel optou por rodar com a **assinatura Claude Pro/Max via OAuth** em vez de comprar créditos de API — workflow já configurado com `claude_code_oauth_token`.
 
 ### 2026-06-23 — Sessão do plano anual (aumento de ticket médio)
 
