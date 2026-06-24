@@ -5,6 +5,9 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "check": "node scripts/check-firewall.mjs --working && node --test \"test/**/*.test.js\" && node scripts/check-pages.mjs",
+    "check:firewall": "node scripts/check-firewall.mjs --working",
     "validate:pages": "node scripts/check-pages.mjs"
   },
   "engines": {

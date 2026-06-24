@@ -1,21 +1,20 @@
 # 🤖 AGENDA — Máquina Noturna do Economizei
 
-> **O que é este arquivo.** É a fila de trabalho da automação noturna e a memória
-> viva do que a máquina está fazendo. O Gabriel prioriza as tarefas aqui (junto
-> com o Opus 4.8, no chat); a run das **05h (BRT)** executa **a primeira tarefa
-> pronta**, no **Sonnet**, e abre um Pull Request em rascunho. Ninguém faz merge
-> sem o Gabriel revisar.
+> **O que é este arquivo.** É a fila de trabalho da automação e a memória viva do
+> que está em andamento. O Gabriel prioriza as tarefas aqui (junto com o Opus 4.8,
+> no chat). A execução é **local**: na pasta do projeto, o Gabriel roda o Claude
+> Code (comando `/tarefa`), que pega **a primeira tarefa pronta**, implementa com
+> teste e mostra o diff — **o Gabriel revisa e commita**.
 >
-> **Função principal agora: mudanças de CÓDIGO** — desenvolver funções novas,
-> refinar e corrigir o código do bot. **O financeiro é blindado** (ver "Zona
-> proibida"): a máquina não toca em pagamento/cobrança, e há uma trava
-> automática que reprova qualquer PR que tente.
+> **Função principal: mudanças de CÓDIGO** — desenvolver funções novas, refinar e
+> corrigir o código do bot. **O financeiro é blindado** (ver "Zona proibida"): a
+> automação não toca em pagamento/cobrança, e o `npm run check:firewall` reprova
+> qualquer mudança que tente.
 >
 > **Leia este arquivo no início de toda sessão** (está na boot list do `CLAUDE.md`).
-> Guia do sistema: `Economizei app/Automacao_Maquina_Noturna.md` · Passo a passo:
-> `Economizei app/Passo_a_Passo_Maquina_Noturna.md`.
+> Guia do sistema: `Economizei app/Automacao_Maquina_Noturna.md`.
 
-**Última curadoria:** 2026-06-23 · **Estado da automação:** 🟡 setup (ainda não agendada — ver "Ações do Gabriel")
+**Última curadoria:** 2026-06-24 · **Modo:** execução local (GitHub Actions descontinuado)
 
 ---
 
@@ -35,17 +34,17 @@ Se uma tarefa precisar de algo disso, ela vira **pendência humana** (vai pro pa
 
 ---
 
-## 📐 Protocolo (como a máquina lê esta agenda)
+## 📐 Protocolo (como a automação local usa esta agenda)
 
-A cada execução noturna, o operador (Sonnet) faz:
+Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
-1. Lê este arquivo, o `CLAUDE.md`, o `CODE_GUIDE.md` e as skills relevantes (`financial-firewall`, `tdd`, `code-decisions`).
+1. Lê este arquivo (e consulta `CLAUDE.md`/`CODE_GUIDE.md` só se a tarefa exigir).
 2. Vai em **`## 🌙 Fila pronta`** e pega a **primeira** tarefa (de cima pra baixo = maior prioridade) com **`status: pronta`**.
-3. **Pula** tarefa que já tenha branch `claude/<id>-...` ou PR aberto.
-4. Se não houver tarefa elegível, **não faz nada**.
-5. Implementa só aquela tarefa **com teste** (TDD), roda a rede de segurança, move o bloco pra **`## 🔧 Em revisão`** (status `em-revisao` + link do PR) e abre **PR em rascunho**.
+3. Implementa só aquela tarefa **com teste** (TDD), roda a rede de segurança, move o bloco pra **`## 🔧 Em revisão`** (status `em-revisao` + data) e **mostra o diff**.
+4. **O Gabriel revisa e commita** (a automação não commita nem dá push).
+5. Se não houver tarefa elegível, não faz nada.
 
-**Rede de segurança que a máquina roda antes do PR:** `node scripts/check-firewall.mjs` (financeiro) · `node --check` nos `.js` mexidos · `node --test test/*.test.js` · `node scripts/check-pages.mjs` (se mexeu em página).
+**Rede de segurança (rode antes de commitar):** `npm run check` = `check-firewall.mjs --working` (financeiro) + `node --test` (testes) + `check-pages.mjs` (páginas).
 
 **Como priorizar (você + Opus):** a ordem dentro de "Fila pronta" É a prioridade. Subiu = roda antes. Os rótulos `[P0]`..`[P3]` são leitura humana; o que manda é a posição. Use `status: pausada` pra tirar da fila sem apagar.
 
@@ -141,29 +140,30 @@ A cada execução noturna, o operador (Sonnet) faz:
 
 ## 🙋 Ações do Gabriel (só humano resolve — a máquina não consegue)
 
-> Esta seção é o seu painel. O que está marcado `[ ]` te bloqueia; reveja sempre.
-> Passo a passo detalhado em `Economizei app/Passo_a_Passo_Maquina_Noturna.md`.
+> Esta seção é o seu painel. Guia: `Economizei app/Automacao_Maquina_Noturna.md`.
 
-**Setup da automação (uma vez):**
-- [ ] `git push` dos arquivos novos.
-- [ ] Rodar `/install-github-app` no Claude Code dentro do repo (instala o app).
-- [ ] Colocar o token de autenticação: `claude setup-token` → secret **`CLAUDE_CODE_OAUTH_TOKEN`** (usa sua assinatura Pro/Max, sem comprar API). *Alternativa:* secret `ANTHROPIC_API_KEY` + trocar a linha de auth no `claude-nightly.yml`.
-- [ ] Confirmar o secret em Settings → Secrets and variables → Actions.
-- [ ] Ativar **branch protection** na `main`: exigir PR + o check **"CI"** verde antes de mergear. (É o que torna o firewall financeiro obrigatório.)
-- [ ] Testar 1× na mão: aba **Actions → Maquina Noturna → Run workflow** com a `cod-0001` na fila. Conferir se o PR sai e se o check "CI" roda.
-- [ ] Só depois de validar o padrão: manter o cron das 05h ligado (já vem ligado).
+**Setup (uma vez, bem simples):**
+- [ ] Ter o Claude Code instalado e logado na sua assinatura na máquina.
+- [ ] (Opcional) Criar `.claude/commands/tarefa.md` com o prompt do guia, pra ter o comando `/tarefa`.
+- [ ] Pronto — não tem secret, workflow nem GitHub App pra configurar.
 
-**Rotina de cada manhã (5 min):**
-- [ ] Abrir o PR da máquina, conferir o check **"CI"** (firewall + testes), revisar o diff.
-- [ ] Mergear se bom; se não, comentar o ajuste e/ou refinar `CLAUDE.md`/`CODE_GUIDE.md`/a tarefa.
-- [ ] Repriorizar a "Fila pronta" pra próxima noite.
+**Rotina de cada vez que for trabalhar:**
+- [ ] Na pasta do projeto, rodar `/tarefa` no Claude Code (ou colar o prompt do guia).
+- [ ] Revisar o diff; rodar `npm run check` (firewall + testes).
+- [ ] Commitar e dar push você mesmo se estiver bom; se não, `git checkout .` descarta.
+- [ ] Repriorizar a "Fila pronta" pra próxima vez.
 
-**Coisas que SÓ você pode fazer (a máquina é barrada de propósito):**
-- [ ] Qualquer mudança financeira (pagamento, assinatura, preço, `is_pro`) → PR manual seu.
-- [ ] Rodar migration no Supabase (a máquina não toca `supabase/`).
+**Coisas que SÓ você faz (a automação é barrada de propósito):**
+- [ ] Qualquer mudança financeira (pagamento, assinatura, preço, `is_pro`).
+- [ ] Rodar migration no Supabase (a automação não toca `supabase/`).
 - [ ] Adicionar dependência nova (`package.json` é bloqueado) se uma tarefa precisar.
-- [ ] Colocar/!alterar secret ou variável de ambiente (Railway, GitHub).
+- [ ] Commit e push (a automação local nunca commita).
 - [ ] Decisão de produto/UX/pricing/ICP/promessa de feature.
+
+**Limpeza do GitHub Actions (uma vez, ver comandos no chat):**
+- [ ] `git rm` dos workflows `ci.yml` e `claude-nightly.yml` + apagar `pages-ci.yml` (untracked).
+- [ ] Se tiver criado branch protection exigindo o check "CI", remover (senão trava PRs futuros).
+- [ ] (Opcional) Desinstalar o app do Claude no GitHub e apagar o secret `CLAUDE_CODE_OAUTH_TOKEN`.
 
 ---
 
