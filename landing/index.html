@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#16a34a" />
   <meta name="robots" content="index, follow" />
   <title>Economizei — A planilha que se preenche sozinha. Só no WhatsApp.</title>
-  <meta name="description" content="Manda a foto do cupom no WhatsApp — a IA registra tudo e te avisa antes do mês fugir do controle. Plano Grátis funciona pra sempre; Pro a partir de R$9,90/mês via PIX." />
+  <meta name="description" content="Manda a foto do cupom no WhatsApp — a IA registra tudo e te avisa antes do mês fugir do controle. Plano Grátis funciona pra sempre; Pro a partir de R$9,90/mês ou R$99/ano (2 meses grátis), no PIX ou cartão." />
 
   <!-- Open Graph -->
   <meta property="og:title" content="Economizei — Controle seus gastos pelo WhatsApp" />
-  <meta property="og:description" content="Manda a foto do cupom. A IA registra tudo e te avisa quando você está gastando mais que o normal. Grátis ou Pro a partir de R$9,90 — sem app, sem cadastro." />
+  <meta property="og:description" content="Manda a foto do cupom. A IA registra tudo e te avisa quando você está gastando mais que o normal. Grátis ou Pro a partir de R$9,90/mês (ou R$99/ano, 2 meses grátis) — sem app, sem cadastro." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://economizei.space" />
   <meta property="og:locale" content="pt_BR" />
@@ -19,7 +19,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Economizei — Controle seus gastos pelo WhatsApp" />
-  <meta name="twitter:description" content="Manda a foto do cupom. A IA registra tudo. Grátis ou Pro a partir de R$9,90 via PIX." />
+  <meta name="twitter:description" content="Manda a foto do cupom. A IA registra tudo. Grátis ou Pro a partir de R$9,90/mês ou R$99/ano (2 meses grátis), no PIX ou cartão." />
 
   <!-- Favicon SVG inline (verde Economizei) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='20' height='20' rx='5' fill='%2316a34a'/%3E%3Cpath d='M8 12l3 3 5-6' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -1117,6 +1117,63 @@
     }
     .pricing-foot-note strong { color: var(--text); font-weight: 700; }
 
+    /* ===== TOGGLE MENSAL / ANUAL ===== */
+    .cycle-toggle-wrap { text-align: center; }
+    .cycle-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin: 0 auto 12px;
+      padding: 5px;
+      background: var(--bg-tinted);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+    }
+    .cycle-toggle button {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 9px 20px;
+      border-radius: 100px;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cycle-toggle button[aria-pressed="true"] {
+      background: var(--bg);
+      color: var(--green-dark);
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+    }
+    .cycle-toggle .save-pill {
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: var(--green-light);
+      color: var(--green-dark);
+      padding: 3px 8px;
+      border-radius: 100px;
+    }
+    .cycle-caption {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin: 0 auto 30px;
+    }
+
+    /* Cada card paga mostra um par de preço/CTA por ciclo. Default = anual. */
+    .plan-price-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .price-note { font-size: 0.82rem; color: var(--green-dark); font-weight: 600; }
+    .pricing-grid .price-monthly { display: none; }
+    .pricing-grid.cycle-monthly .price-annual { display: none; }
+    .pricing-grid.cycle-monthly .plan-price-wrap.price-monthly { display: flex; }
+    .pricing-grid.cycle-monthly a.cta-monthly { display: inline-block; }
+
     /* ===== PRIVACIDADE ===== */
     #privacy {
       background: var(--bg);
@@ -1977,10 +2034,18 @@
       <div class="section-header">
         <span class="section-eyebrow">Planos</span>
         <h2>Bom, barato e útil — de verdade.</h2>
-        <p>O plano <strong>Grátis</strong> resolve o básico — e funciona pra sempre. Os pagos têm comparativo entre mercados, cupons ilimitados e plano família. Pagamento via PIX.</p>
+        <p>O <strong>Grátis</strong> resolve o básico e funciona pra sempre. Nos pagos, escolha <strong>anual</strong> (2 meses grátis) ou mensal — paga no PIX ou cartão.</p>
       </div>
 
-      <div class="pricing-grid">
+      <div class="cycle-toggle-wrap">
+        <div class="cycle-toggle" role="group" aria-label="Ciclo de pagamento">
+          <button type="button" id="cycle-anual" aria-pressed="true">Anual <span class="save-pill">2 meses grátis</span></button>
+          <button type="button" id="cycle-mensal" aria-pressed="false">Mensal</button>
+        </div>
+      </div>
+      <p class="cycle-caption">No anual você paga 10 meses e leva 12.</p>
+
+      <div class="pricing-grid" id="pricing-grid">
 
         <!-- Plano Grátis -->
         <article class="pricing-card">
@@ -2015,15 +2080,25 @@
           <div class="plan-head">
             <span class="plan-tag tag-active">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" class="icon-filled"/></svg>
-              Ativo via PIX
+              Ativo
             </span>
             <div class="plan-name">Individual</div>
             <div class="plan-subtitle">Pra quem quer economizar de verdade</div>
           </div>
-          <div class="plan-price">
-            <span class="price-currency">R$</span>
-            <span class="price-value">9,90</span>
-            <span class="price-period">/mês</span>
+          <div class="plan-price-wrap price-annual">
+            <div class="plan-price">
+              <span class="price-currency">R$</span>
+              <span class="price-value">99</span>
+              <span class="price-period">/ano</span>
+            </div>
+            <div class="price-note">≈ R$ 8,25/mês · economize R$ 19,80</div>
+          </div>
+          <div class="plan-price-wrap price-monthly">
+            <div class="plan-price">
+              <span class="price-currency">R$</span>
+              <span class="price-value">9,90</span>
+              <span class="price-period">/mês</span>
+            </div>
           </div>
           <ul class="plan-features">
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Tudo do Grátis</li>
@@ -2031,7 +2106,8 @@
             <li class="highlight"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Comparativo entre mercados</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Alerta inteligente (preditivo + categorizado)</li>
           </ul>
-          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20plano%20Individual%20%28R%249%2C90%2Fm%C3%AAs%29%20do%20Economizei.%20Como%20fa%C3%A7o%20pra%20pagar%20via%20PIX%3F" target="_blank" rel="noopener" class="btn btn-primary">Assinar Individual via PIX</a>
+          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20Individual%20no%20anual%20%28R%2499%2Fano%2C%202%20meses%20gr%C3%A1tis%29%20do%20Economizei.%20Pago%20no%20PIX%20ou%20cart%C3%A3o%3F" target="_blank" rel="noopener" class="btn btn-primary cta-annual">Assinar Individual no anual</a>
+          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20Individual%20no%20mensal%20%28R%249%2C90%2Fm%C3%AAs%29%20do%20Economizei.%20Pago%20no%20PIX%20ou%20cart%C3%A3o%3F" target="_blank" rel="noopener" class="btn btn-primary cta-monthly">Assinar Individual no mensal</a>
         </article>
 
         <!-- Plano Família -->
@@ -2039,22 +2115,33 @@
           <div class="plan-head">
             <span class="plan-tag tag-active">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" class="icon-filled"/></svg>
-              Ativo via PIX
+              Ativo
             </span>
             <div class="plan-name">Família</div>
             <div class="plan-subtitle">Até 3 pessoas no mesmo plano</div>
           </div>
-          <div class="plan-price">
-            <span class="price-currency">R$</span>
-            <span class="price-value">15</span>
-            <span class="price-period">/mês</span>
+          <div class="plan-price-wrap price-annual">
+            <div class="plan-price">
+              <span class="price-currency">R$</span>
+              <span class="price-value">150</span>
+              <span class="price-period">/ano</span>
+            </div>
+            <div class="price-note">≈ R$ 12,50/mês · economize R$ 30</div>
+          </div>
+          <div class="plan-price-wrap price-monthly">
+            <div class="plan-price">
+              <span class="price-currency">R$</span>
+              <span class="price-value">15</span>
+              <span class="price-period">/mês</span>
+            </div>
           </div>
           <ul class="plan-features">
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Tudo do Individual</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Visão consolidada da família</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Comparação de gastos por membro</li>
           </ul>
-          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20plano%20Fam%C3%ADlia%20%28R%2415%2Fm%C3%AAs%2C%20at%C3%A9%203%20pessoas%29%20do%20Economizei.%20Como%20fa%C3%A7o%20pra%20pagar%20via%20PIX%3F" target="_blank" rel="noopener" class="btn btn-outline">Assinar Família via PIX</a>
+          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20Fam%C3%ADlia%20no%20anual%20%28R%24150%2Fano%2C%20at%C3%A9%203%20pessoas%2C%202%20meses%20gr%C3%A1tis%29%20do%20Economizei.%20Pago%20no%20PIX%20ou%20cart%C3%A3o%3F" target="_blank" rel="noopener" class="btn btn-outline cta-annual">Assinar Família no anual</a>
+          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20Fam%C3%ADlia%20no%20mensal%20%28R%2415%2Fm%C3%AAs%2C%20at%C3%A9%203%20pessoas%29%20do%20Economizei.%20Pago%20no%20PIX%20ou%20cart%C3%A3o%3F" target="_blank" rel="noopener" class="btn btn-outline cta-monthly">Assinar Família no mensal</a>
         </article>
 
         <!-- Plano Família+ -->
@@ -2062,30 +2149,58 @@
           <div class="plan-head">
             <span class="plan-tag tag-active">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" class="icon-filled"/></svg>
-              Ativo via PIX
+              Ativo
             </span>
             <div class="plan-name">Família+</div>
             <div class="plan-subtitle">Até 5 pessoas no mesmo plano</div>
           </div>
-          <div class="plan-price">
-            <span class="price-currency">R$</span>
-            <span class="price-value">22</span>
-            <span class="price-period">/mês</span>
+          <div class="plan-price-wrap price-annual">
+            <div class="plan-price">
+              <span class="price-currency">R$</span>
+              <span class="price-value">220</span>
+              <span class="price-period">/ano</span>
+            </div>
+            <div class="price-note">≈ R$ 18,33/mês · economize R$ 44</div>
+          </div>
+          <div class="plan-price-wrap price-monthly">
+            <div class="plan-price">
+              <span class="price-currency">R$</span>
+              <span class="price-value">22</span>
+              <span class="price-period">/mês</span>
+            </div>
           </div>
           <ul class="plan-features">
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Igual ao Família</li>
             <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Mais 2 vagas (5 pessoas no total)</li>
           </ul>
-          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20plano%20Fam%C3%ADlia%2B%20%28R%2422%2Fm%C3%AAs%2C%20at%C3%A9%205%20pessoas%29%20do%20Economizei.%20Como%20fa%C3%A7o%20pra%20pagar%20via%20PIX%3F" target="_blank" rel="noopener" class="btn btn-outline">Assinar Família+ via PIX</a>
+          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20Fam%C3%ADlia%2B%20no%20anual%20%28R%24220%2Fano%2C%20at%C3%A9%205%20pessoas%2C%202%20meses%20gr%C3%A1tis%29%20do%20Economizei.%20Pago%20no%20PIX%20ou%20cart%C3%A3o%3F" target="_blank" rel="noopener" class="btn btn-outline cta-annual">Assinar Família+ no anual</a>
+          <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20o%20Fam%C3%ADlia%2B%20no%20mensal%20%28R%2422%2Fm%C3%AAs%2C%20at%C3%A9%205%20pessoas%29%20do%20Economizei.%20Pago%20no%20PIX%20ou%20cart%C3%A3o%3F" target="_blank" rel="noopener" class="btn btn-outline cta-monthly">Assinar Família+ no mensal</a>
         </article>
 
       </div>
 
       <p class="pricing-foot-note">
-        <strong>Como funciona o pagamento:</strong> você clica em "Assinar via PIX", abre uma conversa no WhatsApp, paga e em até 1h seu plano é ativado manualmente. Estamos numa fase inicial — quando o volume justificar, automatizamos com Stripe/Mercado Pago.
+        <strong>Como funciona o pagamento:</strong> você clica em "Assinar", abre o WhatsApp, paga no <strong>PIX</strong> e em até 1h seu plano entra. O <strong>cartão recorrente</strong> (Mercado Pago) está sendo ativado.
       </p>
 
     </div>
+
+    <script>
+      (function () {
+        var grid = document.getElementById('pricing-grid');
+        var btnA = document.getElementById('cycle-anual');
+        var btnM = document.getElementById('cycle-mensal');
+        if (!grid || !btnA || !btnM) return;
+        function aplicar(ciclo) {
+          var mensal = ciclo === 'mensal';
+          grid.classList.toggle('cycle-monthly', mensal);
+          btnA.setAttribute('aria-pressed', String(!mensal));
+          btnM.setAttribute('aria-pressed', String(mensal));
+        }
+        btnA.addEventListener('click', function () { aplicar('anual'); });
+        btnM.addEventListener('click', function () { aplicar('mensal'); });
+      })();
+    </script>
   </section>
 
   <!-- ===== PRIVACIDADE: E MEUS DADOS? ===== -->
@@ -2150,9 +2265,9 @@
         <article class="comecar-card comecar-card-featured">
           <span class="comecar-tag comecar-tag-pro">Pro</span>
           <h3>Quero o plano Pro agora</h3>
-          <p>Cupons ilimitados, comparativo entre mercados e alerta inteligente. Pagamento via PIX direto no WhatsApp — em até 1h seu plano fica ativo. R$9,90 (Individual), R$15 (Família) ou R$22 (Família+).</p>
+          <p>Cupons ilimitados, comparativo entre mercados e alerta inteligente. No <strong>anual</strong> são R$99 (Individual), R$150 (Família) e R$220 (Família+) — 2 meses grátis; ou no mensal R$9,90, R$15 e R$22. Paga no PIX ou cartão e em até 1h seu plano entra.</p>
           <a href="https://wa.me/5517996440062?text=Ol%C3%A1%21%20Quero%20assinar%20um%20plano%20pago%20do%20Economizei.%20Manda%20pra%20mim%20as%20op%C3%A7%C3%B5es%2C%20por%20favor." target="_blank" rel="noopener" class="btn btn-primary">
-            Assinar Pro via PIX
+            Assinar agora
           </a>
         </article>
 
