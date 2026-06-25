@@ -66,49 +66,49 @@ function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia =
 
   const labelCompras = qtdCompras === 1 ? 'compra' : 'compras';
 
-  const linhaTicket = qtdCompras > 1
-    ? `\n📊 Ticket médio: R$ ${brl(ticketMedio)}`
+  const sufixoTicket = qtdCompras > 1
+    ? ` · ticket médio R$ ${brl(ticketMedio)}`
     : '';
 
   const linhasLojas = topLojas.length === 1
     ? `${topLojas[0].loja} — R$ ${brl(topLojas[0].total)} (${topLojas[0].qtd}x)`
     : topLojas.map((l, i) => `${i + 1}. ${l.loja} — R$ ${brl(l.total)} (${l.qtd}x)`).join('\n');
 
+  // Itens que mais pesaram: 3 (os 2 últimos raramente mudam a decisão).
   const blocoItens = topItens.length > 0
     ? `\n\n📦 *Itens que mais pesaram:*\n` +
-      topItens.slice(0, 5).map((it, i) => `${i + 1}. ${it.nome} — R$ ${brl(it.gastoTotal)}`).join('\n')
+      topItens.slice(0, 3).map((it, i) => `${i + 1}. ${it.nome} — R$ ${brl(it.gastoTotal)}`).join('\n')
     : '';
 
   let linhaComparacao;
   if (!dadosAnterior || !dadosAnterior.totalGasto) {
     const nomeProximo = nomeDoMes(_mesProximoDe(mesReferencia));
-    linhaComparacao = `📅 Esse é o primeiro mês com dados — em ${nomeProximo} vou conseguir comparar.`;
+    linhaComparacao = `📅 Primeiro mês com dados — em ${nomeProximo} já dá pra comparar.`;
   } else {
     const anterior = dadosAnterior.totalGasto;
     const diff = ((totalGasto - anterior) / anterior) * 100;
     const nomeAnterior = nomeDoMes(_mesAnteriorDe(mesReferencia));
     if (Math.abs(diff) < 5) {
-      linhaComparacao = `📊 Mês parecido com o anterior — diferença de menos de 5%.`;
+      linhaComparacao = `📊 Parecido com ${nomeAnterior} — diferença de menos de 5%.`;
     } else if (diff > 0) {
-      linhaComparacao = `📈 Comparado a ${nomeAnterior}: +${Math.round(diff)}% (R$ ${brl(totalGasto - anterior)} a mais)`;
+      linhaComparacao = `📈 +${Math.round(diff)}% que ${nomeAnterior} (R$ ${brl(totalGasto - anterior)} a mais)`;
     } else {
-      linhaComparacao = `📉 Comparado a ${nomeAnterior}: ${Math.round(diff)}% (R$ ${brl(anterior - totalGasto)} a menos) 🎉`;
+      linhaComparacao = `📉 ${Math.round(diff)}% que ${nomeAnterior} (R$ ${brl(anterior - totalGasto)} a menos) 🎉`;
     }
   }
 
-  // F4 — reforço de economia anual (só quando há economia acumulada no ano).
+  // F4 — economia anual sobe pro topo, logo abaixo do total (Camada 2/3 do norte).
   const linhaEconomia = (economia && economia.economiaAno > 0)
-    ? `💚 No ano, você já economizou R$ ${brl(economia.economiaAno)} nos meses em que gastou abaixo da média.\n\n`
+    ? `\n💚 No ano, já economizou R$ ${brl(economia.economiaAno)} nos meses abaixo da média.`
     : '';
 
   return (
-    `🗓️ *Seu mês no Economizei — ${nomeDoMes(mesReferencia)}*\n\n` +
-    `💰 Você gastou R$ ${brl(totalGasto)} em ${qtdCompras} ${labelCompras}${linhaTicket}\n\n` +
-    `🏪 *Onde você mais gastou:*\n${linhasLojas}` +
-    `${blocoItens}\n\n` +
-    `${linhaComparacao}\n\n` +
-    `${linhaEconomia}` +
-    `💡 *Continue mandando os cupons* — quanto mais dados, mais padrões eu vejo.`
+    `🗓️ *Seu mês — ${nomeDoMes(mesReferencia)}*\n\n` +
+    `💰 *R$ ${brl(totalGasto)}* em ${qtdCompras} ${labelCompras}${sufixoTicket}\n` +
+    `${linhaComparacao}` +
+    `${linhaEconomia}\n\n` +
+    `🏪 *Onde mais gastou:*\n${linhasLojas}` +
+    `${blocoItens}`
   );
 }
 
@@ -141,26 +141,22 @@ function montarResposta(dadosCompra, historico) {
     ? `\n• ...e mais ${ocultos} ${ocultos === 1 ? 'item' : 'itens'} (cupom longo demais pra uma mensagem só)`
     : '';
 
-  // Bloco de itens só aparece se houver pelo menos um item legível
+  // Cabeçalho: título com loja+data e os DOIS valores que importam (compra + mês)
+  // no topo, antes da lista de itens. Resolve o "número escondido no meio".
+  const tituloLinha = tipo === 'outros'
+    ? `✅ *Cupom registrado* — ${loja}, ${dataCurta(data_compra)}\n` +
+      `💰 *R$ ${brl(total)}* · _Outros (não-mercado)_\n`
+    : `✅ *Compra registrada* — ${loja}, ${dataCurta(data_compra)}\n` +
+      `💰 *R$ ${brl(total)}* nesta compra\n`;
+
+  const linhaMes = `📊 *R$ ${brl(totalMes)}* no mês (${qtdComprasMes} ${qtdComprasMes === 1 ? 'compra' : 'compras'})`;
+
+  // Lista completa dos itens (decisão 2026-06-04), agora depois dos valores.
   const blocoItens = itens.length > 0
-    ? `📦 *Itens registrados (${itens.length}):*\n${linhasItens}${linhaOcultos}\n\n`
+    ? `\n\n📦 *${itens.length} ${itens.length === 1 ? 'item' : 'itens'}:*\n${linhasItens}${linhaOcultos}`
     : '';
 
-  // Cupom de não-mercado: confirmação neutra/positiva (nunca negativa) + nota de categoria
-  const cabecalho = tipo === 'outros'
-    ? `✅ *Cupom registrado!*\n\n` +
-      `🏪 ${loja} — ${dataCurta(data_compra)}\n` +
-      `🏷️ _Não é de supermercado — guardei em *Outros (não-mercado)*._\n` +
-      `💰 *Total: R$ ${brl(total)}*\n\n`
-    : `✅ *Compra registrada!*\n\n` +
-      `🏪 ${loja} — ${dataCurta(data_compra)}\n` +
-      `💰 *Total: R$ ${brl(total)}*\n\n`;
-
-  return (
-    cabecalho +
-    `${blocoItens}` +
-    `📊 *Esse mês:* R$ ${brl(totalMes)} em ${qtdComprasMes} compra(s)`
-  );
+  return tituloLinha + linhaMes + blocoItens;
 }
 
 function montarMensagemErro(motivo, categoria = 'outro') {
@@ -552,61 +548,55 @@ function montarMensagemAlerta(avaliacao) {
 
   if (nivel === 'acima') {
     return (
-      `📈 *Compra acima do seu padrão*\n\n` +
-      `Esta compra ficou *${pctAbs}% acima* da sua média, que é de ${mediaFmt} por compra.\n\n` +
-      `Pode ser só a compra do mês — mas se quiser ver o que pesou, mande */historico*.`
+      `📈 *${pctAbs}% acima da sua média* (${mediaFmt}/compra).\n` +
+      `Pode ser a compra grande do mês — pra ver o que pesou, manda */historico*.`
     );
   }
 
   if (nivel === 'abaixo') {
     return (
-      `📉 *Compra abaixo da média — economia!* 🎉\n\n` +
-      `Esta compra ficou *${pctAbs}% abaixo* da sua média de ${mediaFmt} por compra. Continue assim!`
+      `📉 *${pctAbs}% abaixo da sua média* (${mediaFmt}/compra). Economia! Continua assim 🎉`
     );
   }
 
   // normal
   return (
-    `✅ *Compra dentro do seu padrão*\n\n` +
-    `Ficou bem perto da sua média de ${mediaFmt} por compra. Tudo sob controle. 👍`
+    `✅ *Dentro do seu padrão* — perto da média de ${mediaFmt}/compra. Tudo certo 👍`
   );
 }
 
 function montarOnboarding1() {
   return (
     `👋 Bem-vindo ao *Economizei*!\n\n` +
-    `Funciona assim: depois do mercado, tire uma foto do cupom fiscal e mande aqui. Em segundos eu registro loja, total e cada item — sem cadastro, sem digitar nada.\n\n` +
-    `📸 *Mande a foto de um cupom para começar.*\n\n` +
-    `_Precisa de ajuda? Mande /ajuda_`
+    `Depois do mercado, tira uma foto do cupom e manda aqui. Em segundos eu registro loja, total e cada item — sem cadastro, sem digitar nada.\n\n` +
+    `📸 *Manda a foto de um cupom pra começar.*`
   );
 }
 
 function montarOnboarding2() {
   return (
-    `É sério — é literalmente só foto. 📸\n\n` +
-    `Sem cadastro. Sem formulário. Sem digitar nada.\n\n` +
-    `Quando for ao mercado, manda a foto do cupom aqui.`
+    `É sério — é só foto. 📸 Sem cadastro, sem formulário, sem digitar nada.\n\n` +
+    `Quando for ao mercado, manda o cupom aqui.`
   );
 }
 
 function montarOnboarding3() {
   return (
     `💡 *Primeiro cupom registrado!*\n\n` +
-    `Continue mandando o cupom depois de cada compra. Em poucas semanas eu mostro coisas que passam despercebidas no dia a dia:\n\n` +
-    `→ Que você gastou R$ 180,00 só em carnes no mês\n` +
-    `→ Que a compra do fim de semana custa o dobro da compra rápida\n` +
-    `→ Que o total subiu R$ 90,00 em relação ao mês passado\n\n` +
-    `📊 Cada cupom deixa o retrato dos seus gastos mais nítido.`
+    `Manda o cupom depois de cada compra. Em poucas semanas eu mostro o que passa despercebido:\n\n` +
+    `→ R$ 180,00 só em carnes no mês\n` +
+    `→ a compra do fim de semana custa o dobro da rápida\n` +
+    `→ R$ 90,00 a mais que o mês passado\n\n` +
+    `📊 Cada cupom deixa o retrato mais nítido.`
   );
 }
 
 function montarOnboarding4(dadosCompra, totalMes) {
   const { loja, total } = dadosCompra;
   return (
-    `📊 *Duas compras registradas — já dá pra ver o padrão começando.*\n\n` +
-    `${loja}: R$ ${brl(total)} hoje. No mês até agora: R$ ${brl(totalMes)}.\n\n` +
-    `É isso. Você está no controle agora. 🎯\n\n` +
-    `Continua mandando os cupons depois de cada compra. Pra ver o que tem no plano *Individual* (cupons ilimitados + comparativo entre mercados): manda */planos*.`
+    `📊 *Duas compras registradas — o padrão já começa a aparecer.*\n\n` +
+    `${loja}: R$ ${brl(total)} hoje · R$ ${brl(totalMes)} no mês.\n\n` +
+    `Continua mandando os cupons. Pra ver o plano *Individual* (cupons ilimitados + comparativo entre mercados): */planos*.`
   );
 }
 
@@ -685,47 +675,42 @@ function montarMensagemEnviarComoArquivo() {
 // Segmento A — nunca mandou cupom
 function montarLembreteOnboardingD2() {
   return (
-    'Oi! Tudo bem? 😊\n\n' +
-    'Só passando para lembrar que estou aqui — quando for ao mercado, é só guardar o cupom e me mandar uma foto.\n\n' +
-    'Não precisa de cadastro, não precisa de app. É só a foto mesmo.'
+    'Oi! Tudo bem? 😊 Só passando pra lembrar que estou aqui — quando for ao mercado, guarda o cupom e me manda uma foto.\n\n' +
+    'Sem cadastro, sem app. É só a foto.'
   );
 }
 
 function montarLembreteOnboardingD7() {
   return (
-    'Oi! Faz uma semana que você se cadastrou aqui. 👋\n\n' +
-    'Se ainda não experimentou, que tal hoje? Pega o próximo cupom do mercado e manda pra mim — em menos de um minuto você já vê o resumo da compra.\n\n' +
-    'Estou aqui quando você quiser.'
+    'Oi! Faz uma semana que você chegou aqui. 👋\n\n' +
+    'Se ainda não testou, pega o próximo cupom e manda — em menos de um minuto você já vê o resumo da compra.'
   );
 }
 
 // Segmento B — já mandou cupom mas sumiu
 function montarLembreteInativoD3() {
   return (
-    'Oi! Passou mais algum dia no mercado? 🛒\n\n' +
-    'É só mandar a foto do cupom quando tiver — fico aqui registrando tudo pra você.'
+    'Oi! Passou no mercado de novo? 🛒 Manda a foto do cupom quando tiver — registro tudo pra você.'
   );
 }
 
 function montarLembreteInativoD10(qtdComprasMes) {
   const qtd = Number(qtdComprasMes) || 0;
   return (
-    `Oi! Você já tem ${qtd} compra(s) registrada(s) aqui comigo este mês.\n\n` +
-    'Quando fechar o mês, te mando um resumo completo de tudo que gastou. Ainda dá tempo de completar — manda mais um cupom quando puder. 📋'
+    `Oi! Você já tem ${qtd} compra(s) registrada(s) este mês. No fim do mês te mando o resumo completo de tudo — ainda dá pra completar, manda mais um cupom quando puder. 📋`
   );
 }
 
 function montarLembreteInativoD30() {
   return (
-    'Faz um tempinho que você não passa por aqui.\n\n' +
-    'Se quiser retomar, é só mandar a foto do cupom do próximo mercado — sem pressa, sem cobranças. Estou aqui quando precisar. 😊'
+    'Faz um tempinho que você não aparece. Pra retomar, é só mandar o cupom do próximo mercado — sem pressa, sem cobrança. Estou aqui quando precisar. 😊'
   );
 }
 
 function montarLembreteInativoD60() {
   return (
-    'Oi! Faz dois meses desde a última vez que você me mandou um cupom.\n\n' +
-    'Se quiser continuar controlando os gastos no mercado, é só me mandar uma foto quando for às compras. E se preferir parar por aqui, tudo bem também — é só mandar */apagar* e deleto tudo.'
+    'Oi! Faz dois meses desde seu último cupom.\n\n' +
+    'Pra voltar a controlar os gastos, é só mandar uma foto quando for às compras. Se preferir parar, tudo bem — manda */apagar* que eu deleto tudo.'
   );
 }
 
@@ -733,8 +718,7 @@ function montarLembreteInativoD60() {
 function montarLembreteFimMes(qtdComprasMes) {
   const qtd = Number(qtdComprasMes) || 0;
   return (
-    'O mês está quase fechando! 📅\n\n' +
-    `Você tem ${qtd} compra(s) registrada(s) até agora. Se ainda tiver cupons guardados, manda pra mim antes do fim do mês — assim consigo montar um balanço completo pra você.`
+    `Fim do mês chegando! 📅 Você tem ${qtd} compra(s) registrada(s). Se tiver cupons guardados, manda antes de virar o mês — aí monto um balanço completo pra você.`
   );
 }
 
@@ -793,8 +777,7 @@ function montarAvisoIndicacaoConvertida(dias) {
 // Segmento D — perto do limite gratuito
 function montarLembreteLimite8() {
   return (
-    'Você já usou 8 dos 10 cupons gratuitos deste mês. 📊\n\n' +
-    'Ainda dá para mais 2 registros. Se quiser continuar sem limite, dá uma olhada nos planos — é só mandar */planos* aqui.'
+    'Você já usou 8 dos 10 cupons grátis do mês. 📊 Ainda dá pra mais 2. Pra não ter limite, dá uma olhada nos planos: */planos*.'
   );
 }
 
