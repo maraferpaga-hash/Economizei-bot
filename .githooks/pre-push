@@ -1,0 +1,40 @@
+#!/bin/sh
+# ============================================================
+# Economizei — git hook pre-push (rede de segurança automática)
+#
+# O Git roda este script SOZINHO toda vez que você dá `git push`.
+# Ele checa os commits que estão prestes a subir e, se algo falhar,
+# ABORTA o push antes de qualquer coisa chegar no GitHub/Railway/Vercel.
+#
+# O que ele roda (via "npm run check:push"):
+#   1. Firewall financeiro nos commits de saída (origin/main...HEAD)
+#   2. Testes (node --test)
+#   3. Validação das páginas (check-pages)
+#
+# Instalação (UMA vez, na sua máquina, dentro de C:\Economizei):
+#   git config core.hooksPath .githooks
+#
+# Emergência (pular o hook só se você souber o que está fazendo):
+#   git push --no-verify
+# ============================================================
+
+echo ""
+echo "🔒 pre-push: checando os commits que vão subir..."
+echo ""
+
+npm run check:push
+STATUS=$?
+
+if [ "$STATUS" -ne 0 ]; then
+  echo ""
+  echo "❌ pre-push: a checagem FALHOU (código $STATUS). PUSH ABORTADO."
+  echo "   Nada foi enviado. Corrija o que apareceu acima e dê o push de novo."
+  echo "   (Emergência consciente: 'git push --no-verify' pula esta trava.)"
+  echo ""
+  exit 1
+fi
+
+echo ""
+echo "✅ pre-push: tudo verde. Push liberado."
+echo ""
+exit 0

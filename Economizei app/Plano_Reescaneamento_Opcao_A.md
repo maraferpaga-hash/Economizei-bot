@@ -1,7 +1,14 @@
 # 🔁 Reescaneamento de Cupons — Opção A (armazenar imagem de falhas)
 
-> **Status:** design aprovado em parâmetros, **build pendente**.
-> **Sessão:** 2026-06-06. Decisão do Gabriel: implementar a Opção A.
+> ## ❌ REVOGADO em 2026-06-24
+> Esta decisão foi **revogada** pelo Gabriel. Mantida a estrutura anterior: a imagem do cupom é
+> processada em memória e **descartada**, nunca persistida. Motivo: como o bot já faz Sharp + 2
+> retries na leitura, reprocessar a mesma imagem quase nunca muda o resultado — o ganho não paga o
+> custo de LGPD nem de storage. Este documento fica **apenas como histórico**; não implementar.
+> Ver `CLAUDE.md` (seção 8, decisão de 2026-06-24).
+
+> **Status (histórico):** design aprovado em parâmetros, build nunca iniciado.
+> **Sessão:** 2026-06-06. Decisão do Gabriel: implementar a Opção A. **Revogada em 2026-06-24.**
 > **Leia junto:** `CLAUDE.md` (seção 8 — decisões) e `.claude/skills/economizei-security-lgpd/SKILL.md`.
 
 ---

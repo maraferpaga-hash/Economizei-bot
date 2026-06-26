@@ -50,6 +50,7 @@ const {
   montarMensagemGastos,
   montarMensagemInflacao,
   montarMensagemEconomia,
+  montarMensagemCortar,
   montarMensagemPrivacidade,
   montarMensagemEnviarComoArquivo,
   montarMensagemConvite,
@@ -77,7 +78,7 @@ const {
   validarAssinaturaWebhook,
 } = require('./mercadopago');
 const { gerarUrlGraficoCategorias } = require('./charts');
-const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia } = require('./insights');
+const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar } = require('./insights');
 const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
 const { log, maskPhone } = require('./logger');
 const { iniciar: iniciarScheduler } = require('./scheduler');
@@ -460,6 +461,11 @@ async function processarTexto(phone, texto) {
     return;
   }
 
+  if (ehComando('/cortar', 'cortar', '/onde-cortar')) {
+    await mostrarCortar(phone);
+    return;
+  }
+
   if (ehComando('/convidar', 'convidar', '/indicar', 'indicar', '/convite', 'convite')) {
     await mostrarConvite(phone);
     return;
@@ -602,6 +608,38 @@ async function processarImagem(phone, imageUrl) {
     try {
       await enviarMensagem(phone, montarMensagemErro('Erro interno ao processar imagem'));
     } catch (_) { /* já logado em zapi_erro */ }
+  }
+}
+
+// ---------------------------------------------------------------
+// F3 — Onde cortar sem doer (/cortar)
+// Identifica categorias discricionárias (doces, bebidas) com peso no mês
+// e compara com a média histórica do próprio usuário.
+// ---------------------------------------------------------------
+async function mostrarCortar(phone) {
+  try {
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    let mesAlvo = mesAtual;
+    let dadosCat = await buscarGastosPorCategoria(phone, mesAtual);
+
+    if (!dadosCat || dadosCat.length === 0) {
+      const mesRecente = await buscarMesMaisRecenteComGastos(phone);
+      if (mesRecente && mesRecente !== mesAtual) {
+        mesAlvo = mesRecente;
+        dadosCat = await buscarGastosPorCategoria(phone, mesRecente);
+      }
+    }
+
+    let historico = null;
+    try {
+      historico = await buscarHistoricoCategorias(phone, mesAlvo, 3);
+    } catch (_) { /* degradação segura: segue sem histórico */ }
+
+    const analise = analisarOndeCortar(dadosCat || [], historico);
+    await enviarMensagem(phone, montarMensagemCortar(analise));
+  } catch (err) {
+    log('cortar_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, 'Não consegui analisar os cortes agora. Tenta de novo em instantes? 🙏');
   }
 }
 

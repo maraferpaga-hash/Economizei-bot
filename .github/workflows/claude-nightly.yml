@@ -1,30 +1,28 @@
 name: Maquina Noturna (Claude · codigo)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# A "maquina que trabalha sozinha". Roda de madrugada, le a AGENDA.md, pega a
-# proxima tarefa pronta, IMPLEMENTA no codigo (com testes) numa branch isolada
-# e abre um Pull Request em RASCUNHO. Nada entra na main sem o Gabriel revisar.
+# A "maquina que trabalha sozinha". Le a AGENDA.md, pega a proxima tarefa pronta,
+# IMPLEMENTA no codigo (com testes) numa branch isolada e abre um Pull Request em
+# RASCUNHO. Nada entra na main sem o Gabriel revisar.
 #
-# Planejamento = Opus 4.8 (com o Gabriel, no chat). Execucao = Sonnet (aqui).
-#
-# BLINDAGEM FINANCEIRA: a maquina NUNCA mexe em pagamento/cobranca. Isso e
-# garantido por scripts/check-firewall.mjs, que roda no CI e reprova o PR se o
-# diff tocar dinheiro (e por branch protection, que torna o check obrigatorio).
+# BLINDAGEM FINANCEIRA: a maquina NUNCA mexe em pagamento/cobranca. Garantido por
+# scripts/check-firewall.mjs (roda no CI e reprova o PR que tocar dinheiro) +
+# branch protection.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
-  schedule:
-    # GitHub Actions usa SEMPRE UTC. Brasil (America/Sao_Paulo) e UTC-3 o ano
-    # todo (sem horario de verao desde 2019). Logo 08:00 UTC = 05:00 em SP.
-    # Obs.: runs agendados podem atrasar alguns minutos em horario de pico.
-    - cron: "0 8 * * *"
-  workflow_dispatch: # permite disparar manualmente pela aba Actions (teste)
+  # CRON DESLIGADO durante a validacao, pra nao disparar sozinho as 5h e gastar
+  # cota antes de confirmarmos que sai PR. Rode na mao por: Actions -> Run workflow.
+  # Quando um run manual entregar um PR bom, descomente as 2 linhas abaixo:
+  # schedule:
+  #   - cron: "0 8 * * *"   # 08:00 UTC = 05:00 BRT (Brasil e UTC-3 o ano todo)
+  workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
   issues: write
-  id-token: write # exigido pela claude-code-action (token OIDC); sem isto a run falha
+  id-token: write # exigido pela claude-code-action (token OIDC)
 
 concurrency:
   group: maquina-noturna
@@ -33,7 +31,7 @@ concurrency:
 jobs:
   executar-tarefa:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,75 +43,53 @@ jobs:
 
       - name: Rodar a tarefa da noite
         uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }} # pra o agente conseguir abrir o PR via `gh pr create`
         with:
-          # AUTENTICACAO: usa a SUA assinatura Claude Pro/Max via OAuth token
-          # (gerado com `claude setup-token` e guardado no secret abaixo). Assim a
-          # run noturna consome da cota da assinatura — sem comprar API a parte.
-          # Alternativa (API avulsa, cobranca por uso): comente a linha de baixo e
-          # use  anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # AUTENTICACAO: usa a assinatura Claude Pro/Max via OAuth token
+          # (`claude setup-token` -> secret abaixo). Sem comprar API a parte.
+          # Alternativa API: troque por  anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: "--model claude-sonnet-4-6 --max-turns 40"
+          # bypassPermissions: roda sem pedir aprovacao humana (este runner e
+          # isolado e descartavel). Sem isto, a action NEGA git/gh/node e a run
+          # gasta turns a toa sem abrir PR. --max-turns 20 limita o custo.
+          claude_args: "--model claude-sonnet-4-6 --max-turns 20 --permission-mode bypassPermissions"
           prompt: |
-            Voce e o engenheiro noturno do Economizei. Sua missao desta execucao:
-            pegar UMA tarefa da AGENDA.md e entrega-la como Pull Request em RASCUNHO,
-            com testes, sem NUNCA tocar em codigo financeiro.
+            Voce e o engenheiro noturno do Economizei. Entregue UMA tarefa da
+            AGENDA.md como Pull Request em RASCUNHO, com testes. Seja direto e
+            economico em passos.
 
-            LEIA PRIMEIRO, NESTA ORDEM:
-              1. AGENDA.md  (a fila e o protocolo de execucao no topo)
-              2. CLAUDE.md  e  CODE_GUIDE.md  (memoria de produto e de codigo)
-              3. As skills em .claude/skills/ relevantes — em especial
-                 economizei-financial-firewall, economizei-tdd e
-                 economizei-code-decisions
-              4. Os arquivos que a tarefa mencionar
+            PASSO A PASSO:
+            1) Leia a AGENDA.md. Na secao "## 🌙 Fila pronta", pegue a PRIMEIRA
+               tarefa com "status: pronta" que ainda nao tenha branch
+               "claude/<id>-..." nem PR. Se nao houver, ENCERRE sem fazer nada.
+            2) Crie a branch:  git checkout -b claude/<id>-<resumo-kebab>
+            3) Implemente SO o que objetivo/arquivos-alvo/criterios-de-aceite
+               pedem; respeite "fora-de-escopo". Padrao do projeto: logica pura em
+               src/insights.js separada de I/O; portugues nos nomes e mensagens.
+               Toda logica nova vem com teste em test/<nome>.test.js (modelo:
+               test/insights.test.js, runner node:test).
+            4) Deixe verde, nesta ordem:
+                 node scripts/check-firewall.mjs
+                 node --check <cada .js que voce mexeu>
+                 node --test test/*.test.js
+            5) Na AGENDA.md, mova o bloco da tarefa de "## 🌙 Fila pronta" para
+               "## 🔧 Em revisão" (troque para "status: em-revisao" + data).
+            6) Suba e abra o PR rascunho:
+                 git add -A
+                 git commit -m "[maquina] <id>: <objetivo curto>"
+                 git push -u origin claude/<id>-<resumo-kebab>
+                 gh pr create --draft --title "[maquina] <id> — <objetivo>" \
+                   --body "O que fez; arquivos mudados; como testar; resultado dos checks."
 
-            ===================== ZONA PROIBIDA (NAO NEGOCIAVEL) =====================
-            Voce NAO pode criar, editar ou apagar nada relacionado a dinheiro:
-              - src/mercadopago.js (modulo de pagamento) — proibido tocar
-              - qualquer linha sobre: pagamento, assinatura, preapproval, Mercado
-                Pago, is_pro, /assinar, /pix, /cancelar, checkout, paywall, preco
-                de plano, montarMensagemPlanos, features_pro_ate, ativar-pro
-              - supabase/ (migrations/SQL), .env*, .github/, package.json,
-                package-lock.json, scripts/check-firewall.mjs, Dockerfile, Procfile
-            Se a tarefa parecer exigir mexer em qualquer um desses, PARE: nao faca,
-            mova a tarefa pra "Em revisão" com status "bloqueada-humano" e explique
-            no PR/agenda por que precisa do Gabriel. O CI roda o firewall financeiro
-            e vai te reprovar se passar a linha — entao nem tente contornar.
-            =========================================================================
+            ZONA PROIBIDA (NUNCA toque — o CI tem firewall que REPROVA o PR):
+            src/mercadopago.js; qualquer linha de pagamento/cobranca (assinatura,
+            is_pro, preapproval, MP_, /assinar, /pix, /cancelar, checkout, paywall,
+            preco de plano, montarMensagemPlanos, features_pro_ate, ativar-pro);
+            supabase/; .env*; .github/; package.json; package-lock.json;
+            Dockerfile; Procfile; scripts/check-firewall.mjs.
+            Se a tarefa exigir algo disso, NAO faca: marque a tarefa como
+            "bloqueada-humano" na AGENDA e abra o PR so com essa nota.
 
-            ESCOLHA DA TAREFA:
-              - Va na secao "## 🌙 Fila pronta" da AGENDA.md.
-              - Pegue a PRIMEIRA tarefa (de cima pra baixo = maior prioridade) com
-                "status: pronta".
-              - PULE tarefa que ja tenha branch "claude/<id>-..." ou PR aberto.
-              - Se NAO houver tarefa elegivel, NAO faca nada e encerre.
-
-            EXECUCAO (so a tarefa escolhida, escopo apertado):
-              - Crie a branch: claude/<id>-<resumo-curto-kebab-case>
-              - Implemente EXATAMENTE objetivo / arquivos-alvo / criterios-de-aceite.
-                Respeite "fora-de-escopo". Siga os padroes do CODE_GUIDE (um arquivo
-                por responsabilidade; logica pura em src/insights.js separada de I/O;
-                portugues nos nomes e mensagens).
-              - TDD: toda logica nova vem com teste em test/<nome>.test.js no padrao
-                de test/insights.test.js (node:test). Sem teste, a tarefa nao esta pronta.
-
-            RODE A REDE DE SEGURANCA (corrija ate ficar verde):
-              - node scripts/check-firewall.mjs   (tem que passar — se falhar, voce
-                saiu da zona permitida: reverta a parte financeira)
-              - node --check nos .js que voce mexeu
-              - node --test test/*.test.js
-              - node scripts/check-pages.mjs       (se mexeu em pagina)
-
-            ATUALIZE A AGENDA (no mesmo commit/branch):
-              - Mova o bloco da tarefa da secao "## 🌙 Fila pronta" para a secao
-                "## 🔧 Em revisão", troque "status: pronta" por "status: em-revisao",
-                e anote a data e o link do PR.
-
-            ABRA O PULL REQUEST:
-              - Em modo RASCUNHO (draft).
-              - Titulo: "[maquina] <id> — <objetivo curto>"
-              - No corpo: o que foi feito, por que, arquivos mudados, COMO o Gabriel
-                testa, e o resultado dos checks (firewall/testes). Liste o que ficou
-                fora por exigir decisao ou por bater na zona proibida.
-
-            Uma tarefa por noite. PR pequeno e legivel. Decisao de produto/UX/preco
-            NAO e sua: deixe escrito no PR pro Gabriel decidir.
+            Uma tarefa, PR pequeno e legivel. Nao decida produto/UX/preco — anote
+            no PR pro Gabriel decidir.

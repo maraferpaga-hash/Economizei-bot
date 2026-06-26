@@ -210,6 +210,7 @@ function montarMensagemBemVindo() {
     `• */gastos* — gráfico + raio-X dos seus gastos por categoria\n` +
     `• */inflacao* — o que subiu ou caiu de preço nos seus itens\n` +
     `• */economia* — quanto você já economizou perto da sua média\n` +
+    `• */cortar* — onde reduzir gastos sem abrir mão do essencial\n` +
     `• */historico* ou */resumo* — suas últimas compras\n` +
     `• */limite* — quantos cupons restam esse mês\n` +
     `• */planos* — ver os planos disponíveis\n` +
@@ -525,6 +526,33 @@ function montarMensagemEconomia(analise) {
   );
 }
 
+// F3 — mensagem de "onde cortar sem doer". Recebe o resultado de analisarOndeCortar.
+function montarMensagemCortar(analise) {
+  if (!analise || !analise.temSugestao) {
+    return (
+      '✂️ *Onde cortar sem doer*\n\n' +
+      'Olhando este mês, não encontrei categorias discricionárias com peso relevante nos seus gastos.\n\n' +
+      '_Quando doces, petiscos ou bebidas aparecerem com peso no mês, te aviso aqui com sugestões concretas._'
+    );
+  }
+
+  const partes = ['✂️ *Onde cortar sem doer*\n'];
+
+  for (const s of analise.sugestoes) {
+    const label = LABELS_CATEGORIA[s.categoria] || s.categoria;
+    let linha = `• *${label}*: R$ ${brl(s.valor)} (${s.pct}% do mês)`;
+    if (s.acimaDaMedia === true && s.mediaValorHist) {
+      linha += `\n  ↑ Acima da sua média de R$ ${brl(s.mediaValorHist)}/mês — mês mais pesado que o usual.`;
+    } else if (s.acimaDaMedia === false && s.mediaValorHist) {
+      linha += `\n  → Em linha com sua média de R$ ${brl(s.mediaValorHist)}/mês.`;
+    }
+    partes.push(linha);
+  }
+
+  partes.push('\n_São as categorias mais fáceis de reduzir sem mexer no essencial. Qualquer corte aqui vai direto pro seu bolso._');
+  return partes.join('\n');
+}
+
 function montarMensagemPrivacidade() {
   return (
     `🔒 *Privacidade no Economizei*\n\n` +
@@ -809,6 +837,7 @@ module.exports = {
   montarMensagemGastos,
   montarMensagemInflacao,
   montarMensagemEconomia,
+  montarMensagemCortar,
   montarMensagemPrivacidade,
   montarMensagemEnviarComoArquivo,
   montarLembreteOnboardingD2,

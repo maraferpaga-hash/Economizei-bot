@@ -7,8 +7,10 @@
     "start": "node src/index.js",
     "test": "node --test \"test/**/*.test.js\"",
     "check": "node scripts/check-firewall.mjs --working && node --test \"test/**/*.test.js\" && node scripts/check-pages.mjs",
+    "check:push": "node scripts/check-firewall.mjs && node --test \"test/**/*.test.js\" && node scripts/check-pages.mjs",
     "check:firewall": "node scripts/check-firewall.mjs --working",
-    "validate:pages": "node scripts/check-pages.mjs"
+    "validate:pages": "node scripts/check-pages.mjs",
+    "ship": "node scripts/ship.mjs"
   },
   "engines": {
     "node": ">=22"

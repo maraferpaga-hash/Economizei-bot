@@ -12,6 +12,7 @@ const {
   analisarRaioXCategorias,
   analisarInflacaoPessoal,
   calcularEconomia,
+  analisarOndeCortar,
 } = require("../src/insights.js");
 
 // ── F4 — calcularEconomia ───────────────────────────────────────────────────
@@ -92,4 +93,56 @@ test("analisarInflacaoPessoal: reporta alta relevante e descarta ruído", () => 
   assert.equal(r.subiram[0].nome, "arroz");
   assert.equal(r.subiram[0].variacaoPct, 20);
   assert.equal(r.cairam.length, 0);
+});
+
+// ── F3 — analisarOndeCortar ─────────────────────────────────────────────────
+test("analisarOndeCortar: identifica categoria supérflua com peso relevante", () => {
+  const dadosMes = [
+    { categoria: "carnes", total: 200 },
+    { categoria: "doces", total: 80 },   // 80/330 ≈ 24% — acima do limiar
+    { categoria: "hortifruti", total: 50 },
+  ];
+  const r = analisarOndeCortar(dadosMes, null);
+  assert.equal(r.temSugestao, true);
+  assert.equal(r.sugestoes.length, 1);
+  assert.equal(r.sugestoes[0].categoria, "doces");
+  assert.equal(r.sugestoes[0].valor, 80);
+  assert.equal(r.sugestoes[0].pct, 24);
+  assert.equal(r.sugestoes[0].acimaDaMedia, null); // sem histórico
+  assert.equal(r.mesesHistorico, 0);
+});
+
+test("analisarOndeCortar: sem supérflua relevante retorna temSugestao:false", () => {
+  // doces = 5/205 ≈ 2% — abaixo do limiar padrão de 5%
+  const dadosMes = [
+    { categoria: "carnes", total: 200 },
+    { categoria: "doces", total: 5 },
+  ];
+  assert.equal(analisarOndeCortar(dadosMes, null).temSugestao, false);
+  assert.equal(analisarOndeCortar([], null).temSugestao, false);
+});
+
+test("analisarOndeCortar: detecta categoria acima da média histórica e ordena por força do sinal", () => {
+  // bebidas: 90/210=43%, mediaValorHist=40 → 90>44 → acimaDaMedia=true
+  // doces:   20/210=10%, mediaValorHist=20 → 20>22? não → acimaDaMedia=false
+  const dadosMes = [
+    { categoria: "doces", total: 20 },
+    { categoria: "bebidas", total: 90 },
+    { categoria: "mercearia", total: 100 },
+  ];
+  const historico = {
+    mesesComDados: 2,
+    porCategoria: {
+      doces:   { mediaPct: 10, mediaValor: 20 },
+      bebidas: { mediaPct: 20, mediaValor: 40 },
+    },
+  };
+  const r = analisarOndeCortar(dadosMes, historico);
+  assert.equal(r.temSugestao, true);
+  assert.equal(r.mesesHistorico, 2);
+  // bebidas (acimaDaMedia=true) deve vir antes de doces
+  assert.equal(r.sugestoes[0].categoria, "bebidas");
+  assert.equal(r.sugestoes[0].acimaDaMedia, true);
+  assert.equal(r.sugestoes[1].categoria, "doces");
+  assert.equal(r.sugestoes[1].acimaDaMedia, false);
 });

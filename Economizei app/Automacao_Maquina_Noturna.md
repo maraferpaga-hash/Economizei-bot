@@ -65,15 +65,21 @@ revisar. Você NÃO commita — eu reviso e commito.
 PASSOS:
 1) Leia a AGENDA.md. Na seção "## 🌙 Fila pronta", pegue a PRIMEIRA tarefa com
    "status: pronta". Se não houver, me diga e pare.
-2) Implemente SÓ o que objetivo/arquivos-alvo/critérios-de-aceite pedem; respeite
+2) GATILHO DE SKILLS (antes de codar): leia a seção "## 🧠 Gatilho de Skills" da
+   AGENDA.md. Carregue as skills do campo "skills:" da tarefa; se estiver vazio,
+   derive pelo mapa tipo→skills. Aplique-as durante todo o trabalho (os manuais
+   ficam em .claude/skills/economizei-*). Com número/preço/promessa, o
+   economizei-financial-firewall é inegociável; todo código novo segue
+   economizei-tdd (vem com teste).
+3) Implemente SÓ o que objetivo/arquivos-alvo/critérios-de-aceite pedem; respeite
    "fora-de-escopo". Padrão: lógica pura em src/insights.js separada de I/O;
    português nos nomes/mensagens. Toda lógica nova vem com teste em
    test/<nome>.test.js (modelo: test/insights.test.js).
-3) Rode e deixe verde: npm run check
-4) Na AGENDA.md, mova a tarefa de "## 🌙 Fila pronta" para "## 🔧 Em revisão"
+4) Rode e deixe verde: npm run check
+5) Na AGENDA.md, mova a tarefa de "## 🌙 Fila pronta" para "## 🔧 Em revisão"
    (status: em-revisao + data).
-5) Me mostre um resumo (o que mudou, arquivos, como testar, resultado do check).
-   NÃO commite.
+6) Me mostre um resumo (o que mudou, arquivos, como testar, resultado do check) e
+   AS SKILLS QUE USEI (do campo "skills:" ou derivadas do mapa). NÃO commite.
 
 ZONA PROIBIDA (nunca toque — o firewall reprova): src/mercadopago.js; qualquer
 linha de pagamento/cobrança (assinatura, is_pro, preapproval, MP_, /assinar,
@@ -84,6 +90,26 @@ faça: marque como "bloqueada-humano" na AGENDA e me explique.
 ```
 
 Aí, na pasta, é só digitar **`/tarefa`** no Claude Code. (Se preferir não criar o comando, cole esse mesmo texto direto no chat do Claude Code quando quiser rodar.)
+
+---
+
+## 4.1. O gatilho de skills (usar a memória que já construímos)
+
+Antes de codar, a automação **carrega as skills certas** — os manuais em
+`.claude/skills/economizei-*` que já condensam nossos princípios (zero atrito,
+grátis funciona, frame brasileiro, honestidade financeira, TDD, LGPD). Em vez de
+reinventar isso toda run, a máquina reusa essa memória. Funciona em dois lados:
+
+- **No planejamento (você + Opus 4.8):** ao criar uma tarefa, o Opus apresenta as
+  skills candidatas (com 1 linha do que cada uma faz), pergunta quais fazem mais
+  sentido, e grava no campo **`skills:`** da tarefa. É aí que você designa o que o
+  Sonnet 4.6 vai usar.
+- **Na execução (`/tarefa`):** o Claude carrega as skills do campo `skills:`; se
+  faltar, deriva do **mapa tipo→skills**; e te diz no fim **quais usou**.
+
+O mapa completo, o catálogo das 18 skills e a regra estão na seção
+**"🧠 Gatilho de Skills"** da `AGENDA.md`. Rigor: **recomendado, não bloqueante** —
+a tarefa não trava por isso, mas pular skill deve ser exceção.
 
 ---
 

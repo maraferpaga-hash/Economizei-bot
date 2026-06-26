@@ -48,6 +48,10 @@ Estas 7 skills **rodam em background** em toda interação relevante:
 | Teste, regressão, CI, fixture | `economizei-tdd` |
 | Subagent, paralelizar, delegar | `economizei-multi-agent-ops` |
 
+### 2.3 Automação (Máquina Local) — gatilho de skills
+
+A automação de código (`/tarefa`) obedece ao mesmo princípio, formalizado na seção **"🧠 Gatilho de Skills"** da `AGENDA.md`: **toda tarefa carrega a skill certa antes de codar**, reusando a memória já construída. No **planejamento** (Opus 4.8 + Gabriel), cada tarefa ganha o campo **`skills:`** — o Opus apresenta as candidatas (com 1 linha do que cada uma faz) e **pergunta quais usar**. Na **execução** (Sonnet 4.6), o Claude carrega o que está em `skills:`; se vazio, **deriva do mapa tipo→skills**; e **declara quais usou**. Rigor: recomendado, não bloqueante. O firewall financeiro (zona proibida) continua valendo por cima, intocado.
+
 ---
 
 ## 3. Regras de operação inquestionáveis

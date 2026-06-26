@@ -21,7 +21,9 @@
 Faça nesta ordem. A rede de segurança entra **antes** do automático soltar. Repo: `maraferpaga-hash/Economizei-bot`, branch `main`.
 
 ### Pré-requisitos
-- ⚙️ Uma **chave de API da Anthropic com créditos** (console.anthropic.com) — é o que paga a run noturna.
+- ⚙️ **Como pagar a run noturna** — duas opções (escolha uma):
+  - **A) Sua assinatura Claude Pro/Max (recomendado se você já paga).** A run usa a cota da sua assinatura via um *OAuth token*; **não precisa comprar nada à parte**. É o modo já configurado no workflow.
+  - **B) Chave de API da Anthropic** (console.anthropic.com), cobrança avulsa por uso. Alternativa se você não tem Pro/Max ou não quer misturar com a cota da assinatura.
 - 👤 Ser **admin** do repositório no GitHub.
 - 👤 Git instalado e já autenticado no GitHub na sua máquina (o push é sempre seu — o Cowork não tem credencial).
 
@@ -29,14 +31,23 @@ Faça nesta ordem. A rede de segurança entra **antes** do automático soltar. R
 
 Abra o terminal **na pasta do projeto** e rode os comandos da seção "Comandos do push" mais abaixo. No fim, confira em `https://github.com/maraferpaga-hash/Economizei-bot` que apareceram `AGENDA.md`, `scripts/`, `test/` e `.github/workflows/ci.yml`.
 
-### Passo 2 — 👤 Instalar o app do Claude no GitHub (+ secret)
+### Passo 2 — 👤 Instalar o app do Claude no GitHub
 
-Duas formas:
-- **Fácil (Claude Code):** dentro do projeto, rode `/install-github-app`. Ele instala o app e ⚙️ **cria sozinho o secret `ANTHROPIC_API_KEY`** no repo.
-- **Manual (sem Claude Code):** instale o app "Claude" pelo GitHub (github.com/apps/claude) e autorize no repo; depois ⚙️ adicione o secret à mão em **Settings → Secrets and variables → Actions → New repository secret**, nome `ANTHROPIC_API_KEY`, valor = sua chave da Anthropic.
+No Claude Code, dentro do projeto, rode `/install-github-app` — instala o app "Claude" no repositório e dá a ele permissão de abrir PRs. (Sem Claude Code: instale o app manualmente em github.com/apps/claude e autorize no repo.)
 
-### Passo 3 — ✅ Conferir o secret
-Em **Settings → Secrets and variables → Actions** tem que existir **`ANTHROPIC_API_KEY`**. Sem ele, a run noturna falha logo no começo.
+### Passo 3 — ⚙️ Colocar o token de autenticação (secret)
+
+O workflow já vem configurado pro **modo assinatura (Opção A)**. Faça:
+
+**Opção A — assinatura Pro/Max (recomendado):**
+1. No Claude Code, rode `claude setup-token` — gera um **OAuth token** ligado à sua assinatura.
+2. Em **Settings → Secrets and variables → Actions → New repository secret**, crie o secret com nome exatamente **`CLAUDE_CODE_OAUTH_TOKEN`** e valor = o token gerado.
+
+**Opção B — chave de API (avulsa):** crie o secret **`ANTHROPIC_API_KEY`** com sua chave (console.anthropic.com → API Keys) e, no `claude-nightly.yml`, troque a linha `claude_code_oauth_token:` pela `anthropic_api_key:` (já deixei a alternativa comentada no arquivo).
+
+✅ Confira que o secret escolhido aparece em **Settings → Secrets and variables → Actions**. Sem ele, a run noturna falha logo no começo.
+
+> O token/chave é como uma senha — por isso vai em **Secret** (o GitHub guarda oculto e nunca mostra de novo).
 
 ### Passo 4 — 👤 Ligar a trava (branch protection) — passo mais importante
 Em **Settings → Branches → Add branch ruleset** (ou *Add rule*, no clássico):
@@ -133,7 +144,8 @@ Quando a máquina topar com uma dessas, ela **para a tarefa**, marca como `bloqu
 | Etapa | 👤 Você | 🤖 Máquina | ⚙️ Colocar |
 |---|---|---|---|
 | Subir código / push | ✔ | | |
-| Instalar GitHub App | ✔ | | secret `ANTHROPIC_API_KEY` |
+| Instalar GitHub App | ✔ | | — |
+| Colocar token de auth | ✔ | | secret `CLAUDE_CODE_OAUTH_TOKEN` (assinatura) ou `ANTHROPIC_API_KEY` (API) |
 | Branch protection (check `CI`) | ✔ | | |
 | Planejar/priorizar a agenda | ✔ (comigo no Opus) | | |
 | Implementar a tarefa + teste | | ✔ | |

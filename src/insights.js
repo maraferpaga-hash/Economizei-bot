@@ -208,10 +208,76 @@ function calcularEconomia(totaisMensais, opts = {}) {
   };
 }
 
+// ---------------------------------------------------------------
+// F3 — Onde cortar sem doer.
+//   dadosMes:  [{ categoria, total }]  (gastos do mês — mesmo formato de /gastos)
+//   historico: { mesesComDados, porCategoria: { [cat]: { mediaPct, mediaValor } } }
+//              (mesmo formato de buscarHistoricoCategorias — pode ser null)
+//   opts.limiarPct: % mínimo do total do mês pra ser candidato a corte (default 5)
+//
+// Identifica categorias discricionárias (CATEGORIAS_SUPERFLUAS) com peso
+// relevante no mês e, quando há histórico, informa se o gasto atual está
+// acima da própria média do usuário. Nunca inventa número: todos os valores
+// vêm dos dados reais. Retorna até 2 sugestões ordenadas por força do sinal.
+// ---------------------------------------------------------------
+function analisarOndeCortar(dadosMes, historico, opts = {}) {
+  const { limiarPct = 5 } = opts;
+
+  if (!Array.isArray(dadosMes) || dadosMes.length === 0) return { temSugestao: false };
+
+  const totalMes = dadosMes.reduce((s, d) => s + (Number(d.total) || 0), 0);
+  if (totalMes <= 0) return { temSugestao: false };
+
+  const temHist = !!(historico && historico.mesesComDados > 0);
+
+  const candidatos = [];
+  for (const d of dadosMes) {
+    if (!CATEGORIAS_SUPERFLUAS.includes(d.categoria)) continue;
+    const valor = Number(d.total) || 0;
+    const pct = (valor / totalMes) * 100;
+    if (pct < limiarPct) continue;
+
+    let acimaDaMedia = null;
+    let mediaValorHist = null;
+    if (temHist && historico.porCategoria && historico.porCategoria[d.categoria]) {
+      mediaValorHist = _round2(historico.porCategoria[d.categoria].mediaValor);
+      if (mediaValorHist > 0) {
+        // Considera "acima" quando o gasto atual supera a média histórica em >10%
+        acimaDaMedia = valor > mediaValorHist * 1.10;
+      }
+    }
+
+    candidatos.push({
+      categoria: d.categoria,
+      valor: _round2(valor),
+      pct: Math.round(pct),
+      acimaDaMedia,   // true | false | null (null = sem histórico)
+      mediaValorHist, // valor médio histórico, ou null
+    });
+  }
+
+  if (candidatos.length === 0) return { temSugestao: false };
+
+  // Prioridade: acima da média primeiro (sinal mais forte), depois por valor absoluto
+  candidatos.sort((a, b) => {
+    if (a.acimaDaMedia === true && b.acimaDaMedia !== true) return -1;
+    if (b.acimaDaMedia === true && a.acimaDaMedia !== true) return 1;
+    return b.valor - a.valor;
+  });
+
+  return {
+    temSugestao: true,
+    totalMes: _round2(totalMes),
+    sugestoes: candidatos.slice(0, 2),
+    mesesHistorico: temHist ? historico.mesesComDados : 0,
+  };
+}
+
 module.exports = {
   analisarRaioXCategorias,
   analisarInflacaoPessoal,
   calcularEconomia,
+  analisarOndeCortar,
   CATEGORIAS_SUPERFLUAS,
   CATEGORIAS_NAO_ACIONAVEIS,
 };
