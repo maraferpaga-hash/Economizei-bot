@@ -566,6 +566,34 @@ function montarMensagemPrivacidade() {
   );
 }
 
+// --- /apagar — direito de eliminação (LGPD) ----------------------------
+// Passo 1: confirmação. Não interroga o motivo (a landing promete "sem
+// perguntas"); só avisa que é irreversível e pede o passo explícito.
+function montarConfirmacaoApagar() {
+  return (
+    `⚠️ *Apagar todos os seus dados*\n\n` +
+    `Isso remove pra sempre seu histórico de compras, seus itens, seus resumos e suas indicações. Não dá pra desfazer.\n\n` +
+    `Se tem certeza, mande: */apagar confirmar*\n\n` +
+    `Se foi sem querer, é só ignorar esta mensagem — nada será apagado.`
+  );
+}
+
+// Passo 2: exclusão concluída.
+function montarApagarConcluido() {
+  return (
+    `✅ Pronto. Apaguei todos os seus dados — histórico de compras, itens, resumos e indicações.\n\n` +
+    `Foi bom te ajudar por aqui. Se um dia quiser voltar, é só mandar a foto de um cupom que começamos do zero. 👋`
+  );
+}
+
+// Falha na exclusão — não expõe detalhe técnico, orienta a tentar de novo.
+function montarApagarErro() {
+  return (
+    `Tive um problema do meu lado e não consegui apagar tudo agora. 😕\n\n` +
+    `Pode tentar de novo daqui a alguns minutos? Se continuar, mande */ajuda* que eu resolvo manualmente.`
+  );
+}
+
 // Mensagem de comparação com a média histórica. Recebe a avaliação de alerts.js:
 //   { nivel: 'abaixo'|'normal'|'acima', percentual, media }
 // Cada nível tem um tom próprio — acima alerta, abaixo elogia, normal tranquiliza.
@@ -811,6 +839,7 @@ function montarLembreteLimite8() {
 
 module.exports = {
   nomeDoMes,
+  brl,
   montarDigestSemanal,
   montarResposta,
   montarMensagemErro,
@@ -839,6 +868,9 @@ module.exports = {
   montarMensagemEconomia,
   montarMensagemCortar,
   montarMensagemPrivacidade,
+  montarConfirmacaoApagar,
+  montarApagarConcluido,
+  montarApagarErro,
   montarMensagemEnviarComoArquivo,
   montarLembreteOnboardingD2,
   montarLembreteOnboardingD7,

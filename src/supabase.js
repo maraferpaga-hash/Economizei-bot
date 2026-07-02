@@ -1308,7 +1308,83 @@ async function buscarDadosAssinatura(phoneNumber) {
   }
 }
 
+// ---------------------------------------------------------------
+// /apagar — exclusão total dos dados pessoais do usuário (LGPD).
+// Remove em ordem segura de FK: o histórico primeiro, o registro do
+// usuário por último. itens_compra cai em cascata ao apagar compras
+// (ON DELETE CASCADE no schema).
+//
+// NÃO toca:
+//   • a tabela de eventos de pagamento (FK para `usuarios`) — zona financeira
+//     protegida. Se houver eventos de pagamento, a remoção de `usuarios` é
+//     barrada pela FK; nesse caso o histórico já foi apagado e o erro é
+//     propagado (tratar cobrança recorrente ativa é passo humano, fora daqui).
+//   • precos_mercado — base ANÔNIMA (não guarda telefone), não é dado pessoal.
+//
+// Retorna um resumo simples para log. Lança em erro de banco.
+async function apagarDadosUsuario(phoneNumber) {
+  const resumo = { phone: phoneNumber };
+
+  // 1. Compras (itens_compra caem em cascata via ON DELETE CASCADE)
+  {
+    const { error } = await supabase
+      .from('compras')
+      .delete()
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+  }
+
+  // 2. Indicações — como indicador OU como indicado
+  {
+    const { error } = await supabase
+      .from('indicacoes')
+      .delete()
+      .or(`indicador_phone.eq.${phoneNumber},indicado_phone.eq.${phoneNumber}`);
+    if (error) throw error;
+  }
+
+  // 3. Lembretes de reengajamento
+  {
+    const { error } = await supabase
+      .from('lembretes_enviados')
+      .delete()
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+  }
+
+  // 4. Marcadores de resumo mensal
+  {
+    const { error } = await supabase
+      .from('resumos_mensais_enviados')
+      .delete()
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+  }
+
+  // 5. Dedup de mensagens
+  {
+    const { error } = await supabase
+      .from('mensagens_processadas')
+      .delete()
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+  }
+
+  // 6. Registro do usuário (por último — respeita a FK de compras)
+  {
+    const { error } = await supabase
+      .from('usuarios')
+      .delete()
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+  }
+
+  log('apagar_dados_usuario', { phone: maskPhone(phoneNumber) });
+  return resumo;
+}
+
 module.exports = {
+  apagarDadosUsuario,
   upsertUsuario,
   salvarCompra,
   buscarHistorico,

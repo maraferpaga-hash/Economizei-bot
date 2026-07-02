@@ -4,6 +4,7 @@ const express = require('express');
 const { enviarMensagem, baixarImagem, enviarImagem } = require('./zapi');
 const { lerRecibo } = require('./gemini');
 const {
+  apagarDadosUsuario,
   upsertUsuario,
   salvarCompra,
   buscarHistorico,
@@ -52,6 +53,9 @@ const {
   montarMensagemEconomia,
   montarMensagemCortar,
   montarMensagemPrivacidade,
+  montarConfirmacaoApagar,
+  montarApagarConcluido,
+  montarApagarErro,
   montarMensagemEnviarComoArquivo,
   montarMensagemConvite,
   montarBoasVindasIndicado,
@@ -80,6 +84,7 @@ const {
 const { gerarUrlGraficoCategorias } = require('./charts');
 const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar } = require('./insights');
 const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
+const { interpretarApagar } = require('./apagar');
 const { log, maskPhone } = require('./logger');
 const { iniciar: iniciarScheduler } = require('./scheduler');
 const { executarResumoMensal } = require('./monthlySummary');
@@ -374,6 +379,16 @@ async function processarTexto(phone, texto) {
     }
   }
 
+  // /apagar funciona em QUALQUER etapa (direito de eliminação — LGPD),
+  // inclusive durante o onboarding. Por isso é tratado ANTES do gate abaixo.
+  {
+    const { pedido, confirmar } = interpretarApagar(texto);
+    if (pedido) {
+      await mostrarApagar(phone, confirmar);
+      return;
+    }
+  }
+
   // Steps 0 e 1: onboarding intercepta qualquer texto
   if (step === 0 || step === 1) {
     await gerenciarOnboarding(phone, step, 'texto', null);
@@ -640,6 +655,25 @@ async function mostrarCortar(phone) {
   } catch (err) {
     log('cortar_erro', { phone: maskPhone(phone), erro: err.message });
     await enviarMensagem(phone, 'Não consegui analisar os cortes agora. Tenta de novo em instantes? 🙏');
+  }
+}
+
+// ---------------------------------------------------------------
+// /apagar — exclusão total dos dados do usuário (LGPD, direito de eliminação).
+// Em 2 passos: 1º pedido pede confirmação; só "/apagar confirmar" apaga.
+// Funciona em qualquer etapa (ver chamada antes do gate de onboarding).
+// ---------------------------------------------------------------
+async function mostrarApagar(phone, confirmar) {
+  if (!confirmar) {
+    await enviarMensagem(phone, montarConfirmacaoApagar());
+    return;
+  }
+  try {
+    await apagarDadosUsuario(phone);
+    await enviarMensagem(phone, montarApagarConcluido());
+  } catch (err) {
+    log('apagar_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, montarApagarErro());
   }
 }
 
