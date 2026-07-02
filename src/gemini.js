@@ -24,7 +24,7 @@ estabelecimento (farmácia, posto, restaurante, loja, padaria de rua, etc.):
   "itens": [
     {
       "nome": "nome exato como aparece no cupom",
-      "nome_canonico": "nome simplificado e normalizado em letras minúsculas (ex: 'leite integral 1l', 'arroz tipo 1 5kg', 'frango peito 1kg', 'sabao em po 1kg')",
+      "nome_canonico": "tipo genérico do produto PRIMEIRO, depois marca e especificação, em letras minúsculas (ex: 'cerveja skol lata 350ml', 'refrigerante coca cola 2l', 'chocolate lacta ao leite 90g', 'ração golden cães adultos 15kg', 'café pilão tradicional 500g', 'leite integral 1l', 'arroz tipo 1 5kg')",
       "categoria": "uma de: carnes | hortifruti | laticinios | padaria | bebidas | limpeza | mercearia | congelados | doces | outros",
       "quantidade": 1,
       "preco_unitario": 9.90,
@@ -44,6 +44,13 @@ Guia de categorias (para itens de mercado):
 - congelados: sorvete, pizza congelada, lasanha, hambúrguer congelado
 - doces: chocolate, bala, pirulito, biscoito recheado, salgadinho
 - outros: qualquer produto que não se enquadre nas categorias acima
+
+Regra do "nome_canonico" (MUITO IMPORTANTE):
+- SEMPRE comece pelo tipo/substantivo genérico do produto; a marca e a especificação vêm DEPOIS.
+  Certo:  "cerveja skol lata 350ml" · "refrigerante coca cola 2l" · "chocolate lacta ao leite 90g" · "ração golden cães adultos 15kg" · "café pilão tradicional 500g"
+  Errado: "skol lata 350ml" · "coca cola 2l" · "lacta ao leite 90g" · "golden cães 15kg"  (todos sem o tipo genérico no começo)
+- Por quê: o usuário pergunta "quanto gastei em cerveja / chocolate / ração". Sem o tipo genérico liderando, a busca por palavra não encontra o item.
+- Expanda abreviações do cupom no canônico (ex.: "Refrig"→"refrigerante", "Choc"→"chocolate", "Bisc"→"biscoito"), tudo em minúsculas.
 
 Regra do campo "tipo": use "outros" sempre que o estabelecimento NÃO for um
 supermercado/atacadão/mercearia (ex.: farmácia, drogaria, posto de combustível,
@@ -132,8 +139,45 @@ function inferirCategoria(motivo) {
 }
 
 // ---------------------------------------------------------------
+// Marcas que NÃO são substantivo genérico — se o nome_canonico COMEÇA por uma
+// delas, faltou o tipo do produto na frente (ex.: "skol..." em vez de
+// "cerveja skol..."). Isso quebra o matching por palavra-chave do alerta Pro
+// (cod-0030: "quanto gastei em cerveja/chocolate/ração"). Lista conservadora,
+// só de tokens claramente de marca — o check é sinal de log, não bloqueia nada.
+// ---------------------------------------------------------------
+const MARCAS_SEM_SUBSTANTIVO = new Set([
+  // cervejas
+  'skol','brahma','heineken','budweiser','stella','corona','itaipava','amstel',
+  'bohemia','eisenbahn','spaten','kaiser','devassa','antarctica','petra',
+  // refrigerantes
+  'coca','pepsi','fanta','sprite','dolly',
+  // chocolates / doces
+  'lacta','garoto','hershey','milka','kitkat','talento','baton','trento','bis',
+  // ração / pet
+  'pedigree','whiskas','friskies','golden',
+  // café
+  'pilao','melitta','nescafe',
+  // limpeza (devem liderar por sabão/detergente/amaciante/etc.)
+  'omo','ype','brilhante','vanish','comfort','downy','minuano',
+]);
+
+// true quando o PRIMEIRO token do canônico é uma marca conhecida (sem acento).
+function comecaPorMarca(canonico) {
+  const tokens = String(canonico).trim().toLowerCase().split(/\s+/);
+  if (tokens.length === 0 || tokens[0] === '') return false;
+  // Remove acento via faixa de combining marks U+0300–U+036F (construída por
+  // código pra manter a fonte 100% ASCII), depois mantém só letras a–z.
+  const semAcento = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g');
+  const primeiro = tokens[0]
+    .normalize('NFD').replace(semAcento, '')  // pilão -> pilao
+    .replace(/[^a-z]/g, '');                   // descarta dígitos/símbolos
+  return MARCAS_SEM_SUBSTANTIVO.has(primeiro);
+}
+
+// ---------------------------------------------------------------
 // Quality check de nome_canonico
-// Retorna: 'ok' | 'ausente' | 'igual_ao_nome' | 'muito_longo' | 'muito_curto' | 'pouco_simplificado'
+// Retorna: 'ok' | 'ausente' | 'igual_ao_nome' | 'muito_longo' | 'muito_curto'
+//        | 'comeca_por_marca' | 'pouco_simplificado'
 // ---------------------------------------------------------------
 function avaliarQualidadeCanonicoItem(item) {
   const { nome, nome_canonico } = item;
@@ -148,6 +192,12 @@ function avaliarQualidadeCanonicoItem(item) {
 
   // Gemini não simplificou nada — nome original apenas lowercaseado
   if (canonico === nomeNorm) return 'igual_ao_nome';
+
+  // Canônico deve LIDERAR pelo tipo/substantivo genérico (ex.: 'cerveja skol...'),
+  // nunca começar pela marca sozinha ('skol...'). Isso habilita o matching por
+  // palavra-chave do alerta Pro (cod-0030). Conservador: só sinaliza quando o
+  // PRIMEIRO token é uma marca reconhecida — baixo risco de falso positivo.
+  if (comecaPorMarca(canonico)) return 'comeca_por_marca';
 
   // Pouca simplificação: só sinaliza quando o nome ORIGINAL é longo (>25 chars,
   // logo tinha espaço real pra encurtar) E o canônico quase não reduziu (>=95%).
