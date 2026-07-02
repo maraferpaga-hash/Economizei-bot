@@ -35,15 +35,17 @@ async function upsertUsuario(phoneNumber) {
 
 // Salva a compra, os itens e incrementa o contador mensal do usuário
 async function salvarCompra(phoneNumber, dados) {
-  const { loja, total, data_compra, itens = [], tipo = 'mercado' } = dados;
+  const { loja, total, data_compra, itens = [], tipo = 'mercado', cnpj = null } = dados;
 
   try {
     // 1. Insere a compra e recupera o id gerado.
     // `tipo` (mercado/outros) é gravado para a média de gastos poder filtrar
     // só compras de mercado (decisão 2026-06-07).
+    // `cnpj` é gravado no nível da compra (A9, 2026-06-30) para preparar o
+    // comparativo entre mercados (cod-0020). Requer a migration compras.cnpj.
     const { data: compra, error: erroCompra } = await supabase
       .from('compras')
-      .insert({ phone_number: phoneNumber, loja, total, data_compra, tipo })
+      .insert({ phone_number: phoneNumber, loja, total, data_compra, tipo, cnpj })
       .select()
       .single();
 
