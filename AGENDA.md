@@ -14,7 +14,11 @@
 > **Leia este arquivo no início de toda sessão** (está na boot list do `CLAUDE.md`).
 > Guia do sistema: `Economizei app/Automacao_Maquina_Noturna.md`.
 
-**Última curadoria:** 2026-06-25 · **Modo:** execução local (GitHub Actions descontinuado)
+**Última curadoria:** 2026-06-27 · **Modo:** execução local (GitHub Actions descontinuado)
+**🎯 Último checkpoint integral:** *(nenhum ainda)* · **Tarefas commitadas desde então:** 6 prontas no working tree (cod-0026/0027/0030/0006/0011/0012) → **passou o gatilho de volume (5+); rodar um checkpoint Nível 2 logo após o push.** Sistema: `Economizei app/Sistema_Checkpoints_Benchmarks_2026-06-30.md`.
+**🏛️ Pilares do negócio:** `Economizei app/Pilares_do_Negocio_2026-06-30.md` (Pilar 1 Máquina · Pilar 2 Código/Produto · Pilar 3 futuro Marketing & Anúncios; firewall = tecido conectivo).
+**🔧 Commit pendente:** o working tree tem 6 rodadas não commitadas (a mais nova: cod-0012, rotina matinal de 2026-06-30). Passo a passo das 5 anteriores: `Economizei app/Revisao_e_Commit_Maquina_2026-06-30.md` (cod-0012 ainda não está nesse doc — é a mais recente).
+**Foco novo (2026-06-27):** Alerta Inteligente Pro (supérfluo + acompanhamento personalizável) — cod-0026 (classificação lidera pelo tipo genérico) **em Em revisão**; cod-0027 (corpus) e cod-0030 (matching) na Fila pronta; cadeia Pro cod-0031..0035 no Backlog. Desenho: `Economizei app/Desenho_Alerta_Inteligente_Pro_2026-06-27.md`.
 **Mapeamento geral:** `Economizei app/Mapeamento_Geral_Pendencias_2026-06-24.md` (visão única de tudo pendente — código, humano, git, features desenhadas)
 **Auditoria de código & direção:** `Economizei app/Auditoria_Codigo_Direcao_2026-06-25.md` (achados A1–A10 por severidade + partes travadas + plano de ação; os itens estão distribuídos abaixo no Backlog / Ações do Gabriel / Aguardando decisão)
 
@@ -139,35 +143,10 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 *(a máquina executa de cima pra baixo, uma por noite)*
 
 
+> **❤️ Classificação + Alerta Inteligente Pro (desenho 2026-06-27).** Desenho completo: `Economizei app/Desenho_Alerta_Inteligente_Pro_2026-06-27.md`. A classificação é o **coração do produto** (CLAUDE.md / CODE_GUIDE §0) e o alerta Pro depende dela. **cod-0026 + cod-0027 (classificação) e cod-0030 (matching puro) já estão em "🔧 Em revisão"** (aguardando o Gabriel rodar `npm run check` + commitar). A cadeia Pro completa (cod-0031..0035) está refinada no Backlog — sobe pra "Fila pronta" quando a **migration** (humano) e o **gate Pro** estiverem prontos.
+
 > **🤖 Agente de Perguntas (MVP — Free, 3 intenções, Opção A com narração LLM).**
 > Cadeia sequencial cod-0010 → cod-0017. Desenho completo e decisões: `Economizei app/Desenho_Tecnico_Agente_Perguntas_2026-06-18.md`. **Executar em ordem** (cada uma depende das anteriores). Pré-requisito HUMANO antes de subir cod-0016/0017 em produção: a migration (ver "Ações do Gabriel"). Se quiser o agente antes do F3/cod-0001, mova este bloco pra cima.
-
-### [P1] Agente — 2/8: guardas de honestidade (puras) — o coração
-- id: cod-0011
-- tipo: feature-codigo
-- skills: economizei-tdd, economizei-financial-firewall
-- objetivo: funções puras de guarda (Desenho §5): validarClassificacao(saida, registro), extrairNumeros(texto), conferirFidelidadeNumerica(textoLLM, permitidos)→{ok, intrusos}.
-- arquivos-alvo: src/agent/guards.js (novo), test/agent-guards.test.js (novo)
-- criterios-de-aceite:
-  - validarClassificacao rejeita intent fora do registro e param fora do vocabulário
-  - conferirFidelidadeNumerica REPROVA quando há número fora da lista permitida (caso testado) e aprova quando todos batem
-  - puro, testado · node --test verde · firewall verde
-- fora-de-escopo: nada financeiro; não chamar Gemini aqui (só lógica pura)
-- status: pronta
-
-### [P1] Agente — 3/8: registro das 3 intenções + templates
-- id: cod-0012
-- tipo: feature-codigo
-- skills: economizei-tdd, economizei-copywriter, copy-review, economizei-financial-firewall
-- objetivo: intents.js com gasto_total_mes, gasto_por_categoria, comparar_meses — cada uma {id, descricao, exemplos, parametros, executar(phone,params)→fato, template(fato)→string}. executar reusa buscarGastosPorCategoria/buscarTotaisMensais (supabase.js) + calcularEconomia (insights.js) + resolverPeriodo. Números do fato formatados com o brl() do formatter.js (fonte única). Desenho §3.
-- arquivos-alvo: src/agent/intents.js (novo), test/agent-intents.test.js (novo)
-- criterios-de-aceite:
-  - lógica de "montar fato a partir de dados crus" extraída em função pura e testada com dados sintéticos (com dados e sem dados → temDados:false)
-  - templates puros testados; toda string de número via brl()
-  - node --test verde · firewall verde
-- fora-de-escopo: NÃO referenciar is_pro/features_pro_ate/assinatura; NÃO criar migration nem tocar supabase/; reusar funções de leitura existentes
-- depende-de: cod-0010
-- status: pronta
 
 ### [P1] Agente — 4/8: classificador (Gemini → intenção)
 - id: cod-0013
@@ -243,68 +222,123 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ## 🔧 Em revisão
 *(a máquina move pra cá ao abrir o PR — esperando o Gabriel revisar/mergear)*
 
-### [P1] Agente — 1/8: parser de período (puro)
-- id: cod-0010
+### [P1] Agente — 3/8: registro das 3 intenções + templates
+- id: cod-0012
 - tipo: feature-codigo
-- skills: economizei-tdd
-- objetivo: módulo puro que resolve rótulo/texto de período em mês de referência (Desenho §3, §6).
-- arquivos-alvo: src/agent/periodo.js (novo), test/agent-periodo.test.js (novo)
-- criterios-de-aceite:
-  - resolverPeriodo cobre 'mes_atual', 'mes_passado', nome de mês ('maio'→'YYYY-MM'), 'YYYY-MM' e inválido → {invalido:true}
-  - puro, sem I/O, sem Gemini · node --test verde · firewall verde
-- fora-de-escopo: nada financeiro; não tocar supabase/
+- skills usadas: economizei-tdd, economizei-financial-firewall (+ transversais default por PROJECT_INSTRUCTIONS §2.1: code-decisions, product-principles). *(copywriter/copy-review designadas no campo `skills:` não entraram — os templates só remontam números já formatados pelo `brl()`, sem copy nova de tom/voz a revisar; nenhuma mensagem nova ao estilo `formatter.js` foi escrita do zero.)*
+- objetivo: registro declarativo das 3 intenções do MVP do Agente de Perguntas (Desenho §3) — gasto_total_mes, gasto_por_categoria, comparar_meses.
+- entregue (Cowork, rotina matinal 2026-06-30):
+  - `src/agent/intents.js` (novo) — 3 intenções `{id, descricao, exemplos, parametros, executar(phone,params,deps)→fato, template(fato)→string}` + `REGISTRO` (array das 3, pronto pra injetar no `guards.validarClassificacao` da cod-0011 e no classificador da cod-0013):
+    - `gasto_total_mes` — soma `buscarGastosPorCategoria` (supabase.js, mesma fonte do `/gastos`).
+    - `gasto_por_categoria` — mesma busca, filtra pela categoria pedida (vocabulário fechado = `CATEGORIAS_VALIDAS`, espelho do `gemini.js` pra não puxar `sharp`).
+    - `comparar_meses` — reusa `buscarTotaisMensais` + `calcularEconomia` (insights.js, já testada). Honestidade: o template fala "média dos meses anteriores" (até 3), nunca afirma "mês passado" especificamente, porque é isso que `calcularEconomia` de fato calcula.
+    - Todo número do fato vem cru **e** pré-formatado em `fmt.*` via `brl()` do `formatter.js` — fonte única de formatação (pré-requisito da Camada 5/firewall de fidelidade numérica da cod-0014, Desenho nota de implementação §5).
+    - `executar(phone, params, deps)` aceita `deps` opcional pra injetar as funções de leitura (usado nos testes com dados sintéticos) e faz **lazy require** do `supabase.js` (só resolve `createClient` quando chamado de verdade sem `deps`) — assim importar o módulo nunca quebra em ambiente sem as envs do Supabase.
+  - `src/formatter.js` — **1 linha fora do `arquivos-alvo` original:** adicionado `brl` ao `module.exports` (já existia a função, só não estava exportada). Necessário para cumprir o critério de aceite "números do fato formatados com o `brl()` do formatter.js (fonte única)" — sem isso, `intents.js` teria que duplicar a lógica de formatação monetária, o que o próprio Desenho Técnico (§5) avisa que quebra o firewall de fidelidade numérica da Opção 2 (template e allowlist precisam gerar a mesma string). Mudança puramente mecânica (1 export), sem tocar texto/copy.
+  - `test/agent-intents.test.js` (novo) — **20 testes**: fato com/sem dados nas 3 intenções (inclui categoria pedida ausente no mês, mês sem nenhuma compra, só 1 mês de histórico), templates determinísticos (abaixo/acima/parecido com a média, formatação R$ com vírgula), sanidade de `CATEGORIAS_VALIDAS`/`rotuloCategoria`, e **integração com `guards.validarClassificacao`** (cod-0011) confirmando que o `REGISTRO` real valida certo (parâmetro desconhecido, enum inválido, intent desconhecida, opcional ausente aceito).
+- verificação: `node scripts/check-firewall.mjs --working` ✓ · `node scripts/check-pages.mjs` ✓ (0 erros) · `node --test test/agent-intents.test.js` **20/20** ✓ — rodado em cópia limpa (`/tmp`, reconstruindo `formatter.js`/`insights.js`/`agent/periodo.js`/`agent/guards.js`/`agent/intents.js` a partir do conteúdo já confirmado correto via leitura direta do arquivo) porque o mount Linux do sandbox voltou a servir `src/formatter.js` **truncado no fim do arquivo** (mesmo problema ambiental já documentado em várias sessões anteriores — não é staleness de conteúdo, é corte de bytes perto do EOF; `node --check` no arquivo real do mount falha por `SyntaxError: Unexpected end of input`, mas o arquivo real — confirmado por leitura direta — termina corretamente). Por isso `npm run check` **não fecha neste sandbox** (também arrasta `test/apagar.test.js`, que já estava no repo e também requer `formatter.js`) — **não é regressão desta tarefa**. Na máquina do Gabriel (Windows, arquivo íntegro) deve fechar verde; gate recomendado: `node --check src/formatter.js` primeiro, pra confirmar.
+- depende-de: cod-0010 (concluído, commit `b73b15b`).
 - status: em-revisao
-- data-revisao: 2026-06-26
-- nota: criados src/agent/periodo.js e test/agent-periodo.test.js. 20/20 testes verdes. 46/46 na suite completa. Firewall bloqueou só pelos arquivos pré-existentes no working tree (package.json + claude-nightly.yml, A7 pendente) — arquivos novos limpos (zero tokens financeiros confirmado por grep). _hoje injetável para determinismo nos testes.
+- data-revisao: 2026-06-30
+- nota: Gabriel revisa o diff (`src/agent/intents.js` + `test/agent-intents.test.js`, novos; `src/formatter.js`, 1 linha — export de `brl`), roda `npm run check` na máquina dele e commita. Próxima da cadeia do Agente na "Fila pronta": cod-0013 (classificador Gemini → intenção, depende desta + cod-0011).
 
-### [P1] Testes do alerta em 3 níveis
-- id: cod-0003
+### [P1] Agente — 2/8: guardas de honestidade (puras) — o coração
+- id: cod-0011
+- tipo: feature-codigo
+- skills usadas: economizei-tdd, economizei-financial-firewall (+ transversais default por PROJECT_INSTRUCTIONS §2.1: code-decisions, product-principles)
+- objetivo: funções PURAS de guarda de honestidade do Agente de Perguntas (Desenho §5, "o coração") — sem I/O e sem chamar o Gemini.
+- entregue (Cowork, rotina matinal 2026-06-29):
+  - `src/agent/guards.js` (novo) — 3 funções puras + helpers privados (`_paraNumero`, `_chave`):
+    - `validarClassificacao(saida, registro)` → `{ok, motivo?, intent?, params?}`. Camada 1 (vocabulário fechado): o registro de intenções é **injetado** (não acopla ao `intents.js`). Rejeita intent fora do registro (`intent_desconhecida`), parâmetro não declarado (`param_desconhecido`), enum fora do vocabulário (`param_invalido`), período que o LLM inventou — validado pelo `resolverPeriodo` do `periodo.js` (`param_invalido`), e obrigatório ausente (`param_obrigatorio_ausente`). `fora_de_escopo` é sinalizado distintamente (motivo próprio) pro orquestrador. Opcional ausente → ok (executor aplica default). **Não usa `confianca`** (decisão 2026-06-24: porta de topicalidade, não de confiança).
+    - `extrairNumeros(texto)` → `number[]`. Pega todo token numérico/monetário (R$ 248,30 · 1.234,56 · 20% · milhar 1.234), tolerante a acento de frase/pontuação. Normaliza BR (vírgula decimal, ponto milhar) e o caso US (ponto decimal) por heurística.
+    - `conferirFidelidadeNumerica(textoLLM, permitidos)` → `{ok, intrusos}` (Camada 5). `permitidos` aceita strings JÁ formatadas e/ou Numbers. Compara por chave canônica em centavos (`248,30 ≡ 248,3`, sem falso-positivo de zero à direita). Qualquer número fora da allowlist → `ok:false` + lista de `intrusos`. Filosofia de **falha segura**: em dúvida reprova → render cai no template (airbag).
+  - `test/agent-guards.test.js` (novo) — **28 testes**: validarClassificacao (12: válida, opcional ausente, intent fora, fora_de_escopo, enum inválido, período inválido/válido, param desconhecido, obrigatório ausente, saída malformada/null, intent não-string, registro vazio); extrairNumeros (8: monetário, milhar+decimal, %, vários, milhar puro, ponto final, sem número, null); conferirFidelidadeNumerica (8: bate, distorcido REPROVA, inventado REPROVA, vários fiéis, zeros à direita, Numbers, único não-array, texto sem número).
+- verificação: `node --check` ✓ · firewall `--working` ✓ · check-pages ✓ (0 erros) · `node --test test/agent-guards.test.js` **28/28** ✓.
+- ⚠️ ressalva (ambiental, idêntica a cod-0026/0027/0030): `npm run check` completo acusa 2 falhas **pré-existentes e sem relação** — `test/gemini-canonico.test.js` e `test/classificacao-corpus.test.js` — porque `require('sharp')` (via `gemini.js`) dá **SIGBUS** neste sandbox. `guards.js`/o teste novo não tocam `sharp`/`gemini` (verificado por grep). Na máquina do Gabriel (Windows, sharp ok) fecha verde.
+- depende-de: cod-0010 (periodo.js — já concluído, commit `b73b15b`).
+- status: em-revisao
+- data-revisao: 2026-06-29
+- nota: Gabriel revisa o diff (`src/agent/guards.js` + `test/agent-guards.test.js`, ambos novos), roda `npm run check` na máquina dele e commita. Próxima da cadeia do Agente na "Fila pronta": cod-0012 (registro das 3 intenções + templates).
+
+### [P1] Alerta Pro — engine de matching puro
+- id: cod-0030
+- tipo: feature-codigo
+- skills usadas: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-financial-firewall (transversais default por PROJECT_INSTRUCTIONS §2.1)
+- objetivo: funções PURAS em `insights.js` (Desenho §6) pro Pilar B do Alerta Pro — casar item↔alvo (categoria ou palavra-chave), somar gasto por alvo e somar gasto supérfluo. Nada casa → total 0 (nunca chuta número).
+- entregue (Cowork, rotina matinal 2026-06-28):
+  - `src/insights.js` — 3 funções puras + helpers (`_norm` sem acento, `_casaTermo`, `_valorItem`) + export:
+    - `casarItemComAlvo(item, alvo)` — alvo `{tipo:'categoria'|'termo', valor}`. Categoria = igualdade (tolerante a acento/caixa, não casa vazio). Termo = PALAVRA INTEIRA (`\b…\b`) sobre `norm(nome_canonico) || norm(nome)`, sem acento, **≥3 chars, sem substring solta**. Cai pro `nome` quando o canônico falta.
+    - `buscarGastoPorAlvo(itensDoMes, alvo)` → `{total, qtdCompras, itensCasados}`. Soma `preco_total` (fallback `preco×quantidade`); `qtdCompras` = compras distintas por `compra_id` (proxy = nº de itens quando não há id).
+    - `buscarGastoSuperfluo(gastosPorCategoria, categoriasSuperfluas)` → `{totalSuperfluo, pctDoMes, porCategoria[]}`. `null`/não-array → baseline `['doces','bebidas']`; array (mesmo vazio) usado como veio; ordena desc por valor.
+  - `test/insights-matching.test.js` (novo) — 17 testes: palavra inteira (casa "cerveja"/"skol"; NÃO casa "uva" em "luva" nem "cafe" em "descafeinado"); acento-insensível (cafe↔café, racao↔ração); guarda ≥3 chars; fallback pro `nome`; soma por alvo com `compra_id` distinto e nada-casa→0; fallback preco×qtd; supérfluo baseline/custom/vazio/sem-dados.
+- verificação: `node --check` ✓ · firewall `--working` ✓ · `node --test` das funções puras **25/25** ✓ (17 matching + 8 insights base) · check-pages ✓ (0 erros).
+- ⚠️ ressalva (ambiental): `npm run check` completo acusa 2 falhas **pré-existentes** — `test/gemini-canonico.test.js` e `test/classificacao-corpus.test.js` — porque `require('sharp')` (topo do `gemini.js`) dá **SIGBUS** neste sandbox (mesmo problema já registrado em cod-0026/0027). Sem relação com esta tarefa (`insights.js` não usa sharp). Na máquina do Gabriel (Windows, sharp ok) fecha verde.
+- depende-de: cod-0027 (corpus) — já em "Em revisão" no working tree.
+- status: em-revisao
+- data-revisao: 2026-06-28
+- nota: Gabriel revisa o diff (`src/insights.js` + `test/insights-matching.test.js`), roda `npm run check` na máquina dele e commita. Próximas da cadeia Pro (Backlog): cod-0031 (leitura de acompanhamentos — depende da migration humana) e cod-0032 (bloco de supérfluo no `/gastos`/resumo).
+
+### [P0] Classificação — corpus de regressão
+- id: cod-0027
 - tipo: teste
-- skills: economizei-tdd
-- objetivo: cobrir `avaliarCompra` / `deveEnviarMensagem` (alerts.js) com testes dos 3 níveis (abaixo 🎉 / dentro ✅ / acima 📈) e dos limiares por env, solidificando a rede antes de gerar mais feature.
-- arquivos-alvo: test/alerts.test.js (novo)
-- criterios-de-aceite:
-  - cobre os 3 vereditos e o modo "relevante" (default)
-  - `node --test` verde · firewall verde
-- fora-de-escopo: NÃO mudar a lógica de `alerts.js`, só testar; nada financeiro
+- skills usadas: economizei-tdd, economizei-code-decisions (+ transversais default por PROJECT_INSTRUCTIONS §2.1)
+- objetivo: criar `test/classificacao-corpus.test.js` — corpus de regressão da classificação (o coração do produto). Trava regressão sempre que mexer em prompt/extração do `nome_canonico`.
+- entregue (Cowork, rotina matinal 2026-06-28):
+  - `test/classificacao-corpus.test.js` (novo) — corpus de itens reais exercitando a função PURA `avaliarQualidadeCanonicoItem` (gemini.js), única peça determinística que protege o matching por palavra-chave do alerta Pro (cod-0030):
+    - **CORPUS BOM (20 casos)** com `nome_canonico` liderando pelo tipo genérico → todos `ok`. Cobre as 7 famílias-alvo: cervejas, refrigerantes, chocolates, ração, café, limpeza e itens por peso (picanha/banana/queijo/tomate por kg). Inclui marca no MEIO (sprite/omo/ype/comfort) pra garantir que não acusa à toa.
+    - **CORPUS RUIM (10 casos)** com `nome_canonico` começando pela marca → todos `comeca_por_marca` (o sinal que a cod-0026 introduziu). Garante que o guarda não "afrouxa pra nunca sinalizar".
+    - + 2 testes de sanidade do próprio corpus (≥15 casos / 7 famílias; categorias declaradas válidas).
+- verificação: firewall `--working` ✓ · check-pages ✓ (0 erros) · `node --test` **14/14** ✓ no conjunto corpus + canonico (rodado em cópia /tmp com `sharp` e o SDK do Gemini stubados — `sharp` dá SIGBUS ao carregar neste sandbox).
+- ⚠️ ressalva 1 (escopo honesto): a GERAÇÃO do `nome_canonico`/`categoria` é feita pelo Gemini (LLM, não-determinístico) — não dá pra unit-testar sem modelo. O corpus trava a parte determinística e de maior risco: o guarda de qualidade que pega o canônico começando pela marca antes que ele quebre a busca do alerta Pro. A `categoria` entra no corpus como documentação do alvo (não asseverada contra o LLM).
+- ⚠️ ressalva 2 (ambiental): `npm run check` completo não fecha no sandbox porque `require('sharp')` no topo do `gemini.js` dá SIGBUS aqui. Na máquina do Gabriel (Windows, `sharp` ok) fecha verde.
 - status: em-revisao
-- data-revisao: 2026-06-25
-- nota: criado `test/alerts.test.js` (11 testes, 11 verdes no sandbox). NÃO houve mudança em `src/` (só teste novo). O `npm run check` foi bloqueado pelo firewall por mudanças **pré-existentes** no working tree (`package.json` + `.github/workflows/claude-nightly.yml` — a limpeza do Actions/A7 ainda não commitada), NÃO pelo arquivo novo (que passou limpo: zero tokens financeiros). Falha de `gemini-canonico.test.js` na suite é pré-existente (sharp não carrega no sandbox — ver cod-0002).
+- data-revisao: 2026-06-28
+- nota: Gabriel revisa o diff (só `test/classificacao-corpus.test.js`, arquivo novo), roda `npm run check` na máquina dele e commita. Depende da cod-0026 (em revisão logo abaixo) já estar no working tree — está. Próxima da fila: cod-0030 (matching puro do alerta Pro).
 
-### [P0] F3 — "Onde cortar sem doer"
-- id: cod-0001
-- tipo: feature-codigo
-- skills: economizei-tdd, economizei-copywriter, copy-review, economizei-financial-firewall
-- objetivo: a partir dos gastos por categoria do mês + histórico do próprio usuário, sugerir 1–2 cortes discricionários honestos (reusa `CATEGORIAS_SUPERFLUAS` de `insights.js`), expostos via comando `/cortar` (ou conclusão anexa ao `/gastos`). Fecha a leva F2→F1→F4→F3 do catálogo (CLAUDE 06-09/06-18).
-- arquivos-alvo: src/insights.js (nova função pura `analisarOndeCortar`), src/formatter.js (template da mensagem — NÃO mexer em pricing), src/index.js (registrar o comando, longe da zona financeira), test/insights.test.js
-- criterios-de-aceite:
-  - função pura, sem I/O, testada com dados sintéticos
-  - honestidade: só sugere corte de categoria claramente supérflua e com peso real; nunca inventa número (passa pelo `financial-firewall`)
-  - `node --test` verde · firewall financeiro verde
-- fora-de-escopo: nada de pagamento/planos/`is_pro`; não tocar `mercadopago.js`; não prometer feature inexistente
-- status: em-revisao
-- data-revisao: 2026-06-24
-
-### [P1] Afrouxar a heurística de qualidade do nome_canônico
-- id: cod-0002
+### [P0] Classificação — `nome_canonico` lidera pelo tipo genérico
+- id: cod-0026
 - tipo: refino-codigo
-- skills: economizei-tdd, economizei-debugging
-- objetivo: corrigir o falso positivo `pouco_simplificado` de `avaliarQualidadeCanonicoItem` (gemini.js) — pendência do CLAUDE 06-07. A heurística já tinha sido afrouxada no código em 2026-06-08 (limiar 25 chars / 95%); esta tarefa adiciona o TESTE de regressão que trava o comportamento.
-- arquivos-alvo: test/gemini-canonico.test.js (novo)
-- criterios-de-aceite:
-  - exemplos reais não acusam mais: "Bisc Marilan 1" → "biscoito marilan", "Picanha Bov Kg 0,456 Kg" → "picanha bovina 0.456kg" (✓ verificado)
-  - teste cobrindo esses casos + os vereditos reais (ausente/curto/longo/igual/pouco_simplificado)
-- fora-de-escopo: NÃO mudar o prompt do Gemini nem o fluxo de leitura do cupom
+- skills usadas: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-financial-firewall (transversais default por PROJECT_INSTRUCTIONS §2.1)
+- objetivo: o `nome_canonico` sempre liderar pelo tipo/substantivo genérico do produto (marca depois), habilitando o matching por palavra-chave do alerta Pro (cod-0030 / Pilar B).
+- entregue (Cowork, rotina matinal 2026-06-27):
+  - `src/gemini.js` — PROMPT: novo bloco "Regra do nome_canonico (MUITO IMPORTANTE)" com exemplos certo/errado (cerveja/refri/chocolate/ração/café) + linha de exemplo do JSON atualizada pra liderar pelo tipo genérico.
+  - `src/gemini.js` — heurística: novo status `comeca_por_marca` em `avaliarQualidadeCanonicoItem` (via `MARCAS_SEM_SUBSTANTIVO` + helper puro `comecaPorMarca`, com remoção de acento ASCII-safe). Sinaliza canônico que começa pela marca sozinha. Conservador: só dispara quando o 1º token é marca reconhecida (baixo falso-positivo); é só sinal de log, não bloqueia nada.
+  - `test/gemini-canonico.test.js` — +3 testes: lidera-por-tipo → 'ok'; começa-por-marca → 'comeca_por_marca' (inclui acento "pilão"); marca no meio → 'ok'.
+- verificação: firewall `--working` ✓ · `node --test` **60/60** ✓ (rodado em cópia /tmp com `sharp` stubado — `sharp` dá SIGBUS ao carregar neste sandbox; ver ressalva) · check-pages ✓ (0 erros).
+- ⚠️ ressalva: `npm run check` completo não fecha no sandbox porque `require('sharp')` (topo do `gemini.js`) dá SIGBUS aqui — é ambiental, não do código. Na máquina do Gabriel (Windows, `sharp` ok) fecha verde.
 - status: em-revisao
-- data-revisao: 2026-06-25
-- nota: a função já estava correta no código (afrouxada em 06-08); só faltava o teste, então NÃO houve mudança em src/. `node --test` do arquivo novo precisa rodar na máquina do Gabriel — `sharp` não carrega no sandbox linux (bus error). Lógica verificada standalone: 8/8 casos.
+- data-revisao: 2026-06-27
+- nota: Gabriel revisa o diff (só `src/gemini.js` + `test/gemini-canonico.test.js`), roda `npm run check` na máquina dele e commita. Próxima da fila: cod-0027 (corpus de regressão, depende desta).
+
+### [P0] `/apagar` — exclusão de dados (LGPD)
+- id: cod-0006
+- tipo: feature-codigo
+- skills: economizei-security-lgpd, economizei-tdd, economizei-copywriter, copy-review, economizei-financial-firewall, economizei-code-decisions
+- objetivo: implementar o handler de `/apagar` (direito de eliminação) — fecha o A2 (comando anunciado mas sem handler).
+- entregue (Cowork, sessão 2026-06-27):
+  - `src/apagar.js` (novo, puro): `interpretarApagar(texto)` → `{pedido, confirmar}`.
+  - `src/supabase.js`: `apagarDadosUsuario(phone)` — DELETE em ordem de FK: `compras` (→`itens_compra` cascade), `indicacoes` (indicador/indicado), `lembretes_enviados`, `resumos_mensais_enviados`, `mensagens_processadas`, `usuarios`. **Não toca** eventos de pagamento (FK, zona financeira) nem `precos_mercado` (anônima).
+  - `src/formatter.js`: `montarConfirmacaoApagar`, `montarApagarConcluido`, `montarApagarErro`.
+  - `src/index.js`: handler **antes do gate de onboarding** (vale em qualquer etapa) + `mostrarApagar`. 2 passos: `/apagar` confirma, `/apagar confirmar` apaga.
+  - `test/apagar.test.js`: 11 testes (parse + mensagens) — **verdes** (validados em cópia limpa; mount serviu `formatter.js` stale).
+- verificação: `check:firewall --working` ✓ · 11/11 testes ✓ · **sem migration**.
+- ⚠️ ressalva: usuário com eventos de pagamento — a remoção de `usuarios` é barrada pela FK (tratar pagante ativo = follow-up financeiro humano).
+- status: em-revisao
+- data-revisao: 2026-06-27
+- nota: Gabriel revisa o diff, roda `npm run check` na máquina dele (Windows, com `sharp`/`formatter.js` íntegro) e commita.
 
 ---
 
 ## ✅ Concluído
 *(tarefas mergeadas — registro histórico, mais recente no topo)*
 
-*(vazio)*
+> **Reconciliado em 2026-06-26:** working tree limpo e sincronizado com `origin/main`. Os itens abaixo já estavam commitados; a AGENDA é que estava stale (ainda listava em "Em revisão").
+
+- **cod-0010 · Agente 1/8 — parser de período** (commit `b73b15b`) — `src/agent/periodo.js` + `test/agent-periodo.test.js`. Puro, sem I/O. Abre a cadeia do Agente de Perguntas. *(skills: economizei-tdd)*
+- **cod-0001 · F3 "Onde cortar sem doer"** (commit `b73b15b`) — comando `/cortar` + `analisarOndeCortar` em `insights.js` + template em `formatter.js`. Fecha a leva F2→F1→F4→F3. *(skills: tdd, copywriter, copy-review, financial-firewall)*
+- **cod-0003 · Testes do alerta em 3 níveis** (commit `b73b15b`) — `test/alerts.test.js` (11 testes). Sem mudança em `src/`. *(skills: economizei-tdd)*
+- **cod-0002 · Teste de regressão do nome canônico** (commit `b73b15b`) — `test/gemini-canonico.test.js`. A heurística já estava afrouxada (06-08); faltava o teste. *(skills: tdd, debugging)*
+- **cod-0004 · Encurtamento das mensagens automáticas (−25%)** (commit `e8de024`) — 14 funções do `formatter.js` reescritas (número no topo, copy WhatsApp). Doc: `Economizei app/Encurtamento_Mensagens_Bot_2026-06-20.md`. *(skills: copywriter, copy-review, financial-firewall)*
 
 ---
 
@@ -312,20 +346,29 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 *(rascunhos. Na sessão de planejamento, você + Opus refinam e sobem pra "Fila pronta")*
 
 **Código (não-financeiro) — prontos para priorizar:**
-- **cod-0004 · Encurtamento das mensagens automáticas** (`formatter.js`) — proposta pronta em `Economizei app/Encurtamento_Mensagens_Bot_2026-06-20.md` (−25%, números sobem pro topo). ⚠️ **Aguarda aprovação do Gabriel** — quando aprovar, sobe pra "Fila pronta" com P1.
+- ~~**cod-0004 · Encurtamento das mensagens automáticas**~~ — ✅ **CONCLUÍDO** (commit `e8de024`, 06-26 reconciliado). Ver "Concluído".
 - **cod-0005 · Agente de Perguntas MVP** — ✅ **Decisões respondidas (2026-06-24) e expandido em cod-0010..0017 na "Fila pronta"** (Free, 3 intenções, Opção A estruturada com narração LLM). Design atualizado: `Economizei app/Desenho_Tecnico_Agente_Perguntas_2026-06-18.md`.
 - **cod-0018 · Agente de Perguntas — Opção B (fundamentação aberta / function-calling)** — o "chat de verdade": o Gemini escolhe entre as intenções como ferramentas (sem classificador fixo), reusando guardas e firewall idênticos. Costura no Desenho §14. ⚠️ **Só subir pra fila DEPOIS de A validada** (cod-0010..0017 no ar, `fidelidade_ok` estável no log + perguntas recorrentes fora das 3 intenções).
-- **cod-0006 · `/apagar`** — handler de exclusão de dados do usuário (compras, itens, indicacoes) — LGPD. ⚠️ Sensível (apaga dado): revisar com cuidado, talvez começar como dry-run. **[Auditoria 06-25 · A2 🔴]** anunciado nas boas-vindas, no `/privacidade` e no lembrete D60 mas **SEM handler** — comando quebrado + promessa de LGPD (direito de exclusão) não cumprida. Subir de prioridade.
+- ~~**cod-0006 · `/apagar`**~~ — ✅ **IMPLEMENTADO (2026-06-27), em "Em revisão"** (aguarda Gabriel rodar `npm run check` + commitar). Fechou o A2.
 - **cod-0007 · Afinar limiares do alerta** (`ALERTA_*`) com base em dados reais — precisa de dados em produção primeiro.
 - **cod-0008 · Testes de `formatter.js`** nas mensagens não-financeiras (gastos, inflação, economia). **[Auditoria 06-25 · A6 🟠]** expandido em cod-0022 (cobre também `/cortar` e o alerta de 3 níveis).
 
 **🔍 Achados da Auditoria de Código (2026-06-25) — ref: `Economizei app/Auditoria_Codigo_Direcao_2026-06-25.md`:**
 *(capturados aqui pra priorizar depois. Severidade: 🔴 crítico · 🟠 alto · 🟡 médio · 🟢 baixo. Itens de SQL/git/financeiro foram pro painel "Ações do Gabriel"; decisões de produto foram pra "Aguardando sua decisão".)*
 
-- **cod-0020 · 🔴 Comparativo entre mercados — LEITURA [A1]** — a feature paga nº1 da pesquisa, hoje **só coleta**: `precos_mercado` recebe `INSERT` mas nunca é lido. Construir a leitura: query em `supabase.js` + comparação pura em `insights.js` + `montarMensagemComparativo` em `formatter.js` + comando `/comparar` em `index.js`. ⚠️ O **gate por Pro** (`temFeaturesProAtivas`/`is_pro`) é passo SEPARADO e humano (toca firewall) — a máquina entrega a leitura, você liga o gate depois. Depende de densidade de dados (vários usuários na mesma loja). tipo: feature-codigo. skills: code-decisions, tdd, product-principles, copywriter, copy-review, financial-firewall.
+- **cod-0020 · 🔴 Comparativo entre mercados — LEITURA [A1] — GATE DECIDIDO (2026-06-27): Pro completo + teaser grátis** — a feature paga nº1 da pesquisa, hoje **só coleta**: `precos_mercado` recebe `INSERT` mas nunca é lido. Construir a leitura: query em `supabase.js` + comparação pura em `insights.js` + `montarMensagemComparativo` em `formatter.js` + comando `/comparar` em `index.js`. **Decisão de gate (Gabriel):** comparativo **completo só no Pro**, mas com **1+ comparativos de amostra liberados no Free** (teaser) pra o usuário entender a função e ver o valor antes de pagar. A máquina entrega a **leitura + a lógica do teaser** (ex.: nº de amostras grátis configurável por env, sem citar `is_pro`); o **gate Pro** (`temFeaturesProAtivas`/`is_pro`) e o limiar exato Free×Pro são passo SEPARADO e humano (toca firewall). Depende de densidade de dados (vários usuários na mesma loja). tipo: feature-codigo. skills: code-decisions, tdd, product-principles, copywriter, copy-review, financial-firewall. **Próximo da fila do pago** (depois do `/apagar`, antes do Agente).
 - **cod-0021 · 🟡 Corrigir copy obsoleta `nao_supermercado` [A8]** — a mensagem de `montarMensagemErro` ("só leio mercado, farmácia/posto não") contradiz o comportamento real (lê não-mercado desde 2026-06-04). Ajustar a copy + o valor `nao_supermercado` que `inferirCategoria` (`gemini.js`) ainda devolve. tipo: refino-codigo. skills: copywriter, copy-review, code-decisions, tdd.
 - **cod-0022 · 🟡 Testes do `formatter.js` (não-financeiro) [A6]** — cobrir gastos, inflação, economia, `/cortar` e o alerta de 3 níveis. Substitui/expande cod-0008. tipo: teste. skills: tdd, code-decisions. *(Testes do caminho do dinheiro tocam firewall → ver "Ações do Gabriel".)*
-- **cod-0023 · 🟠 Alerta inteligente Pro (preditivo/categorizado) [A1]** — hoje o alerta de 3 níveis (`alerts.js`) vai pra todos; o Pro promete um alerta diferenciado que **não existe**. Primeiro DESENHAR o que "preditivo/categorizado" significa, depois implementar. ⚠️ gate Pro = humano. tipo: estrutura/design → feature-codigo. skills: product-principles, roadmap-deps, code-decisions, tdd, financial-firewall.
+- **cod-0023 · 🟠 Alerta inteligente Pro — ✅ DESENHADO (2026-06-27)** — `Economizei app/Desenho_Alerta_Inteligente_Pro_2026-06-27.md`. Virou 2 pilares (supérfluo + acompanhamento personalizável por categoria/palavra-chave) e foi quebrado em: **cod-0026/0027** (classificação — na Fila pronta), **cod-0030** (matching puro — na Fila pronta) e a cadeia Pro **cod-0031..0035** abaixo. ⚠️ gate Pro = humano.
+
+**❤️ Alerta Inteligente Pro — cadeia restante (refinada; sobe pra Fila pronta após a migration + decisão Free×Pro):**
+*(desenho: `Economizei app/Desenho_Alerta_Inteligente_Pro_2026-06-27.md`. Código pode ser escrito antes da migration; só não roda em produção sem ela.)*
+- **cod-0031 · Leitura de acompanhamentos (`supabase.js`)** — `buscarAcompanhamentos(phone)`, `salvarAcompanhamento`, `desativarAcompanhamento`, `setCategoriasSuperfluas`. Lê a tabela `acompanhamentos` + `usuarios.categorias_superfluas` da migration humana. tipo: feature-codigo. skills: code-decisions, tdd, financial-firewall, security-lgpd. depende-de: cod-0030 + migration (humano).
+- **cod-0032 · Pilar A — bloco de supérfluo** no `/gastos` e no resumo mensal (formatter), via `buscarGastoSuperfluo`. Número primeiro, sem moralizar. tipo: feature-codigo. skills: code-decisions, tdd, copywriter, copy-review, product-principles, financial-firewall. depende-de: cod-0030.
+- **cod-0033 · Comandos** `/acompanhar`, `/limite`, `/acompanhamentos`, `/parar`, `/superfluo` (index.js + formatter.js) com mensagens curtas (sem gíria proibida). tipo: feature-codigo. skills: code-decisions, tdd, copywriter, copy-review, product-principles, financial-firewall. depende-de: cod-0031.
+- **cod-0034 · Intent NL `gasto_por_termo`** no Agente de Perguntas ("quanto gastei em cerveja?") reusando o matching + firewall de fidelidade do agente. tipo: feature-codigo. skills: tdd, copywriter, copy-review, financial-firewall. depende-de: cod-0030, cod-0017 (agente no ar).
+- **cod-0035 · Alerta proativo de limite** (per-compra, idempotente no mês — avisa só na virada do teto). tipo: feature-codigo. skills: code-decisions, tdd, copywriter, financial-firewall. depende-de: cod-0031, cod-0033.
+- ⚠️ **Humano (firewall):** migration de `acompanhamentos` + `usuarios.categorias_superfluas`; ligar o **gate Pro** (`temFeaturesProAtivas`/`is_pro`); decidir **Free×Pro** (Desenho §8). Ver "Ações do Gabriel" / "Aguardando decisão".
 - **cod-0024 · 🟢 `inativo_d10` não citar contador do mês pra inativo [nit]** — o reset preguiçoso de `compras_mes_atual` pode fazer o lembrete citar a contagem do mês passado. Ajustar `reengagement.js`/`formatter.js`. tipo: refino-codigo. skills: code-decisions, tdd.
 - **cod-0025 · 🔴 Onboarding tranca comandos de pagamento [A3]** — nos steps 0–1 todo texto vira onboarding, então `/planos`/`/assinar`/`/pix` não respondem até o usuário mandar 1 cupom (bloqueia conversão paga). ⚠️ A correção mexe no roteamento de comandos de pagamento (`index.js`) → **provável trip do firewall**; tratar como sensível/revisão humana, **não soltar sozinha**. tipo: bugfix. skills: product-principles, code-decisions, tdd, financial-firewall.
 
@@ -366,7 +409,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 **Setup (uma vez, bem simples):**
 - [ ] Ter o Claude Code instalado e logado na sua assinatura na máquina.
-- [ ] **[2026-06-25] Soltar o `tarefa.md` (já com o GATILHO DE SKILLS) em `.claude/commands/`.** O Cowork não escreve em `.claude/` — o arquivo foi entregue na pasta de saída da sessão; copie pra `C:\Economizei\.claude\commands\tarefa.md` pra ter o comando `/tarefa` carregando as skills certas. (Conteúdo também no guia `Automacao_Maquina_Noturna.md` §4.)
+- [x] **[2026-06-25] `tarefa.md` em `.claude/commands/` — FEITO** (confirmado em 06-26: `C:\Economizei\.claude\commands\tarefa.md` existe, com o GATILHO DE SKILLS). Comando `/tarefa` operacional.
 - [ ] (Opcional) Colar a nota do Gatilho de Skills no `.claude/skills/README.md` (também protegido pro Cowork) — trecho pronto no chat da sessão de 2026-06-25.
 - [ ] Pronto — não tem secret, workflow nem GitHub App pra configurar.
 
@@ -393,12 +436,12 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - [ ] **[A4 🟠] Versionar `CREATE TABLE resumos_mensais_enviados`** numa migration — hoje a tabela é usada pelo código (`verificarResumoJaEnviado`/`marcarResumoEnviado`) e pelo `rls_migration.sql`, mas **não existe `CREATE` em nenhum arquivo** (foi criada à mão no console). Sem isso, reconstruir o banco a partir do repo quebra o resumo mensal. (`supabase/` = zona proibida → você.)
 - [ ] **[A9 🟡] Migration `ALTER TABLE compras ADD COLUMN cnpj`** + gravar o cnpj no `salvarCompra` — hoje o CNPJ extraído pelo Gemini **nunca é guardado** no nível da compra (só anônimo em `precos_mercado`). Prepara o comparativo (cod-0020). (migration = você; o ajuste no `salvarCompra` pode ir junto na revisão.)
 - [ ] **[A10 🟢] Corrigir o comentário de `beta_fundador` no `schema.sql`** ("garante 3 meses grátis + preço travado") — contradiz a decisão de 2026-05-19 que revogou os benefícios de Beta. (`supabase/` = você.)
-- [ ] **[A7 🟡] Reconciliar memória × deploy:** commitar/deployar o working tree (13 modificados + untracked, incl. o `/cortar` da F3 e o encurtamento de mensagens), alinhar `CLAUDE.md` (diz que o encurtamento foi aplicado) × `AGENDA.md` (cod-0004 diz pendente), e remover `_writetest_root.tmp` da raiz.
+- [x] **[A7 🟡] Reconciliar memória × deploy — CONCLUÍDO (06-26):** working tree limpo e sincronizado com `origin/main` (F3 `/cortar`, encurtamento, testes e parser todos commitados em `b73b15b`/`e8de024`); `_writetest_root.tmp` removido; `CLAUDE.md` × `AGENDA.md` alinhados nesta sessão. ⚠️ Ressalva: a limpeza do GitHub Actions ficou **parcial** — `pages-ci.yml` saiu, mas `ci.yml` e `claude-nightly.yml` **ainda estão** em `.github/workflows/` (ver checklist "Limpeza do GitHub Actions" abaixo).
 - [ ] **[A1 🔴 financeiro] Ligar o gate Pro** do comparativo (cod-0020) e do alerta inteligente (cod-0023) via `temFeaturesProAtivas` — toca `is_pro` (firewall), é seu. **Sem isso, o pago entrega só cupons ilimitados** e a recompensa de indicação fica vazia.
 - [ ] **[A6 🟠] Testes do caminho do dinheiro** (`mercadopago.js`, conciliação de webhook, liga/desliga `is_pro`) — tocam tokens financeiros (firewall) → escrever/revisar é humano.
 
-**Limpeza do GitHub Actions (uma vez, ver comandos no chat):**
-- [ ] `git rm` dos workflows `ci.yml` e `claude-nightly.yml` + apagar `pages-ci.yml` (untracked).
+**Limpeza do GitHub Actions (parcial — ainda falta, confirmado em 06-26):**
+- [ ] `git rm .github/workflows/ci.yml .github/workflows/claude-nightly.yml` — **ainda presentes** no repo. (`pages-ci.yml` já foi removido ✅.) `monthly-cron.yml` fica.
 - [ ] Se tiver criado branch protection exigindo o check "CI", remover (senão trava PRs futuros).
 - [ ] (Opcional) Desinstalar o app do Claude no GitHub e apagar o secret `CLAUDE_CODE_OAUTH_TOKEN`.
 
@@ -406,7 +449,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 ## ⏳ Aguardando sua decisão (não virou tarefa da fila ainda)
 
-- [ ] **[2026-06-24] Approvar encurtamento das mensagens automáticas** — ler `Economizei app/Encurtamento_Mensagens_Bot_2026-06-20.md`, dizer "aprovado" (ou ajustar) e a máquina aplica no `formatter.js`. Nenhum dado financeiro tocado.
+- [x] **[2026-06-24] Encurtamento das mensagens automáticas — APROVADO E APLICADO** (commit `e8de024`). Concluído; reconciliado em 06-26.
 - [x] **[2026-06-24] Open Questions do Agente de Perguntas — RESPONDIDAS** (Free básico 3 intenções · limite 30/mês com aviso no meio · responde a mais provável, pergunta de volta só off-topic · guarda a pergunta no log · gemini-2.5-flash · Opção A estruturada com narração LLM, depois B). Tarefas na fila: cod-0010..0017.
 - [ ] **[2026-06-24] Pré-requisitos HUMANOS do Agente de Perguntas** (a máquina é barrada de propósito nestes):
   - [ ] **Migration** (`supabase/` = zona proibida): criar `usuarios.perguntas_mes_atual INT DEFAULT 0` + tabela `perguntas_log` (ver SQL no Desenho §7) + reset mensal acompanhando o de `compras_mes_atual`.
@@ -416,6 +459,11 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - [ ] **[2026-06-24] Construir webhook Hotmart → /admin/ativar-pro** — quando Hotmart confirmar pagamento, setar `is_pro=true` automaticamente. É código que toca pagamento, tem que ser o Gabriel fazendo e revisando.
 - [ ] **[2026-06-24] Atualizar formatter.js com pricing anual + Hotmart** — `/planos` e `/assinar` ainda mostram só preços mensais/MP. Toca zona financeira, revisar com cuidado.
 - [ ] **[2026-06-24] Commitar arquivos pendentes** — ver comando pronto no `Mapeamento_Geral_Pendencias_2026-06-24.md` Seção 1.
-- [ ] **[2026-06-23] Usar a economia do plano anual como prova de marketing na landing.** Ideia: mostrar na própria página o ganho do anual (ex.: selo "pague 10, leve 12 — economize R$19,80/ano no Individual" ou um comparativo mensal × anual) pra justificar o destaque do anual e aumentar conversão. **Parado aguardando sua decisão** — quando aprovar, vira uma tarefa `landing-ab`/`institucional` na "Fila pronta" pra Máquina Noturna montar. Contexto completo no `CLAUDE.md` Seção 3 (plano anual). ⚠️ Atenção: a landing tem **pricing**; uma tarefa dessas precisa ser desenhada pra não esbarrar no firewall financeiro (texto de preço na página é zona sensível — você revisa).
-- [ ] **[Auditoria 06-25 · A1] Comparativo entre mercados: liberar pra todos ou só Pro?** Decisão de produto/pricing antes de a máquina montar o cod-0020 — a leitura é neutra; o **gate** é que define Free × Pro. Contexto: é a feature paga nº1 da pesquisa e a base da recompensa de indicação.
-- [ ] **[Auditoria 06-25 · §4] Confirmar a sequência recomendada:** fechar a promessa do pago (comparativo cod-0020 + alerta Pro cod-0023 + `/apagar` cod-0006) **antes** de escalar anual/afiliados/ads — porque hoje o pago entrega só "cupons ilimitados" e cobrar o anual por uma promessa vazia é risco de reembolso/confiança. Ver §4 da auditoria. Concorda com essa ordem?
+- [x] **[2026-06-23] Economia do plano anual como prova de marketing na landing — ESSENCIALMENTE FEITO** (commit `d3fe539`): a landing ganhou toggle anual/mensal nos 3 tiers, default anual, com selo "2 meses grátis". Reconciliado em 06-26. *(Se quiser reforçar com um comparativo mensal × anual mais explícito, isso vira uma tarefa `landing-ab` nova — me avise.)*
+- [x] **[Auditoria 06-25 · A1] Comparativo: liberar pra todos ou só Pro? — DECIDIDO (2026-06-27): Pro completo + teaser grátis** (1+ comparativos de amostra no Free pra mostrar o valor). Refletido no cod-0020. O gate Pro em si segue como ação financeira sua.
+- [x] **[Auditoria 06-25 · §4] Sequência — CONFIRMADA (2026-06-27):** fechar a promessa do pago (`/apagar` ✅ → comparativo cod-0020 → alerta Pro cod-0030..0036) **antes** de escalar anual/afiliados/ads e antes do Agente de Perguntas (cod-0011→0017 descem na fila). Ordem aceita pelo Gabriel.
+- [ ] **[2026-06-27] Alerta Inteligente Pro — pré-requisitos humanos** (desenho: `Economizei app/Desenho_Alerta_Inteligente_Pro_2026-06-27.md`):
+  - [ ] **Migration** (`supabase/` = zona proibida): criar tabela `acompanhamentos` + coluna `usuarios.categorias_superfluas text[]` (+ controle anti-spam do alerta de limite). SQL no Desenho §7. **Rodar antes de subir cod-0031/0033/0035.**
+  - [ ] **Decisão de pricing Free×Pro** (Desenho §8): confirmar o recorte — proposta é alerta de 3 níveis + `/cortar` + pergunta avulsa "quanto gastei em X" **Free**; acompanhamentos persistentes + alerta de limite + supérfluo configurável **Pro**.
+  - [ ] **Ligar o gate Pro** (`temFeaturesProAtivas`/`is_pro`) nas peças Pro — toca financeiro (firewall), é seu.
+  - [ ] **Sequência:** soltar **cod-0026 → cod-0027** (classificação, o coração) **antes** do matching/acompanhamento — o Pilar B só vale se o `nome_canonico` estiver forte.
