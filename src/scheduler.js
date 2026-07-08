@@ -4,7 +4,7 @@ const { logarMetricasDiarias } = require('./metrics');
 const { executarDigestSemanal } = require('./weeklyDigest');
 const { verificarConexao, enviarMensagem } = require('./zapi');
 const { executarReengajamento } = require('./reengagement');
-const { purgarMensagensProcessadas } = require('./supabase');
+const { purgarMensagensProcessadas, purgarPerguntasLog } = require('./supabase');
 const { log } = require('./logger');
 
 function ehUltimoDiaDoMes(date = new Date()) {
@@ -49,6 +49,14 @@ function iniciar() {
       await purgarMensagensProcessadas(7);
     } catch (err) {
       log('purga_mensagens_cron_erro', { erro: err.message });
+    }
+    // Purga o log de perguntas do agente (TTL ~90 dias — LGPD: minimização).
+    // Antes da migration do agente a tabela não existe: a função degrada
+    // sozinha (loga e segue), sem afetar o resto do cron.
+    try {
+      await purgarPerguntasLog(90);
+    } catch (err) {
+      log('purga_perguntas_cron_erro', { erro: err.message });
     }
   }, { timezone: 'America/Sao_Paulo' });
 

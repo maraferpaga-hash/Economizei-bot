@@ -406,6 +406,137 @@ function buscarGastoSuperfluo(gastosPorCategoria, categoriasSuperfluas) {
   };
 }
 
+// ---------------------------------------------------------------
+// Comparativo entre mercados — LEITURA (cod-0020, feature paga nº1).
+//
+// Hoje a base anônima `precos_mercado` só RECEBE preços; nunca é lida. Aqui
+// mora a inteligência: dado um conjunto de observações de preço (o mesmo
+// produto canônico visto em lojas diferentes), dizer onde cada produto sai
+// mais barato e, quando dá, a posição do usuário. Tudo PURO — a query vive no
+// supabase.js e os textos no formatter.js.
+//
+// Honestidade (CLAUDE.md / CODE_GUIDE §0 — "classificação é o coração"): nada
+// casa em ≥2 lojas → SEM comparativo, nunca um número inventado. Só compara
+// observações recentes (janela) — preço velho engana. O casamento é por
+// nome_canonico exato, então "arroz tio joao 5kg" só compara com o mesmo nome:
+// o comparativo só é tão bom quanto a classificação por baixo.
+//
+// observacoes: [{ produto_canonico, loja, preco_unit, data_obs }]
+// opts:
+//   produtosDoUsuario  string[]|null — restringe aos canônicos do usuário
+//   lojaDoUsuario      string|null   — pra calcular preço/posição do usuário
+//   janelaDias         number(60)    — só obs a até N dias da mais recente
+//   minLojas           number(2)     — produto precisa aparecer em ≥N lojas
+//   minEconomiaPct     number(0)     — descarta diferença irrelevante
+//   maxComparativos    number(0)     — 0=sem limite; >0 corta a lista (teaser)
+// ---------------------------------------------------------------
+function compararPrecosMercado(observacoes, opts = {}) {
+  const {
+    produtosDoUsuario = null,
+    lojaDoUsuario = null,
+    janelaDias = 60,
+    minLojas = 2,
+    minEconomiaPct = 0,
+    maxComparativos = 0,
+  } = opts;
+
+  const vazio = {
+    temComparativo: false,
+    comparativos: [],
+    totalComparaveis: 0,
+    mostrados: 0,
+    temMais: false,
+    janelaDias,
+  };
+
+  const obs = (Array.isArray(observacoes) ? observacoes : []).filter(
+    (o) => o && o.produto_canonico && o.loja && Number(o.preco_unit) > 0 && o.data_obs
+  );
+  if (obs.length === 0) return vazio;
+
+  // Âncora temporal = observação mais recente; a janela olha pra trás dela.
+  const maxData = obs.reduce((m, o) => (o.data_obs > m ? o.data_obs : m), obs[0].data_obs);
+  const recentes = obs.filter((o) => _diasEntre(o.data_obs, maxData) <= janelaDias);
+
+  // Filtro opcional pelos produtos que o usuário realmente compra.
+  const setUsuario = Array.isArray(produtosDoUsuario) && produtosDoUsuario.length
+    ? new Set(produtosDoUsuario.map((p) => _norm(p)))
+    : null;
+  const lojaUserNorm = lojaDoUsuario ? _norm(lojaDoUsuario) : null;
+
+  // Agrupa por produto canônico (normalizado) e, dentro dele, por loja —
+  // mantendo a observação MAIS RECENTE de cada loja (empate → menor preço).
+  const porProduto = new Map();
+  for (const o of recentes) {
+    const pk = _norm(o.produto_canonico);
+    if (setUsuario && !setUsuario.has(pk)) continue;
+    if (!porProduto.has(pk)) porProduto.set(pk, { nome: o.produto_canonico, lojas: new Map() });
+    const grupo = porProduto.get(pk);
+    const lk = _norm(o.loja);
+    const preco = _round2(o.preco_unit);
+    const atual = grupo.lojas.get(lk);
+    if (!atual || o.data_obs > atual.data || (o.data_obs === atual.data && preco < atual.preco)) {
+      grupo.lojas.set(lk, { loja: o.loja, lojaNorm: lk, preco, data: o.data_obs });
+    }
+  }
+
+  const comparativos = [];
+  for (const grupo of porProduto.values()) {
+    const lojas = Array.from(grupo.lojas.values());
+    if (lojas.length < minLojas) continue;
+
+    const ordenadas = lojas.slice().sort((a, b) => a.preco - b.preco);
+    const menor = ordenadas[0];
+    const maior = ordenadas[ordenadas.length - 1];
+    const economia = _round2(maior.preco - menor.preco);
+    if (economia <= 0) continue; // empate de preço → sem diferença acionável
+    const economiaPct = maior.preco > 0 ? Math.round((economia / maior.preco) * 100) : 0;
+    if (economiaPct < minEconomiaPct) continue;
+
+    let precoUsuario = null;
+    let posicaoUsuario = null;
+    let economiaUsuario = null;
+    if (lojaUserNorm) {
+      const doUsuario = lojas.find((l) => l.lojaNorm === lojaUserNorm);
+      if (doUsuario) {
+        precoUsuario = doUsuario.preco;
+        if (precoUsuario <= menor.preco) posicaoUsuario = 'mais_barato';
+        else if (precoUsuario >= maior.preco) posicaoUsuario = 'mais_caro';
+        else posicaoUsuario = 'intermediario';
+        const dif = _round2(precoUsuario - menor.preco);
+        economiaUsuario = dif > 0 ? dif : null;
+      }
+    }
+
+    comparativos.push({
+      produto: grupo.nome,
+      nLojas: lojas.length,
+      menor: { loja: menor.loja, preco: menor.preco },
+      maior: { loja: maior.loja, preco: maior.preco },
+      economia,
+      economiaPct,
+      precoUsuario,
+      posicaoUsuario,
+      economiaUsuario,
+    });
+  }
+
+  // Maior diferença primeiro (o comparativo mais útil no topo).
+  comparativos.sort((a, b) => b.economia - a.economia);
+
+  const totalComparaveis = comparativos.length;
+  const lista = maxComparativos > 0 ? comparativos.slice(0, maxComparativos) : comparativos;
+
+  return {
+    temComparativo: lista.length > 0,
+    comparativos: lista,
+    totalComparaveis,
+    mostrados: lista.length,
+    temMais: totalComparaveis > lista.length,
+    janelaDias,
+  };
+}
+
 module.exports = {
   analisarRaioXCategorias,
   analisarInflacaoPessoal,
@@ -414,6 +545,7 @@ module.exports = {
   casarItemComAlvo,
   buscarGastoPorAlvo,
   buscarGastoSuperfluo,
+  compararPrecosMercado,
   CATEGORIAS_SUPERFLUAS,
   CATEGORIAS_NAO_ACIONAVEIS,
 };

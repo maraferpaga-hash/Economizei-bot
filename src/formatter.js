@@ -553,6 +553,50 @@ function montarMensagemCortar(analise) {
   return partes.join('\n');
 }
 
+// Primeira letra maiúscula (nome_canonico vem em minúsculas do banco).
+function _capitalizar(s) {
+  const t = String(s == null ? '' : s).trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+}
+
+// Comparativo entre mercados (cod-0020). Recebe o resultado de
+// insights.compararPrecosMercado. Número no topo (menor preço + economia),
+// voz de WhatsApp, sem gíria proibida. Sem dados → mensagem honesta que
+// convida a continuar mandando cupom (a base cresce com o uso).
+function montarMensagemComparativo(resultado) {
+  if (!resultado || !resultado.temComparativo || !resultado.comparativos.length) {
+    return (
+      '🛒 *Comparativo entre mercados*\n\n' +
+      'Ainda não encontrei o mesmo produto em mercados diferentes pra comparar os preços.\n\n' +
+      '_Quanto mais cupom a rede registra, mais rico fica o comparativo. Continue mandando os seus. 📸_'
+    );
+  }
+
+  const partes = ['🛒 *Comparativo entre mercados*\n'];
+
+  for (const c of resultado.comparativos) {
+    const nome = _capitalizar(c.produto);
+    let linha =
+      `💰 *${nome}*\n` +
+      `Mais barato: ${c.menor.loja} — R$ ${brl(c.menor.preco)}\n` +
+      `Mais caro: ${c.maior.loja} — R$ ${brl(c.maior.preco)}\n` +
+      `Diferença: R$ ${brl(c.economia)} (${c.economiaPct}%)`;
+
+    if (c.posicaoUsuario === 'mais_barato') {
+      linha += `\n✅ Você já comprou no mais barato. 👏`;
+    } else if (c.economiaUsuario) {
+      linha += `\n👉 Você pagou R$ ${brl(c.precoUsuario)} — dava pra economizar R$ ${brl(c.economiaUsuario)} no ${c.menor.loja}.`;
+    }
+    partes.push(linha);
+  }
+
+  partes.push(`\n_Preços que a rede registrou nos últimos ${resultado.janelaDias} dias._`);
+  if (resultado.temMais) {
+    partes.push(`_Mostrando os ${resultado.mostrados} com maior diferença, de ${resultado.totalComparaveis} no total._`);
+  }
+  return partes.join('\n');
+}
+
 function montarMensagemPrivacidade() {
   return (
     `🔒 *Privacidade no Economizei*\n\n` +
@@ -837,6 +881,56 @@ function montarLembreteLimite8() {
   );
 }
 
+// ---------------------------------------------------------------
+// Agente de Perguntas (cod-0015) — mensagens do fluxo de conversa.
+// Regras: tom cordial e formal (sem gíria — regra 2026-05-26), o dado de
+// impacto primeiro, e NENHUMA menção a preço/plano/pagamento (fora-de-escopo
+// da tarefa: a cota é plana e anti-abuso, não é gancho de venda).
+// ---------------------------------------------------------------
+
+// Pergunta fora do escopo de gastos (classificador devolveu fora_de_escopo).
+// Desenho §9: sem fingir que entendeu + sempre oferecer a saída por comando.
+function montarForaDeEscopo() {
+  return (
+    `Eu respondo perguntas sobre os *seus gastos de mercado*. 🙂\n\n` +
+    `Pode perguntar, por exemplo:\n` +
+    `• _quanto gastei esse mês?_\n` +
+    `• _quanto gastei em carne?_\n` +
+    `• _estou gastando mais que mês passado?_\n\n` +
+    `Para ver tudo que eu faço: */ajuda*`
+  );
+}
+
+// Aviso ao cruzar a metade da cota mensal de perguntas (decisão 2026-06-24:
+// aviso no meio pra pessoa ficar ciente — número primeiro, sem urgência).
+function montarAvisoMeioLimitePerguntas(usadas, limite) {
+  return (
+    `📊 Você já usou *${usadas} das ${limite} perguntas* do mês.\n\n` +
+    `Elas renovam no dia 1. Os comandos (*/gastos*, */historico*, */economia*) continuam ilimitados.`
+  );
+}
+
+// Cota mensal de perguntas esgotada — honesto, sem drama e com a saída
+// determinística por comando (a rede de segurança da conversa).
+function montarLimitePerguntasAtingido(limite) {
+  return (
+    `Você usou as *${limite} perguntas* deste mês. Elas renovam no dia 1. 🗓️\n\n` +
+    `Enquanto isso, os comandos continuam funcionando normalmente:\n` +
+    `• */gastos* — seus gastos por categoria\n` +
+    `• */economia* — quanto você já economizou\n` +
+    `• */historico* — suas últimas compras`
+  );
+}
+
+// Falha técnica no agente (Gemini caiu, query falhou) — Desenho §9: resposta
+// neutra + comando equivalente; NUNCA um número chutado.
+function montarErroAgente() {
+  return (
+    `Tive um problema técnico para responder agora. 😕\n\n` +
+    `Tente de novo em instantes — ou veja seus gastos do mês direto com o comando */gastos*.`
+  );
+}
+
 module.exports = {
   nomeDoMes,
   brl,
@@ -867,10 +961,15 @@ module.exports = {
   montarMensagemInflacao,
   montarMensagemEconomia,
   montarMensagemCortar,
+  montarMensagemComparativo,
   montarMensagemPrivacidade,
   montarConfirmacaoApagar,
   montarApagarConcluido,
   montarApagarErro,
+  montarForaDeEscopo,
+  montarAvisoMeioLimitePerguntas,
+  montarLimitePerguntasAtingido,
+  montarErroAgente,
   montarMensagemEnviarComoArquivo,
   montarLembreteOnboardingD2,
   montarLembreteOnboardingD7,

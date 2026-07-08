@@ -17,6 +17,7 @@ const {
   buscarHistoricoCategorias,
   buscarHistoricoPrecoItens,
   buscarTotaisMensais,
+  buscarObservacoesComparativo,
   setOptOutPrecos,
   gerarCodigoIndicacao,
   registrarIndicacaoPendente,
@@ -52,6 +53,7 @@ const {
   montarMensagemInflacao,
   montarMensagemEconomia,
   montarMensagemCortar,
+  montarMensagemComparativo,
   montarMensagemPrivacidade,
   montarConfirmacaoApagar,
   montarApagarConcluido,
@@ -82,9 +84,10 @@ const {
   validarAssinaturaWebhook,
 } = require('./mercadopago');
 const { gerarUrlGraficoCategorias } = require('./charts');
-const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar } = require('./insights');
+const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar, compararPrecosMercado } = require('./insights');
 const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
 const { interpretarApagar } = require('./apagar');
+const { responderPergunta } = require('./agent');
 const { log, maskPhone } = require('./logger');
 const { iniciar: iniciarScheduler } = require('./scheduler');
 const { executarResumoMensal } = require('./monthlySummary');
@@ -481,6 +484,11 @@ async function processarTexto(phone, texto) {
     return;
   }
 
+  if (ehComando('/comparar', 'comparar', '/comparativo', 'comparativo')) {
+    await mostrarComparativo(phone);
+    return;
+  }
+
   if (ehComando('/convidar', 'convidar', '/indicar', 'indicar', '/convite', 'convite')) {
     await mostrarConvite(phone);
     return;
@@ -514,7 +522,12 @@ async function processarTexto(phone, texto) {
   } else if (ehComando('oi', 'olá', 'ola', 'ajuda', '/ajuda', 'start', 'menu', 'help', '/start')) {
     await enviarMensagem(phone, montarMensagemBemVindo());
   } else {
-    await enviarMensagem(phone, 'Não consegui entender essa mensagem, desculpe. 🙂\n\nPara registrar uma compra, mande a foto do cupom fiscal.\nPara ver tudo que eu faço, mande */ajuda*.');
+    // Agente de Perguntas (cod-0017): texto livre que não casou nenhum comando
+    // vira pergunta sobre os próprios gastos — cota → classificar → executar →
+    // narrar com firewall de fidelidade (Desenho_Tecnico_Agente_Perguntas §2).
+    // O agente responde com honestidade em qualquer falha (fora de escopo /
+    // erro técnico), então substitui o antigo "Não consegui entender".
+    await responderPergunta(phone, texto);
   }
 }
 
@@ -655,6 +668,30 @@ async function mostrarCortar(phone) {
   } catch (err) {
     log('cortar_erro', { phone: maskPhone(phone), erro: err.message });
     await enviarMensagem(phone, 'Não consegui analisar os cortes agora. Tenta de novo em instantes? 🙏');
+  }
+}
+
+// ---------------------------------------------------------------
+// Comparativo entre mercados (/comparar) — cod-0020, feature paga nº1.
+// Lê a base anônima de preços dos produtos que o usuário compra e mostra onde
+// cada um sai mais barato. O teaser (nº de comparativos mostrados) é o env
+// COMPARATIVO_AMOSTRAS_FREE (default 3); o gate por plano pago é passo humano
+// SEPARADO — aqui o limite é único pra todos e não decide nada de cobrança.
+// ---------------------------------------------------------------
+async function mostrarComparativo(phone) {
+  try {
+    const { observacoes, produtosDoUsuario, lojaDoUsuario } = await buscarObservacoesComparativo(phone);
+    const maxComparativos = Number(process.env.COMPARATIVO_AMOSTRAS_FREE) || 3;
+    const resultado = compararPrecosMercado(observacoes, {
+      produtosDoUsuario,
+      lojaDoUsuario,
+      minEconomiaPct: 3,
+      maxComparativos,
+    });
+    await enviarMensagem(phone, montarMensagemComparativo(resultado));
+  } catch (err) {
+    log('comparativo_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, 'Não consegui montar o comparativo agora. Tenta de novo em instantes? 🙏');
   }
 }
 

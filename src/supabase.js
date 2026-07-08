@@ -190,6 +190,17 @@ async function verificarLimiteGratuito(phoneNumber) {
         .eq('phone_number', phoneNumber);
       data.compras_mes_atual = 0;
       log('compras_mes_resetado', { phone: maskPhone(phoneNumber), mes: mesAtual });
+
+      // (cod-0016) Zera também o contador de perguntas do agente na mesma
+      // virada — em update SEPARADO e best-effort: antes da migration do
+      // agente a coluna não existe e este update falha sozinho, sem afetar
+      // o reset de cupons acima. Simétrico ao verificarLimitePerguntas, que
+      // zera os dois contadores quando é ELE quem detecta a virada.
+      const { error: erroPerguntas } = await supabase
+        .from('usuarios')
+        .update({ perguntas_mes_atual: 0 })
+        .eq('phone_number', phoneNumber);
+      if (erroPerguntas) log('perguntas_mes_reset_skip', { erro: erroPerguntas.message });
     }
 
     const cuponsUsados = data.compras_mes_atual ?? 0;
@@ -669,6 +680,75 @@ async function buscarTotaisMensais(phoneNumber, nMeses = 12) {
   } catch (err) {
     log('supabase_erro', { fn: 'buscarTotaisMensais', erro: err.message });
     return [];
+  }
+}
+
+// ---------------------------------------------------------------
+// Comparativo entre mercados (cod-0020) — LEITURA da base anônima
+// `precos_mercado`. Junta as observações de preço dos produtos que ESTE
+// usuário compra (por nome_canonico) pra o insights.compararPrecosMercado dizer
+// onde cada um sai mais barato e a posição dele. Só leitura; não toca a escrita
+// da base nem nada de plano pago. Degrada pra vazio em qualquer erro.
+//
+// Retorna { observacoes, produtosDoUsuario, lojaDoUsuario }:
+//   observacoes       [{ produto_canonico, loja, preco_unit, data_obs }]
+//   produtosDoUsuario  canônicos distintos das compras recentes do usuário
+//   lojaDoUsuario      loja da compra de mercado mais recente (pra posição)
+// ---------------------------------------------------------------
+async function buscarObservacoesComparativo(phoneNumber, opts = {}) {
+  const { nMeses = 2, janelaDias = 60, maxProdutos = 40 } = opts;
+  try {
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const inicio = _primeiroDia(_mesMenos(mesAtual, nMeses));
+
+    const { data: compras, error: errC } = await supabase
+      .from('compras')
+      .select('id, loja, data_compra')
+      .eq('phone_number', phoneNumber)
+      .eq('tipo', 'mercado')
+      .gte('data_compra', inicio)
+      .order('data_compra', { ascending: false });
+    if (errC) throw errC;
+    if (!compras || compras.length === 0) {
+      return { observacoes: [], produtosDoUsuario: [], lojaDoUsuario: null };
+    }
+
+    const lojaDoUsuario = compras[0].loja || null; // compra mais recente
+    const ids = compras.map((c) => c.id);
+
+    const { data: itens, error: errI } = await supabase
+      .from('itens_compra')
+      .select('nome_canonico')
+      .in('compra_id', ids)
+      .not('nome_canonico', 'is', null);
+    if (errI) throw errI;
+    if (!itens || itens.length === 0) {
+      return { observacoes: [], produtosDoUsuario: [], lojaDoUsuario };
+    }
+
+    const produtosDoUsuario = [...new Set(itens.map((i) => i.nome_canonico).filter(Boolean))]
+      .slice(0, maxProdutos);
+    if (produtosDoUsuario.length === 0) {
+      return { observacoes: [], produtosDoUsuario: [], lojaDoUsuario };
+    }
+
+    // Janela: só observações a até `janelaDias` atrás (preço velho engana).
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - janelaDias);
+    const dataMin = d.toISOString().slice(0, 10);
+
+    const { data: precos, error: errP } = await supabase
+      .from('precos_mercado')
+      .select('produto_canonico, loja, preco_unit, data_obs')
+      .in('produto_canonico', produtosDoUsuario)
+      .gte('data_obs', dataMin);
+    if (errP) throw errP;
+
+    return { observacoes: precos || [], produtosDoUsuario, lojaDoUsuario };
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarObservacoesComparativo', erro: err.message });
+    return { observacoes: [], produtosDoUsuario: [], lojaDoUsuario: null };
   }
 }
 
@@ -1294,6 +1374,118 @@ async function purgarMensagensProcessadas(dias = 7) {
   }
 }
 
+// ---------------------------------------------------------------
+// Agente de Perguntas (cod-0016) — cota plana + log de perguntas.
+// Cota PLANA de LIMITE_PERGUNTAS_FREE (default 30) pro mês, igual pra todos
+// (decisão 2026-06-24) — anti-abuso, não trava de custo. Lê as colunas da
+// migration humana (usuarios.perguntas_mes_atual + tabela perguntas_log,
+// supabase/migration_FUTURA_agente_perguntas.sql). RODAR A MIGRATION ANTES
+// do deploy destas funções em produção.
+// ---------------------------------------------------------------
+
+function _limitePerguntas() {
+  const n = parseInt(process.env.LIMITE_PERGUNTAS_FREE, 10);
+  return Number.isFinite(n) && n > 0 ? n : 30;
+}
+
+// Lê a cota de perguntas do mês, com o MESMO reset preguiçoso por
+// mes_referencia usado em verificarLimiteGratuito. Se o mês virou por esta
+// via, zera os DOIS contadores mensais (perguntas + cupons) junto com a
+// referência — assim tanto faz qual caminho (cupom ou pergunta) roda
+// primeiro na virada: os contadores ficam coerentes.
+// Fail-open: erro de leitura devolve cota livre — a cota é anti-abuso e uma
+// falha do Supabase não pode derrubar a resposta do agente.
+async function verificarLimitePerguntas(phoneNumber) {
+  const LIMITE = _limitePerguntas();
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('perguntas_mes_atual, mes_referencia')
+      .eq('phone_number', phoneNumber)
+      .single();
+
+    if (error) throw error;
+
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    if ((data.mes_referencia ?? '') !== mesAtual) {
+      await supabase
+        .from('usuarios')
+        .update({ perguntas_mes_atual: 0, compras_mes_atual: 0, mes_referencia: mesAtual })
+        .eq('phone_number', phoneNumber);
+      data.perguntas_mes_atual = 0;
+      log('perguntas_mes_resetado', { phone: maskPhone(phoneNumber), mes: mesAtual });
+    }
+
+    const usadas = data.perguntas_mes_atual ?? 0;
+    return { atingido: usadas >= LIMITE, usadas, limite: LIMITE };
+  } catch (err) {
+    log('supabase_erro', { fn: 'verificarLimitePerguntas', erro: err.message });
+    return { atingido: false, usadas: 0, limite: LIMITE };
+  }
+}
+
+// Incrementa o contador de perguntas do mês. Falha aqui NUNCA bloqueia a
+// resposta (que já foi enviada) — só loga e devolve null.
+async function incrementarPerguntas(phoneNumber) {
+  try {
+    const { data } = await supabase
+      .from('usuarios')
+      .select('perguntas_mes_atual')
+      .eq('phone_number', phoneNumber)
+      .single();
+
+    const novas = (data?.perguntas_mes_atual ?? 0) + 1;
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ perguntas_mes_atual: novas })
+      .eq('phone_number', phoneNumber);
+    if (error) throw error;
+    return novas;
+  } catch (err) {
+    log('supabase_erro', { fn: 'incrementarPerguntas', erro: err.message });
+    return null;
+  }
+}
+
+// Log de Q&A (Camada 7 do Desenho §5 — aprendizado OODA + auditoria de
+// honestidade). Fire-and-forget: erro só loga, nunca afeta o atendimento.
+// LGPD: o texto cru da pergunta tem TTL (purgarPerguntasLog); o /apagar
+// limpa via FK ON DELETE CASCADE (ver migration).
+async function registrarPergunta(entrada = {}) {
+  try {
+    const { error } = await supabase.from('perguntas_log').insert({
+      phone_number: entrada.phone,
+      pergunta: entrada.pergunta ?? null,
+      intent: entrada.intent ?? null,
+      params: entrada.params ?? null,
+      confianca: entrada.confianca ?? null,
+      tem_dados: entrada.temDados ?? null,
+      modo: entrada.modo ?? null,
+      fidelidade_ok: entrada.fidelidadeOk ?? null,
+      respondeu: entrada.respondeu ?? null,
+    });
+    if (error) throw error;
+  } catch (err) {
+    log('supabase_erro', { fn: 'registrarPergunta', erro: err.message });
+  }
+}
+
+// Purga o log de perguntas com mais de `dias` dias (LGPD: minimização —
+// o texto cru da pergunta não precisa viver pra sempre). Cron diário.
+async function purgarPerguntasLog(dias = 90) {
+  try {
+    const corte = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
+    const { error } = await supabase
+      .from('perguntas_log')
+      .delete()
+      .lt('criado_em', corte);
+    if (error) throw error;
+    log('perguntas_log_purgado', { antes_de: corte });
+  } catch (err) {
+    log('supabase_erro', { fn: 'purgarPerguntasLog', erro: err.message });
+  }
+}
+
 // Dados da assinatura do usuário — usado em /cancelar-assinatura e status.
 async function buscarDadosAssinatura(phoneNumber) {
   try {
@@ -1404,6 +1596,7 @@ module.exports = {
   buscarHistoricoCategorias,
   buscarHistoricoPrecoItens,
   buscarTotaisMensais,
+  buscarObservacoesComparativo,
   setOptOutPrecos,
   buscarElegiveisOnboarding,
   buscarElegiveisInativos,
@@ -1428,4 +1621,8 @@ module.exports = {
   buscarDadosAssinatura,
   registrarMensagemProcessada,
   purgarMensagensProcessadas,
+  verificarLimitePerguntas,
+  incrementarPerguntas,
+  registrarPergunta,
+  purgarPerguntasLog,
 };
