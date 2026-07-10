@@ -1,43 +1,39 @@
 # ☀️ Relatório Matinal — Máquina Local
 
-**Data:** 2026-07-07 (terça-feira)
+**Data:** 2026-07-09 (quinta-feira)
 **Execução:** rotina automática (`economizei-rotina-matinal`), sem commit.
 
 ---
 
 ## Tarefa pega
 
-**Nenhuma.** A "## 🌙 Fila pronta" da `AGENDA.md` continua **vazia** — não há tarefa com `status: pronta`. Nada foi implementado nesta execução (o protocolo manda não inventar trabalho). **5ª execução seguida sem fila** (07-03, 07-04, 07-05, 07-06 e hoje).
+**Nenhuma.** A "## 🌙 Fila pronta" da `AGENDA.md` continua **vazia** — não há tarefa com `status: pronta`. Nada foi implementado (o protocolo manda não inventar trabalho). **7ª execução seguida sem fila** (07-03 a 07-09).
 
-Próximas candidatas anotadas na própria AGENDA: cadeia do Alerta Pro (cod-0031..0035, **bloqueada** por migration de `acompanhamentos` + gate Pro — ambos humanos) ou cod-0021/0022/0024 do Backlog (precisam ser refinadas e sobem pra fila na sessão de planejamento com o Opus).
+Próximas candidatas anotadas na própria AGENDA: cadeia do Alerta Pro (cod-0031..0035, **bloqueada** por migration de `acompanhamentos` + gate Pro — ambos humanos) ou cod-0021/0022/0024 do Backlog (sobem pra fila na sessão de planejamento com o Opus).
 
 ---
 
-## O que mudou
+## 🔎 Estado verificado (git)
+
+- `git log`: `3b2f375` (docs) e `d4eaf51` (cod-0013..0017 + cod-0020) no topo — **o checkpoint Nível 2 de 07-08 já reconciliou** a AGENDA/CLAUDE com o git. Veredito registrado: 🟡→🟢, falta só a validação end-to-end em produção.
+- **Working tree:** `AGENDA.md` e `CLAUDE.md` aparecem **modificados e não commitados** — são as edições de memória da sessão do checkpoint de 07-08 (+ este relatório). Nenhum arquivo de código pendente.
+
+---
+
+## O que mudou nesta execução
 
 - **`RELATORIO_MATINAL.md`** — só este arquivo. Nenhum código, nenhuma movimentação na AGENDA.
 
-`npm run check` não foi rodado (não houve mudança de código nesta execução).
-
----
-
-## Estado pendente (conforme AGENDA + relatório anterior)
-
-Último commit conhecido: `a795f65` (= `origin/main`). **A pilha das sessões de 07-02 e 07-03 segue em "Em revisão" — 5º dia sem commit:**
-
-- **cod-0020 (comparativo `/comparar`):** `src/insights.js`, `src/supabase.js`, `src/formatter.js`, `src/index.js`, `test/insights-comparativo.test.js`
-- **cod-0013 (classificador):** `src/agent/classifier.js`, `test/agent-classifier.test.js`
-- **cod-0014..0017 (render + mensagens + cota + orquestrador):** `src/agent/render.js`, `src/agent/cota.js`, `src/agent/index.js`, `src/formatter.js`, `src/scheduler.js`, `src/index.js` + 4 arquivos de teste
+`npm run check` não foi rodado (não houve mudança de código).
 
 ---
 
 ## O que precisa de você (Gabriel)
 
-1. **Revisar + commitar o empilhado** — sugestão da sessão de 07-03: commits separados (cod-0020, cod-0013, e um por tarefa do bloco 0014..0017, ou agrupado). Antes: `npm run check` na sua máquina como gate final. **Já são 5 dias com a mesma pilha no working tree** — quanto mais acumula, maior o risco de conflito ou de perda acidental (`git checkout .` descartaria tudo de uma vez).
-2. **Migrations no Supabase (SQL Editor):**
-   - **A9 (`compras.cnpj`) — rodar ANTES de qualquer deploy** (o `salvarCompra` já commitado grava `cnpj`; sem o ALTER, o insert quebra).
-   - A4 (`resumos_mensais_enviados`) — rodar quando puder.
-   - `migration_FUTURA_agente_perguntas.sql` — rodar **antes do deploy** dos cod-0016/0017.
-3. **Envs no Railway + `.env.example`:** `LIMITE_PERGUNTAS_FREE=30`, `AGENTE_MODO=llm`, `AGENTE_MODELO=gemini-2.5-flash`, `COMPARATIVO_AMOSTRAS_FREE=3`.
-4. **Repriorizar a fila — item mais urgente pra rotina voltar a produzir:** a "Fila pronta" está vazia pelo 5º dia; cada execução automática só queima o slot do dia sem produzir nada. Na próxima sessão de planejamento, decidir o que sobe (Alerta Pro exige a migration de `acompanhamentos` + decisão Free×Pro primeiro; ou refinar cod-0021/0022/0024 do Backlog).
-5. Pendente da AGENDA: rodar um **checkpoint integral (Nível 2)** — o gatilho de volume (6 tarefas commitadas) já passou. Com a fila vazia e a pilha parada em revisão, este é um bom momento pra fazer o checkpoint junto com o commit.
+1. **Commitar a memória do checkpoint** — `AGENDA.md` + `CLAUDE.md` estão modificados no working tree desde a sessão de 07-08 (sugestão: `git add AGENDA.md CLAUDE.md && git commit -m "docs: checkpoint nivel 2 2026-07-08"` + push).
+2. **Repriorizar a fila** — vazia há 7 dias; a rotina matinal fica ociosa até você + Opus subirem tarefas. Candidatas prontas pra refinar: **cod-0021** (copy obsoleta `nao_supermercado`), **cod-0022** (testes do formatter não-financeiro), **cod-0024** (nit do lembrete de inativo); ou destravar o **Alerta Pro** rodando a migration de `acompanhamentos`.
+3. **Pendências pré-produção do checkpoint (os commits NÃO resolvem isso):**
+   - Rodar no SQL Editor do Supabase: `migration_FUTURA_agente_perguntas.sql` + **A4** + **A9** (**A9 — `ALTER TABLE compras ADD cnpj` — ANTES de qualquer deploy**, senão `salvarCompra` quebra).
+   - Envs no Railway **e no `.env.example`**: `LIMITE_PERGUNTAS_FREE=30`, `AGENTE_MODO=llm`, `AGENTE_MODELO=gemini-2.5-flash`, `COMPARATIVO_AMOSTRAS_FREE=3`.
+   - **Teste manual end-to-end** com cupom/pergunta real (nenhum teste unitário pega "número inventado" do Gemini real — o bug de 06-07).
+   - Ligar o **gate Pro** do comparativo (`temFeaturesProAtivas` — financeiro, só você).
