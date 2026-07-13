@@ -1577,6 +1577,138 @@ async function apagarDadosUsuario(phoneNumber) {
   return resumo;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Alerta Inteligente — acompanhamentos + categorias supérfluas (cod-0031)
+// Camada de persistência do Pilar B (Desenho_Alerta_Inteligente_Pro_2026-06-27 §7).
+// Requer a migration migration_FUTURA_alerta_pro_acompanhamentos.sql (RODADA e
+// confirmada em produção em 2026-07-08).
+//
+// Princípios desta camada:
+//   • Ela NÃO decide quem pode usar o quê — só lê/escreve dados. Qualquer
+//     regra de acesso é ligada depois, em outra camada, por passo humano.
+//   • Degradação segura (padrão do arquivo): erro de leitura devolve
+//     vazio/baseline e loga, NUNCA derruba o fluxo do bot.
+//   • `cliente` é injetável (default = client do módulo) pra teste com mock —
+//     nunca SDK real em teste.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Baseline quando o usuário nunca configurou (usuarios.categorias_superfluas NULL).
+// Fonte: Desenho_Alerta_Inteligente_Pro_2026-06-27 (Pilar A, doces+bebidas).
+const CATEGORIAS_SUPERFLUAS_BASELINE = ['doces', 'bebidas'];
+
+// Lista os acompanhamentos ATIVOS do usuário. Erro → [] (degradação segura).
+async function buscarAcompanhamentos(phoneNumber, cliente = supabase) {
+  try {
+    const { data, error } = await cliente
+      .from('acompanhamentos')
+      .select('id, tipo_alvo, alvo, rotulo, limite_mensal, superfluo, alertado_em')
+      .eq('phone_number', phoneNumber)
+      .eq('ativo', true);
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarAcompanhamentos', erro: err.message });
+    return [];
+  }
+}
+
+// Cria/atualiza um acompanhamento — upsert pela UNIQUE (phone_number, tipo_alvo, alvo).
+// Reativar um alvo desativado é o mesmo gesto: o upsert grava ativo: true.
+// Retorna a linha gravada, ou null em erro (nunca lança).
+async function salvarAcompanhamento(phoneNumber, alvoDados, cliente = supabase) {
+  const {
+    tipo_alvo,
+    alvo,
+    rotulo = null,
+    limite_mensal = null,
+    superfluo = false,
+  } = alvoDados || {};
+
+  try {
+    if (!tipo_alvo || !alvo) throw new Error('acompanhamento sem tipo_alvo/alvo');
+
+    const linha = {
+      phone_number:  phoneNumber,
+      tipo_alvo,
+      alvo,
+      rotulo:        rotulo || alvo, // rótulo de exibição (default = o próprio alvo)
+      limite_mensal,
+      superfluo,
+      ativo:         true,
+    };
+
+    const { data, error } = await cliente
+      .from('acompanhamentos')
+      .upsert(linha, { onConflict: 'phone_number,tipo_alvo,alvo' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    log('supabase_erro', { fn: 'salvarAcompanhamento', erro: err.message });
+    return null;
+  }
+}
+
+// Desativa (soft delete) um acompanhamento pelo alvo. Retorna true/false.
+// Soft delete de propósito: preserva alertado_em/histórico se a pessoa reativar.
+async function desativarAcompanhamento(phoneNumber, alvo, cliente = supabase) {
+  try {
+    const { error } = await cliente
+      .from('acompanhamentos')
+      .update({ ativo: false })
+      .eq('phone_number', phoneNumber)
+      .eq('alvo', alvo);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    log('supabase_erro', { fn: 'desativarAcompanhamento', erro: err.message });
+    return false;
+  }
+}
+
+// Grava a config de categorias supérfluas do usuário (array; null = voltar ao baseline).
+async function setCategoriasSuperfluas(phoneNumber, categorias, cliente = supabase) {
+  try {
+    const valor = Array.isArray(categorias) && categorias.length > 0 ? categorias : null;
+
+    const { error } = await cliente
+      .from('usuarios')
+      .update({ categorias_superfluas: valor })
+      .eq('phone_number', phoneNumber);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    log('supabase_erro', { fn: 'setCategoriasSuperfluas', erro: err.message });
+    return false;
+  }
+}
+
+// Lê as categorias supérfluas do usuário. NULL/vazio/erro → baseline
+// ['doces','bebidas'] (sempre uma CÓPIA, pra ninguém mutar a constante).
+async function buscarCategoriasSuperfluas(phoneNumber, cliente = supabase) {
+  try {
+    const { data, error } = await cliente
+      .from('usuarios')
+      .select('categorias_superfluas')
+      .eq('phone_number', phoneNumber)
+      .single();
+
+    if (error) throw error;
+
+    const arr = data ? data.categorias_superfluas : null;
+    if (!Array.isArray(arr) || arr.length === 0) return [...CATEGORIAS_SUPERFLUAS_BASELINE];
+    return arr;
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarCategoriasSuperfluas', erro: err.message });
+    return [...CATEGORIAS_SUPERFLUAS_BASELINE];
+  }
+}
+
 module.exports = {
   apagarDadosUsuario,
   upsertUsuario,
@@ -1625,4 +1757,10 @@ module.exports = {
   incrementarPerguntas,
   registrarPergunta,
   purgarPerguntasLog,
+  buscarAcompanhamentos,
+  salvarAcompanhamento,
+  desativarAcompanhamento,
+  setCategoriasSuperfluas,
+  buscarCategoriasSuperfluas,
+  CATEGORIAS_SUPERFLUAS_BASELINE,
 };
