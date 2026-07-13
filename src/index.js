@@ -89,6 +89,7 @@ const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
 const { interpretarApagar } = require('./apagar');
 const { responderPergunta } = require('./agent');
 const { log, maskPhone } = require('./logger');
+const { verificarSchemaCritico } = require('./schemaGuard');
 const { iniciar: iniciarScheduler } = require('./scheduler');
 const { executarResumoMensal } = require('./monthlySummary');
 const { buscarTodasMetricas } = require('./metrics');
@@ -1063,5 +1064,18 @@ async function mostrarHistorico(phone) {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Bot Economizei rodando na porta ${PORT}`);
   iniciarScheduler();
+
+  // Guarda de schema (cod-0050): checagem NÃO-bloqueante — se faltar coluna/
+  // tabela crítica (lição do incidente A9), loga alerta gritante e, se houver
+  // ADMIN_PHONE, manda 1 aviso. Nunca derruba nem atrasa o boot.
+  verificarSchemaCritico({
+    avisar: process.env.ADMIN_PHONE
+      ? (faltando) =>
+          enviarMensagem(
+            process.env.ADMIN_PHONE,
+            `⚠️ Guarda de schema: faltando no banco → ${faltando.join(', ')}.\nRode a migration correspondente em supabase/ (logs: schema_guard_faltando).`
+          )
+      : null,
+  }).catch((e) => log('schema_guard_erro', { etapa: 'boot', erro: e && e.message ? e.message : String(e) }));
 });
 // fim do arquivo
