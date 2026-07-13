@@ -29,7 +29,12 @@
 
 const { brl, nomeDoMes } = require('../formatter');
 const { resolverPeriodo } = require('./periodo');
-const { calcularEconomia } = require('../insights');
+const {
+  calcularEconomia,
+  analisarInflacaoPessoal,
+  analisarRaioXCategorias,
+  analisarOndeCortar,
+} = require('../insights');
 
 // Lazy require — só resolve supabase.js (e o createClient que ele dispara no
 // import) quando de fato chamado em produção sem `deps` injetado.
@@ -240,13 +245,302 @@ const compararMeses = {
   },
 };
 
-const REGISTRO = [gastoTotalMes, gastoPorCategoria, compararMeses];
+// ═════════════════════════════════════════════════════════════════════════════
+// Leva 2a (cod-0040) — 4 intents com a inteligência JÁ PRONTA no insights.js.
+// Padrão "fato rico": quando a análise tem base validada (temConclusao /
+// temSugestao / histórico), o fato inclui a comparação com o histórico do
+// PRÓPRIO usuário. Camada 4: as conclusões só repassam o que a análise
+// validou (limiares do insights.js), nunca reinterpretam. Camada 5: todo
+// número citável vive em `fmt.*` via brl() (fonte única) ou no template.
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────────────────────
+// inflacao_item — "o que subiu de preço?"
+// Reusa buscarHistoricoPrecoItens (supabase.js) + analisarInflacaoPessoal (F1,
+// insights.js — filtros de honestidade: 2+ observações, ≥14 dias, 8–150%).
+// ─────────────────────────────────────────────────────────────────────────────
+const inflacaoItem = {
+  id: 'inflacao_item',
+  descricao: 'Quais itens recorrentes da pessoa subiram ou caíram de preço ao longo do tempo (inflação pessoal)',
+  exemplos: [
+    'o que subiu de preço', 'meus itens estão mais caros',
+    'qual a inflação das minhas compras', 'o que ficou mais caro pra mim',
+  ],
+  parametros: {},
+
+  async executar(phone, params = {}, deps = {}) {
+    const buscar = deps.buscarHistoricoPrecoItens || _supabase().buscarHistoricoPrecoItens;
+    const itens = await buscar(phone, 6);
+    const analise = analisarInflacaoPessoal(itens);
+    if (!analise.temDados) return { temDados: false };
+
+    // Fato rico: o maior movimento de cada direção (as listas completas ficam
+    // no /inflacao — a resposta de conversa destaca o que mais importa).
+    const maiorAlta = analise.subiram[0] || null;
+    const maiorQueda = analise.cairam[0] || null;
+
+    const fmt = {
+      nSubiram: String(analise.subiram.length),
+      nCairam: String(analise.cairam.length),
+    };
+    if (maiorAlta) {
+      fmt.altaAntigo = `R$ ${brl(maiorAlta.precoAntigo)}`;
+      fmt.altaNovo = `R$ ${brl(maiorAlta.precoNovo)}`;
+      fmt.altaPct = `${maiorAlta.variacaoPct}%`;
+    }
+    if (maiorQueda) {
+      fmt.quedaAntigo = `R$ ${brl(maiorQueda.precoAntigo)}`;
+      fmt.quedaNovo = `R$ ${brl(maiorQueda.precoNovo)}`;
+      fmt.quedaPct = `${Math.abs(maiorQueda.variacaoPct)}%`;
+    }
+
+    return {
+      temDados: true,
+      maiorAlta,
+      maiorQueda,
+      nSubiram: analise.subiram.length,
+      nCairam: analise.cairam.length,
+      fmt,
+    };
+  },
+
+  template(fato) {
+    if (!fato.temDados) {
+      return 'Ainda não tenho preços repetidos suficientes pra comparar seus itens. Quando você comprar os mesmos itens de novo ao longo das semanas, eu te mostro o que subiu e o que caiu de preço.';
+    }
+    const partes = [];
+    if (fato.maiorAlta) {
+      partes.push(`O que mais subiu nas suas compras foi ${fato.maiorAlta.nome}: ${fato.fmt.altaAntigo} → ${fato.fmt.altaNovo} (+${fato.fmt.altaPct}).`);
+    }
+    if (fato.maiorQueda) {
+      partes.push(`O que mais caiu foi ${fato.maiorQueda.nome}: ${fato.fmt.quedaAntigo} → ${fato.fmt.quedaNovo} (−${fato.fmt.quedaPct}).`);
+    }
+    partes.push(`No total, ${fato.fmt.nSubiram} subiram e ${fato.fmt.nCairam} caíram. Pra lista completa: /inflacao.`);
+    return partes.join(' ');
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// raio_x_categorias — "qual meu maior gasto?"
+// Reusa buscarGastosPorCategoria + buscarHistoricoCategorias (supabase.js) +
+// analisarRaioXCategorias (F2). Fato rico: quando há histórico, a conclusão
+// inclui acima/abaixo/em linha com a média do próprio usuário (Camada 4:
+// repassa `comparativo` como veio — os limiares de ±5pp são do insights.js).
+// ─────────────────────────────────────────────────────────────────────────────
+const raioXCategorias = {
+  id: 'raio_x_categorias',
+  descricao: 'Qual foi a maior categoria de gasto do mês e como ela se compara com a média histórica da própria pessoa',
+  exemplos: [
+    'qual meu maior gasto', 'onde foi mais dinheiro esse mês',
+    'em que categoria eu mais gasto', 'raio x dos meus gastos',
+  ],
+  parametros: {
+    periodo: { tipo: 'periodo', obrigatorio: false, default: 'mes_atual' },
+  },
+
+  async executar(phone, params = {}, deps = {}) {
+    const buscarGastos = deps.buscarGastosPorCategoria || _supabase().buscarGastosPorCategoria;
+    const buscarHist = deps.buscarHistoricoCategorias || _supabase().buscarHistoricoCategorias;
+    const mesRef = _resolverMesRef(params.periodo, 'mes_atual');
+
+    const dados = await buscarGastos(phone, mesRef);
+
+    let historico = null;
+    try {
+      historico = await buscarHist(phone, mesRef, 3);
+    } catch (_) { /* degradação segura: análise segue sem histórico (padrão do /gastos) */ }
+
+    const analise = analisarRaioXCategorias(dados || [], historico);
+    if (!analise.temConclusao) return { temDados: false, mesRef };
+
+    const fmt = {
+      topValor: `R$ ${brl(analise.top.valor)}`,
+      topPct: `${analise.top.pct}%`,
+    };
+    if (analise.candidatoCorte) {
+      fmt.corteValor = `R$ ${brl(analise.candidatoCorte.valor)}`;
+      fmt.cortePct = `${analise.candidatoCorte.pct}%`;
+    }
+
+    return {
+      temDados: true,
+      mesRef,
+      top: analise.top,
+      comparativo: analise.comparativo, // 'acima'|'abaixo'|'em_linha'|null — como a análise validou
+      candidatoCorte: analise.candidatoCorte,
+      mesesHistorico: analise.mesesHistorico,
+      pct: analise.top.pct,
+      fmt,
+    };
+  },
+
+  template(fato) {
+    if (!fato.temDados) {
+      return `Ainda não tenho gastos categorizados em ${nomeDoMes(fato.mesRef)}.`;
+    }
+    let txt = `Em ${nomeDoMes(fato.mesRef)} seu maior gasto foi ${rotuloCategoria(fato.top.categoria)}: ${fato.fmt.topValor} (${fato.fmt.topPct} do mês`;
+    if (fato.comparativo === 'acima') txt += ', acima da sua média';
+    else if (fato.comparativo === 'abaixo') txt += ', abaixo da sua média';
+    else if (fato.comparativo === 'em_linha') txt += ', em linha com sua média';
+    txt += ').';
+    if (fato.candidatoCorte) {
+      txt += ` Só de ${rotuloCategoria(fato.candidatoCorte.categoria)} foram ${fato.fmt.corteValor} (${fato.fmt.cortePct} do mês).`;
+    }
+    return txt;
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// economia_acumulada — "quanto já economizei?"
+// Reusa buscarTotaisMensais (supabase.js) + calcularEconomia (F4). Sem período
+// explícito, o mês de referência é o mais recente da série — o MESMO
+// comportamento do /economia validado em produção (mes_atual vazio não vira
+// "sem dados" à toa). economiaAno só entra quando > 0 (a copy do F4 explica
+// exatamente o que o número soma; aqui só repassamos).
+// ─────────────────────────────────────────────────────────────────────────────
+const economiaAcumulada = {
+  id: 'economia_acumulada',
+  descricao: 'Quanto a pessoa já economizou em relação à própria média de gastos de mercado (no mês e no ano)',
+  exemplos: [
+    'quanto já economizei', 'estou economizando',
+    'quanto guardei esse ano', 'minha economia até agora',
+  ],
+  parametros: {
+    periodo: { tipo: 'periodo', obrigatorio: false },
+  },
+
+  async executar(phone, params = {}, deps = {}) {
+    const buscar = deps.buscarTotaisMensais || _supabase().buscarTotaisMensais;
+    const totais = await buscar(phone, 12);
+
+    const opts = {};
+    if (params.periodo) {
+      opts.mesAlvo = _resolverMesRef(params.periodo, 'mes_atual');
+    }
+    const economia = calcularEconomia(totais, opts);
+    if (!economia.temDados) return { temDados: false, mesRef: opts.mesAlvo || null };
+
+    const fmt = {
+      mediaRef: `R$ ${brl(economia.mediaRef)}`,
+      diferencaMes: `R$ ${brl(Math.abs(economia.economiaMes))}`,
+    };
+    if (economia.economiaAno > 0) {
+      fmt.economiaAno = `R$ ${brl(economia.economiaAno)}`;
+    }
+
+    return {
+      temDados: true,
+      mesRef: economia.mesRef,
+      economiaMes: economia.economiaMes,
+      economiaAno: economia.economiaAno,
+      mediaRef: economia.mediaRef,
+      fmt,
+    };
+  },
+
+  template(fato) {
+    if (!fato.temDados) {
+      return 'Ainda preciso de pelo menos dois meses de compras pra calcular sua economia. Continue mandando os cupons que logo eu te mostro.';
+    }
+    const nome = nomeDoMes(fato.mesRef);
+    const linhaAno = fato.fmt.economiaAno
+      ? ` No ano, somando os meses em que você ficou abaixo da média, já são ${fato.fmt.economiaAno} no seu bolso.`
+      : '';
+    if (fato.economiaMes > 0.005) {
+      return `Em ${nome} você gastou ${fato.fmt.diferencaMes} abaixo da sua média de mercado (${fato.fmt.mediaRef}/mês).${linhaAno}`;
+    }
+    if (fato.economiaMes < -0.005) {
+      return `Em ${nome} você gastou ${fato.fmt.diferencaMes} a mais que sua média de mercado (${fato.fmt.mediaRef}/mês).${linhaAno}`;
+    }
+    return `Em ${nome} você gastou em linha com sua média de mercado (${fato.fmt.mediaRef}/mês).${linhaAno}`;
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onde_cortar — "onde dá pra economizar?"
+// Reusa os mesmos dados do raio-x + analisarOndeCortar (F3 — só categorias
+// discricionárias com peso ≥5% do mês, até 2 sugestões, ordenadas por força
+// do sinal). Camada 4: `acimaDaMedia`/valores vêm da análise, nunca daqui.
+// ─────────────────────────────────────────────────────────────────────────────
+const ondeCortar = {
+  id: 'onde_cortar',
+  descricao: 'Quais categorias supérfluas pesaram no mês — onde dá pra reduzir sem mexer no essencial',
+  exemplos: [
+    'onde posso cortar', 'onde dá pra economizar',
+    'o que reduzir nas compras', 'quais gastos dá pra diminuir',
+  ],
+  parametros: {
+    periodo: { tipo: 'periodo', obrigatorio: false, default: 'mes_atual' },
+  },
+
+  async executar(phone, params = {}, deps = {}) {
+    const buscarGastos = deps.buscarGastosPorCategoria || _supabase().buscarGastosPorCategoria;
+    const buscarHist = deps.buscarHistoricoCategorias || _supabase().buscarHistoricoCategorias;
+    const mesRef = _resolverMesRef(params.periodo, 'mes_atual');
+
+    const dados = await buscarGastos(phone, mesRef);
+
+    let historico = null;
+    try {
+      historico = await buscarHist(phone, mesRef, 3);
+    } catch (_) { /* degradação segura: análise segue sem histórico */ }
+
+    const analise = analisarOndeCortar(dados || [], historico);
+    if (!analise.temSugestao) return { temDados: false, mesRef };
+
+    const fmt = {};
+    analise.sugestoes.forEach((s, i) => {
+      fmt[`s${i + 1}Valor`] = `R$ ${brl(s.valor)}`;
+      fmt[`s${i + 1}Pct`] = `${s.pct}%`;
+      if (s.mediaValorHist != null) {
+        fmt[`s${i + 1}Media`] = `R$ ${brl(s.mediaValorHist)}`;
+      }
+    });
+
+    return {
+      temDados: true,
+      mesRef,
+      sugestoes: analise.sugestoes,
+      mesesHistorico: analise.mesesHistorico,
+      fmt,
+    };
+  },
+
+  template(fato) {
+    if (!fato.temDados) {
+      return `Olhando ${nomeDoMes(fato.mesRef)}, não encontrei categorias supérfluas com peso relevante nos seus gastos. Bom sinal.`;
+    }
+    const linhas = fato.sugestoes.map((s, i) => {
+      let l = `${rotuloCategoria(s.categoria)}: ${fato.fmt[`s${i + 1}Valor`]} (${fato.fmt[`s${i + 1}Pct`]} do mês`;
+      if (s.acimaDaMedia === true && fato.fmt[`s${i + 1}Media`]) {
+        l += `, acima da sua média de ${fato.fmt[`s${i + 1}Media`]}/mês`;
+      }
+      l += ')';
+      return l;
+    });
+    return `O que dá pra aliviar sem mexer no essencial em ${nomeDoMes(fato.mesRef)}: ${linhas.join('; ')}.`;
+  },
+};
+
+const REGISTRO = [
+  gastoTotalMes,
+  gastoPorCategoria,
+  compararMeses,
+  inflacaoItem,
+  raioXCategorias,
+  economiaAcumulada,
+  ondeCortar,
+];
 
 module.exports = {
   REGISTRO,
   gastoTotalMes,
   gastoPorCategoria,
   compararMeses,
+  inflacaoItem,
+  raioXCategorias,
+  economiaAcumulada,
+  ondeCortar,
   CATEGORIAS_VALIDAS,
   rotuloCategoria,
 };
