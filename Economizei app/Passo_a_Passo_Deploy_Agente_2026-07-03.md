@@ -3,6 +3,15 @@
 > **Data:** 2026-07-03 · **O que sobe:** cod-0013..0017 (Agente completo) + cod-0020 (comparativo/`/comparar`), hoje no working tree sem commit.
 > **Regra de ouro da ordem:** o Railway faz deploy automático no `git push` — então **as migrations e as envs vêm ANTES do push** (passos 2 e 3 antes do 5).
 
+> ## ⚠️ ATUALIZAÇÃO 2026-07-09 — a ordem mudou porque o push JÁ ACONTECEU
+>
+> Em 2026-07-08 o código foi **commitado e pushado** (`d4eaf51`/`3b2f375`, `origin/main`). Se o Railway fez o deploy automático desse push, **o código novo já está no ar SEM as migrations** — e o `salvarCompra` que grava `cnpj` **quebra ao salvar cupom** enquanto a coluna não existir (A9). Consequência prática:
+>
+> 1. **Passos 1 e 5 (check + commit/push) estão FEITOS** — pule.
+> 2. **Passo 2 (migrations) virou URGENTE** — rode A9 → A4 → agente **agora**, antes de qualquer coisa. Teste mandando um cupom em seguida pra confirmar que salvou.
+> 3. Depois: Passo 3 (envs no Railway), Passo 4 (`.env.example`), Passo 6 (smoke test) e Passo 7 (checkpoint).
+> 4. Sem a migration do agente, o bot responde perguntas mas **sem limite de cota e sem log** (fail-open) — mais um motivo pra rodar já.
+
 ---
 
 ## Passo 1 — Gate final: `npm run check`

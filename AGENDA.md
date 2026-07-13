@@ -14,11 +14,11 @@
 > **Leia este arquivo no início de toda sessão** (está na boot list do `CLAUDE.md`).
 > Guia do sistema: `Economizei app/Automacao_Maquina_Noturna.md`.
 
-**Última curadoria:** 2026-07-08 (checkpoint Nível 2 + reconciliação AGENDA × git) · **Modo:** execução local (GitHub Actions descontinuado)
+**Última curadoria:** 2026-07-10 (🔍 **AUDITORIA INTEGRAL executada** — 6 de 10 frentes auditadas nesta sessão (firewall, idempotência, schema×código, copy, npm, testes); doc: `Economizei app/Auditoria_Integral_2026-07-10.md`. **Achados críticos:** firewall com 8 lacunas + bypass por rename (patch pronto, humano — §1.4); copy de indicação promete alerta inteligente inexistente; `/assinar` ainda gera checkout MP (abandonado juridicamente). Enfileiradas **cod-0051/0052** (testes extração + dedup); 4 auditorias adiadas viraram **aud-01..04** no painel do Gabriel com material pronto. npm: 0 vulnerabilidades. Mesma data, sessão anterior: 🔓 **Gate Pro (A1) DESDOBRADO** — snippets prontos + checklist em `Economizei app/Gate_Pro_Desdobramento_2026-07-10.md`; decisões: Pro até 10 via `COMPARATIVO_MAX_PRO`, upsell honesto `/planos` no teaser Free, doc-only (código financeiro fica com o Gabriel). cod-0032/0033 promovíveis após aplicação. Antes, 2026-07-09: 🇨🇦 **cod-0065 na Fila pronta** — MVP enxuto do modo recibo Canadá/Vancouver, qualquer comércio, reusando o pipeline; pedido direto do Gabriel, adianta uma fatia da Frente 2; insights + legal em `Economizei app/Economizei_Vancouver_Recibos_2026-07-09.md`. Pré-reqs humanos/legais CASL/privacidade/provedor no painel do Gabriel. Antes: 🔭 longo prazo — **Empresa BC ADIADA pra OUTUBRO/2026**; janela de planejamento **até 2 meses**; sementes cod-0060..0064 no Backlog, gated pela sessão de desdobramento — `Economizei app/Horizonte_Longo_Prazo_2026-07-09.md`) · **Modo:** execução local (GitHub Actions descontinuado)
 **🎯 Último checkpoint integral:** **2026-07-08 (Nível 2) — veredito 🟡→🟢: repositório saudável (184/184 testes reais verdes, firewall OK, working tree limpo), FALTA validação end-to-end em produção.** · **✅ Commitado + pushed até `3b2f375` (origin/main):** cod-0013..0017 (Agente completo) + cod-0020 (comparativo leitura) em `d4eaf51`; + cod-0026/0027/0030/0006/0011/0012 + A4/A9 + 2 migrations futuras. **Tudo no `origin/main`, working tree limpo (só `RELATORIO_MATINAL.md`).** Sistema: `Economizei app/Sistema_Checkpoints_Benchmarks_2026-06-30.md`.
 **🏛️ Pilares do negócio:** `Economizei app/Pilares_do_Negocio_2026-06-30.md` (Pilar 1 Máquina · Pilar 2 Código/Produto · Pilar 3 futuro Marketing & Anúncios; firewall = tecido conectivo).
-**🗄️ Migrations (2026-06-30):** os 4 SQL **já estão commitados** (`a795f65`) em `supabase/` — **A4** (`resumos_mensais_enviados`, versiona tabela feita à mão) e **A9** (`compras.cnpj` + ajuste no `salvarCompra`), + 2 **futuras** (`migration_FUTURA_agente_perguntas.sql`, `migration_FUTURA_alerta_pro_acompanhamentos.sql`). **Pendente humano (só falta RODAR, não commitar):** rodar A4+A9 no SQL Editor do Supabase — **A9: rodar o `ALTER TABLE compras ADD cnpj` ANTES do deploy do código**, senão `salvarCompra` quebra. As 2 futuras só rodam quando as features subirem (Agente / Alerta Pro).
-**Foco atual (2026-07-08):** **fila reabastecida** após o checkpoint Nível 2. Agente (cod-0013..0017) e comparativo (cod-0020) já commitados/pushados; falta só o deploy humano (migration do agente + envs + gate Pro do comparativo — ver "Ações do Gabriel" e `Passo_a_Passo_Deploy_Agente_2026-07-03.md`). **Fila pronta agora:** cod-0021 (copy obsoleta) → cod-0022 (testes formatter) → cod-0024 (nit lembrete). Alerta Pro (cod-0031..0035) segue fora da fila (pricing Free×Pro adiado pelo Gabriel em 07-08). Desenhos: `Economizei app/Desenho_Tecnico_Agente_Perguntas_2026-06-18.md` · `Desenho_Alerta_Inteligente_Pro_2026-06-27.md`.
+**🗄️ Migrations (2026-06-30):** os 4 SQL **já estão commitados** (`a795f65`) em `supabase/` — **A4** (`resumos_mensais_enviados`, versiona tabela feita à mão) e **A9** (`compras.cnpj` + ajuste no `salvarCompra`), + 2 **futuras** (`migration_FUTURA_agente_perguntas.sql`, `migration_FUTURA_alerta_pro_acompanhamentos.sql`). **Pendente humano (só falta RODAR, não commitar):** rodar A4+A9 no SQL Editor do Supabase — **A9: rodar o `ALTER TABLE compras ADD cnpj` ANTES do deploy do código**, senão `salvarCompra` quebra. A futura do **Alerta Pro** (`migration_FUTURA_alerta_pro_acompanhamentos.sql`) **foi RODADA e confirmada em 2026-07-08** (tabela `acompanhamentos` + `usuarios.categorias_superfluas` em produção). A futura do **Agente** (`migration_FUTURA_agente_perguntas.sql`) roda antes do deploy do Agente.
+**Foco atual (2026-07-09):** **Assistente Conversacional é a força a desenvolver** (decisão do Gabriel; ideias + benchmark em `Economizei app/Ideias_Assistente_Financeiro_Conversacional_2026-07-09.md`). Leva 2 de intents enfileirada: **cod-0040 → cod-0041 → cod-0042** (após as 3 rápidas cod-0021/0022/0024). ⚠️ **URGENTE (humano):** o push de 07-08 pode ter deployado o código novo SEM as migrations — rodar **A9 já** (senão salvar cupom quebra) + A4 + migration do agente + envs; ver atualização no topo de `Passo_a_Passo_Deploy_Agente_2026-07-03.md`. Foco anterior (2026-07-08): **fila reabastecida** após o checkpoint Nível 2. Agente (cod-0013..0017) e comparativo (cod-0020) já commitados/pushados; falta só o deploy humano (migration do agente + envs + gate Pro do comparativo — ver "Ações do Gabriel" e `Passo_a_Passo_Deploy_Agente_2026-07-03.md`). **Fila pronta agora:** cod-0021 (copy obsoleta) → cod-0022 (testes formatter) → cod-0024 (nit lembrete). Alerta Pro (cod-0031..0035) segue fora da fila (pricing Free×Pro adiado pelo Gabriel em 07-08). Desenhos: `Economizei app/Desenho_Tecnico_Agente_Perguntas_2026-06-18.md` · `Desenho_Alerta_Inteligente_Pro_2026-06-27.md`.
 **Mapeamento geral:** `Economizei app/Mapeamento_Geral_Pendencias_2026-06-24.md` (visão única de tudo pendente — código, humano, git, features desenhadas)
 **Auditoria de código & direção:** `Economizei app/Auditoria_Codigo_Direcao_2026-06-25.md` (achados A1–A10 por severidade + partes travadas + plano de ação; os itens estão distribuídos abaixo no Backlog / Ações do Gabriel / Aguardando decisão)
 
@@ -148,63 +148,93 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 > **❤️ Classificação + Alerta Inteligente Pro (desenho 2026-06-27).** Desenho completo: `Economizei app/Desenho_Alerta_Inteligente_Pro_2026-06-27.md`. A classificação é o **coração do produto** (CLAUDE.md / CODE_GUIDE §0) e o alerta Pro depende dela. **cod-0026 + cod-0027 (classificação) e cod-0030 (matching puro) já foram commitados** (até `a795f65`). A cadeia Pro (cod-0031..0035) está refinada no Backlog — sobe pra "Fila pronta" quando a **migration** de `acompanhamentos` (humano) e o **gate Pro** estiverem prontos.
 
 > **🤖 Agente de Perguntas (MVP — Free, 3 intenções, Opção A com narração LLM).**
-> **✅ CADEIA COMPLETA (2026-07-03, rush do Gabriel).** cod-0010/0011/0012 commitados; **cod-0013..0017 todos implementados e em "Em revisão"** (aguardando `npm run check` + commit do Gabriel). Desenho: `Economizei app/Desenho_Tecnico_Agente_Perguntas_2026-06-18.md`. **Pré-requisito HUMANO antes do deploy:** rodar `migration_FUTURA_agente_perguntas.sql` + envs (ver "Ações do Gabriel").
+> **✅ NO AR E VALIDADO EM PRODUÇÃO (2026-07-09).** cod-0010..0017 commitados (`d4eaf51`), migrations rodadas, envs setadas, e o **smoke test end-to-end passou** (número do Agente bateu com o `/gastos` — firewall de fidelidade OK; off-topic recusado sem inventar). Desenho: `Economizei app/Desenho_Tecnico_Agente_Perguntas_2026-06-18.md`. **A partir daqui o `perguntas_log` de produção é o juiz** da ordem das próximas intents (Leva 2 = cod-0040..0042, já na fila).
 
-> **🔄 Fila reabastecida (2026-07-08, planejamento Opus + Gabriel).** A máquina ficou 6 dias sem fila (não estava travada — só sem tarefa `pronta`). Promovidas do Backlog as 3 tarefas rápidas, não-financeiras, sem migration: cod-0021 → cod-0022 → cod-0024 (ordem = prioridade). O Alerta Pro (cod-0031..0035) segue **fora da fila** por decisão do Gabriel (pricing Free×Pro adiado).
+> **🔄 Fila reabastecida (2026-07-08, planejamento Opus + Gabriel).** A máquina ficou 6 dias sem fila (não estava travada — só sem tarefa `pronta`). Promovidas do Backlog as 3 tarefas rápidas, não-financeiras, sem migration: cod-0021 → cod-0022 → cod-0024 (ordem = prioridade). O Alerta Pro (cod-0031..0035) segue **fora da fila** por decisão do Gabriel (pricing Free×Pro adiado). **cod-0021, cod-0022, cod-0024 e cod-0040 movidas pra "Em revisão" (2026-07-10)** — as 3 rápidas + a Leva 2a do Agente foram concluídas; próxima da fila agora é **cod-0041** (Leva 2b — atenção: `depende-de: cod-0031` pro supérfluo configurável; o baseline funciona sem). **Atualização 2026-07-12 (rotina matinal):** cod-0041/0042 seguem bloqueadas até o commit das dependências (cod-0031/cod-0040, ainda só no working tree); a rotina executou a **cod-0050** (guarda de schema — em revisão).
 
-### [P1] Corrigir copy obsoleta `nao_supermercado`
-- id: cod-0021
-- tipo: refino-codigo
-- skills: economizei-code-decisions, economizei-copywriter, copy-review, economizei-tdd, economizei-financial-firewall
-- objetivo: a mensagem ao usuário não afirmar mais que o bot rejeita farmácia/posto/restaurante — ele LÊ não-mercado desde 2026-06-04 (salva como `tipo='outros'`). Alinhar também o rótulo `nao_supermercado` que `inferirCategoria` (`gemini.js`) ainda devolve.
-- arquivos-alvo: `src/formatter.js` (a string `nao_supermercado`, linhas ~170-173), `src/gemini.js` (`inferirCategoria`, ~linha 134), `test/` (teste novo cobrindo a copy corrigida)
+> **💬 Assistente Conversacional — Leva 2 de intents (2026-07-09, planejamento Opus + Gabriel).** Direção: transformar o Agente numa força do produto (benchmark + 4 eixos em `Economizei app/Ideias_Assistente_Financeiro_Conversacional_2026-07-09.md`). Gabriel priorizou a **Leva 2 de intents** (inteligência já pronta no `insights.js`). ⚠️ Pré-requisito de PRODUÇÃO (não de código): deploy do Agente (migrations + envs) — ver alerta urgente em "Ações do Gabriel". As demais sugestões foram TODAS validadas pelo Gabriel (2026-07-09) e estão registradas no Backlog como **cod-0043..0049** — cadeia futura com gate explícito por etapa (só sobem pra fila com a etapa anterior validada em produção).
+
+### [P2] Agente — Leva 2b: comparativo + supérfluo como intents
+- id: cod-0041
+- tipo: feature-codigo
+- skills: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-copywriter, copy-review, economizei-financial-firewall
+- objetivo: 2 intenções — `comparativo_mercados` ("onde tá mais barato?") reusando `compararPrecosMercado`/`buscarObservacoesComparativo` com o MESMO teaser por env do `/comparar` (`COMPARATIVO_AMOSTRAS_FREE`, sem citar plano), e `gasto_superfluo` ("quanto foi de besteira?") reusando `buscarGastoSuperfluo` + `buscarCategoriasSuperfluas` (baseline doces+bebidas).
+- arquivos-alvo: `src/agent/intents.js`, `test/`
 - criterios-de-aceite:
-  - a copy não diz mais "só leio mercado" / "farmácia, posto ainda não"; reflete que lê e classifica como "Outros (não-mercado)"
-  - se tocar `gemini.js`/classificação: **corpus de regressão (`classificacao-corpus`) verde** (o coração — CODE_GUIDE §0)
-  - teste cobrindo a nova mensagem (node --test verde)
-  - firewall financeiro verde
-- fora-de-escopo: não mudar o COMPORTAMENTO de leitura (já lê não-mercado); não tocar limite/cota; nada financeiro
+  - mesmos padrões do cod-0040 (fato rico, fmt via brl, temDados honesto, exemplos no registro)
+  - comparativo: estado-vazio honesto quando a base `precos_mercado` não casa ≥2 lojas (nunca número chutado)
+  - testes verdes; firewall verde (zero token financeiro — o gate Pro é humano, depois)
+- fora-de-escopo: gate Pro (humano); `gasto_por_termo` (é o cod-0034, depende do Agente no ar); nada financeiro
+- nota-gate (2026-07-10): quando esta intent subir, o executor do comparativo deve receber `ehPro` pra usar `COMPARATIVO_MAX_PRO` no Pro — mesma decisão/env do gate do `/comparar` (`Economizei app/Gate_Pro_Desdobramento_2026-07-10.md` Peça 4); zero decisão nova
+- depende-de: cod-0040 (padrão do fato rico); cod-0031 (buscarCategoriasSuperfluas)
+- nota (2026-07-11, rotina matinal): a rotina PULOU esta tarefa apesar de ser a primeira da fila — a dependência cod-0031 ainda não existia no código (`buscarCategoriasSuperfluas` ausente do `supabase.js`, confirmado por grep) e implementar em cima de dependência ausente violaria os critérios. A cod-0031 foi implementada nesta execução (ver "Em revisão"); esta fica desbloqueada de verdade quando o Gabriel commitar a cod-0031.
 - status: pronta
 
-### [P2] Testes do `formatter.js` (não-financeiro)
-- id: cod-0022
+### [P3] Agente — intent `duvida_sobre_bot` (ajuda natural)
+- id: cod-0042
+- tipo: feature-codigo
+- skills: economizei-code-decisions, economizei-tdd, economizei-copywriter, copy-review, economizei-financial-firewall
+- objetivo: "o que você sabe fazer?", "como funciona?" respondidos naturalmente (lista viva derivada do registro de intents + comandos), em vez de caírem em `fora_de_escopo`. Reduz o maior balde de frustração esperado no log.
+- arquivos-alvo: `src/agent/intents.js`, `src/formatter.js` (se precisar de template), `test/`
+- criterios-de-aceite:
+  - a resposta lista exemplos de pergunta reais derivados dos `exemplos` do registro (não hardcoded duplicado)
+  - não consome cota (como off-topic — decisão do orquestrador cod-0017)
+  - sem citar preço/plano; testes verdes; firewall verde
+- fora-de-escopo: reescrever /ajuda; nada financeiro
+- depende-de: cod-0040
+- status: pronta
+
+---
+
+---
+
+> **🇨🇦 Modo recibo Canadá (Vancouver) — MVP enxuto (2026-07-09, pedido direto do Gabriel).** Objetivo do Gabriel: usar o mesmo sistema aqui do Canadá, com recibos de **qualquer comércio** (não só supermercado), seguindo no WhatsApp e **aproveitando tudo que der**. "Não precisa muito desenvolvimento — pelo menos o software precisa entender o recibo e armazenar o dado organizado." Isto **adianta uma fatia concreta da Frente 2** (cod-0063/0064 no Backlog) a pedido explícito; a sessão de desdobramento do Longo Prazo segue valendo para o resto. Insights + legal: `Economizei app/Economizei_Vancouver_Recibos_2026-07-09.md`. ⚠️ **Pré-requisitos humanos/legais antes de qualquer envio a usuário no Canadá** (ver "Ações do Gabriel"): consentimento **CASL**, provedor de WhatsApp p/ número canadense, (opcional) migration `compras.moeda`.
+
+> **🔍 Auditoria Integral (2026-07-10)** — 2 tarefas de teste derivadas dos achados (doc: `Economizei app/Auditoria_Integral_2026-07-10.md` §6). Firewall-limpas; a posição na fila é sua na próxima repriorização.
+
+### [P2] Testes da rede de segurança da EXTRAÇÃO (reconciliação + schema + parse)
+- id: cod-0051
 - tipo: teste
 - skills: economizei-tdd, economizei-code-decisions
-- objetivo: cobrir com teste as mensagens não-financeiras já em produção, elevando a rede de segurança do que subiu sem teste.
-- arquivos-alvo: `test/formatter.test.js` (novo). Não altera `src/`.
+- objetivo: cobrir com teste as funções que protegem o coração do produto e hoje têm ZERO teste (achado §6.1 da Auditoria Integral): `reconciliarItens`, `validarSchema`, `_scoreReconciliacao` e o parse seguro do JSON do Gemini em `src/gemini.js`.
+- arquivos-alvo: `test/gemini-extracao.test.js` (novo). Se precisar exportar função interna do `gemini.js` pra teste, export mínimo sem mudar comportamento.
 - criterios-de-aceite:
-  - testes de render pra `montarMensagemGastos`, `montarMensagemInflacao`, `montarMensagemEconomia`, `montarMensagemOndeCortar`, `montarMensagemAlerta` (3 níveis) e `montarMensagemComparativo`
-  - cobrir estado-vazio e o "número no topo" onde se aplica
+  - reconciliarItens: soma fecha com o total (ok), diverge além da tolerância (flag), tolerância entre R$2 e 15%
+  - validarSchema: campo faltando, itens vazios, categoria inválida → saída segura (`outros`/`nao_mercado`), nunca exceção
+  - parse: JSON com cerca de markdown, JSON quebrado, texto livre → `{ok:false}` sem exceção
+  - _scoreReconciliacao: escolhe a tentativa que melhor fecha
+  - node --test verde; firewall verde. ⚠️ carregar `gemini.js` puxa `sharp` (SIGBUS no sandbox) — se necessário, testar via funções exportadas em processo isolado, como no corpus
+- fora-de-escopo: não mudar prompt/limiar (só cobrir o que existe); nada financeiro
+- status: pronta
+
+### [P3] Testes do dedup (`despacharComDedup`) + validação do webhook
+- id: cod-0052
+- tipo: teste
+- skills: economizei-tdd, economizei-code-decisions
+- objetivo: a Lei 5 (idempotência) nunca foi exercitada por teste (achado §6.2). Cobrir `despacharComDedup` e a validação de payload do webhook.
+- arquivos-alvo: `src/index.js` (só exportar `despacharComDedup` e, se preciso, extrair a validação de payload pra função pura — refactor mínimo sem mudar comportamento), `test/webhook-dedup.test.js` (novo)
+- criterios-de-aceite:
+  - duplicado=true → fn NÃO roda e loga `webhook_evento_duplicado`; duplicado=false → fn roda; sem messageId → fn roda e loga `webhook_sem_message_id`
+  - dedup com dependência injetada/mockada (nunca Supabase real)
+  - validação de payload: phone inválido, text vazio, imageUrl não-http → rejeitados
   - node --test verde; firewall verde
-- fora-de-escopo: **NÃO** testar `montarMensagemPlanos`, `/assinar`, `/pix`, assinatura (caminho do dinheiro = firewall/humano)
+- fora-de-escopo: NÃO tocar handlers de pagamento (`/assinar`, `/pix`, webhook MP); não mudar semântica do dedup (registrar-antes-de-processar é decisão registrada — Auditoria §2.7)
 - status: pronta
 
-### [P3] Nit — `inativo_d10` não citar contador do mês possivelmente resetado
-- id: cod-0024
-- tipo: refino-codigo
-- skills: economizei-code-decisions, economizei-tdd
-- objetivo: o lembrete `inativo_d10` não citar a contagem de `compras_mes_atual` quando o reset preguiçoso pode fazê-la refletir o mês anterior (número enganoso pro usuário inativo).
-- arquivos-alvo: `src/reengagement.js` (o item `inativo_d10`), `src/formatter.js` (`montarLembreteInativoD10`), `test/`
-- criterios-de-aceite:
-  - o lembrete não cita um número de cupons do mês que pode estar stale (usa contagem correta OU omite o número)
-  - teste cobrindo o caso; node --test verde
-  - firewall financeiro verde
-- fora-de-escopo: não mexer nos outros lembretes (D2/D3/D30/D60/FimMes/Limite8) além do necessário; nada financeiro
-- status: pronta
-
-### [P2] Alerta Pro — leitura de acompanhamentos (`supabase.js`)
-- id: cod-0031
+### [P2] Modo recibo Canadá (Vancouver) — entender e armazenar qualquer recibo
+- id: cod-0065
 - tipo: feature-codigo
-- skills: economizei-code-decisions, economizei-tdd, economizei-financial-firewall, economizei-security-lgpd
-- objetivo: camada de persistência do Pilar B — funções de I/O que leem/escrevem a tabela `acompanhamentos` e `usuarios.categorias_superfluas` (da migration humana já escrita). É a fundação; NÃO produz feature visível sozinha.
-- arquivos-alvo: `src/supabase.js`, `test/` (teste com Supabase mockado)
+- skills: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-copywriter, copy-review, economizei-security-lgpd, economizei-financial-firewall
+- objetivo: o bot lê recibo canadense de QUALQUER comércio (mercado, restaurante, varejo, farmácia, etc.), detecta a moeda/idioma ($/en → CAD; R$/pt → BRL), extrai loja/data/total/itens (categoria + `nome_canonico`) e confirma no WhatsApp com o símbolo de moeda certo — **reusando todo o pipeline atual** (`lerRecibo` → `validarSchema` → `salvarCompra` → confirmação). SEM quebrar o comportamento pt-BR/BRL.
+- arquivos-alvo: `src/gemini.js` (PROMPT + `coerceNumber` + detecção de moeda), `src/formatter.js` (helper `fmtMoeda(valor, moeda)` currency-aware só na confirmação), `test/` (testes novos + mini-corpus canadense)
 - criterios-de-aceite:
-  - `buscarAcompanhamentos(phone)` (só ativos), `salvarAcompanhamento(phone, {tipo_alvo, alvo, rotulo, limite_mensal, superfluo})` (upsert pela UNIQUE), `desativarAcompanhamento(phone, alvo)`, `setCategoriasSuperfluas(phone, arr)`, `buscarCategoriasSuperfluas(phone)` (fallback pro baseline `['doces','bebidas']` quando NULL)
-  - degradação segura: erro de leitura → retorna vazio/baseline, nunca derruba o fluxo (padrão do `supabase.js`)
-  - testes com Supabase mockado (nunca SDK real); node --test verde
-  - **firewall financeiro verde** — zero token de `is_pro`/pagamento (esta camada não conhece plano)
-- fora-de-escopo: **NÃO** ligar comandos (`/acompanhar` = cod-0033), **NÃO** referenciar `is_pro`/`temFeaturesProAtivas`/gate Pro (é passo humano/firewall), **NÃO** tocar pagamento. Não escrever a migration (já existe; é humano rodar).
-- depende-de: migration `migration_FUTURA_alerta_pro_acompanhamentos.sql` rodada no Supabase (humano) — o código é escrevível antes, mas só funciona em produção depois de rodada.
+  - `coerceNumber` lida com `"1,299.90"` (vírgula de milhar + ponto decimal) **sem** quebrar `"99,90"` pt-BR
+  - o prompt detecta a moeda pelo símbolo/idioma e retorna campo `moeda`; **CNPJ opcional** (null quando ausente — o esquema já aceita)
+  - recibo canadense de qualquer tipo → `sucesso:true` com loja/total/itens; item names em inglês canonizados **pelo tipo genérico** ("milk whole 2%", "chicken breast")
+  - confirmação mostra o símbolo certo ($ vs R$), número no topo, sem gíria
+  - **o coração não regride:** corpus de regressão de classificação pt-BR **verde** (CODE_GUIDE §0) + **mini-corpus canadense** (2–3 recibos reais que o Gabriel fornecer)
+  - node --test verde; **firewall financeiro verde** (zero token de `is_pro`/plano/preço — "moeda" é dado transacional, não pricing)
+- fora-de-escopo: i18n completo das mensagens (é cod-0063); **NÃO gravar `moeda` em `compras`** (sem a migration, o INSERT quebra — lição do A9; persistência é follow-on humano); leitura de fatura/PIX (Frente 1); gate Pro; provedor de WhatsApp p/ número canadense; consentimento CASL (humano/legal); **NÃO** tocar `/planos`/`/assinar`/pagamento
 - status: pronta
 
 ---
@@ -212,7 +242,88 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ## 🔧 Em revisão
 *(a máquina move pra cá ao abrir um PR — esperando o Gabriel revisar/commitar)*
 
-> **✅ RECONCILIADO no checkpoint de 2026-07-08:** as 3 tarefas abaixo (cod-0013, cod-0020 e a leva cod-0014..0017) **já foram commitadas e pushadas** em `d4eaf51` (código) + `3b2f375` (docs), no `origin/main` — confirmado por `git log`. Estes blocos ficaram stale (descreviam "SEM commit"). Já constam em "✅ Concluído" abaixo. Mantidos aqui só como detalhe histórico até a próxima curadoria. **Fila de revisão real: VAZIA.**
+> **✅ RECONCILIADO no checkpoint de 2026-07-08:** as 3 tarefas abaixo (cod-0013, cod-0020 e a leva cod-0014..0017) **já foram commitadas e pushadas** em `d4eaf51` (código) + `3b2f375` (docs), no `origin/main` — confirmado por `git log`. Estes blocos ficaram stale (descreviam "SEM commit"). Já constam em "✅ Concluído" abaixo. Mantidos aqui só como detalhe histórico até a próxima curadoria.
+
+### [P3] Guarda de schema no boot — avisar se coluna/tabela crítica faltar
+- id: cod-0050
+- tipo: feature-codigo
+- skills-usadas: economizei-code-decisions, economizei-tdd, economizei-financial-firewall, economizei-debugging (+ transversais)
+- o-que-foi-feito (2026-07-12, rotina matinal — SEM commit):
+  - `src/schemaGuard.js` (novo): lista declarativa `CHECAGENS_CRITICAS` (12 checagens `{tabela, coluna?}` — cobre A9 `compras.cnpj`, `compras.tipo`, `itens_compra.preco_total/categoria/nome_canonico`, migration do Agente (`usuarios.perguntas_mes_atual`, `perguntas_log`), Alerta Pro (`usuarios.categorias_superfluas`, `acompanhamentos`), Lei 5 (`mensagens_processadas`), A4 (`resumos_mensais_enviados`), `lembretes_enviados`) + `verificarSchemaCritico({cliente, checagens, logFn, avisar})` 100% injetável, que NUNCA lança pro chamador. Falta detectada → log `schema_guard_faltando` (nome exato) + resumo gritante `schema_guard_faltando_resumo` em 1 linha; tudo ok → `schema_guard_ok`.
+  - **Desvio consciente do enunciado (registrado):** a tarefa citava consultar `information_schema`, mas o PostgREST **não expõe** `information_schema` pela API — a detecção usa probe de leitura vazia (`select <coluna> ... limit 0`, zero linhas trazidas, LGPD-ok) e classifica o erro: códigos de ausência (42703/42P01/PGRST204/PGRST205 ou "does not exist"/"could not find") → `faltando`; qualquer outro erro (rede/permissão) → `errosChecagem` + log `schema_guard_erro`, **sem** afirmar ausência (não gera falso alarme em queda de rede).
+  - `src/index.js`: wiring no callback do `app.listen` — fire-and-forget com `.catch` (nunca bloqueia nem derruba o boot); se `ADMIN_PHONE` setada, manda 1 aviso via `enviarMensagem` com a lista do que falta. Cliente supabase próprio criado sob demanda no `schemaGuard.js` (mesmas envs do `supabase.js`, que não exporta o dele — de propósito NÃO toquei o `supabase.js`, que já carrega a cod-0031 não commitada).
+  - `test/schema-guard.test.js` (novo, **13 testes**): lista declarativa bem-formada e cobrindo A9/Agente; `ehErroDeAusencia` (códigos PG/PostgREST, mensagens, e NÃO confundir rede/permissão com ausência); tudo presente → ok + `schema_guard_ok`; coluna faltando (42703) → detecta com nome exato + resumo; tabela faltando (PGRST205); erro de rede → `errosChecagem` sem falso "faltando"; cliente que lança → capturado, nunca propaga; logger que quebra não mata o loop; `avisar` chamado 1× com a lista exata, não chamado quando tudo ok, e que lança → capturado e logado.
+- decisão-de-execução (registrada): a 1ª da fila era a **cod-0041** e a 2ª a **cod-0042**, mas ambas seguem bloqueadas por dependência NÃO commitada (cod-0031 no `supabase.js` e cod-0040 no `src/agent/intents.js` — confirmei no `git status`/`git grep HEAD` que nada disso está no HEAD); implementar em cima empilharia diffs nos mesmos arquivos e violaria a nota de 2026-07-11 na cod-0041. A rotina pegou a próxima elegível sem dependência: cod-0050.
+- validação: **13/13 verdes** no teste novo + lote puro do sandbox **92/92** (schema-guard + insights + alerts + apagar + acompanhamentos-io + formatter + reengagement-d10); `node --check` OK no `schemaGuard.js`, no teste e no `index.js` reconstruído (HEAD + patch) em /tmp. Firewall `--working` **OK** (25 arquivos no working tree, 0 tokens financeiros). ⚠️ Mount do sandbox serviu `src/index.js` **truncado** de novo (cortado no meio do `app.listen`) — problema recorrente; o arquivo REAL no Windows está íntegro (edits via ferramenta de arquivo, verificadas) e a validação de sintaxe rodou na cópia limpa em /tmp.
+- pendências humanas: `npm run check` na sua máquina (gate final — suíte completa com os testes de `sharp` e o `index.js` real); revisar e commitar (sugestão: `feat(boot): guarda de schema não-bloqueante loga coluna/tabela crítica faltando (cod-0050)`). Opcional: setar `ADMIN_PHONE` no Railway se quiser o aviso por WhatsApp além do log.
+- status: em-revisao (2026-07-12)
+
+### [P2] Alerta Pro — leitura de acompanhamentos (`supabase.js`)
+- id: cod-0031
+- tipo: feature-codigo
+- skills-usadas: economizei-code-decisions, economizei-tdd, economizei-financial-firewall, economizei-security-lgpd (+ transversais)
+- o-que-foi-feito (2026-07-11, rotina matinal — SEM commit): camada de persistência do Pilar B implementada no `src/supabase.js` (seção nova antes do `module.exports`, nada existente foi alterado além dos 6 exports novos):
+  - `buscarAcompanhamentos(phone)` — só ativos (`.eq('ativo', true)`); erro → `[]`.
+  - `salvarAcompanhamento(phone, {tipo_alvo, alvo, rotulo, limite_mensal, superfluo})` — upsert pela UNIQUE `(phone_number, tipo_alvo, alvo)`, grava `ativo: true` (reativar = mesmo gesto), rótulo default = o próprio alvo; sem `tipo_alvo`/`alvo` → `null` (validação); erro → `null`.
+  - `desativarAcompanhamento(phone, alvo)` — soft delete (`ativo: false`, preserva `alertado_em` pra reativação); erro → `false`.
+  - `setCategoriasSuperfluas(phone, arr)` — grava o array em `usuarios.categorias_superfluas`; array vazio/null grava NULL (= volta ao baseline); erro → `false`.
+  - `buscarCategoriasSuperfluas(phone)` — NULL/vazio/erro → CÓPIA do baseline `['doces','bebidas']` (constante `CATEGORIAS_SUPERFLUAS_BASELINE` exportada).
+  - Padrão do arquivo honrado: try/catch + `log('supabase_erro', …)`, degradação segura, nunca lança pro fluxo do bot. **`cliente` injetável** (default = client do módulo) — foi assim que o teste mockou sem SDK real.
+  - `test/acompanhamentos-io.test.js` (novo, **17 testes**): cliente fake encadeável/thenable; cobre os filtros (`ativo=true`, phone), o `onConflict` exato do upsert, defaults e overrides do salvar, validação de entrada, os 3 caminhos de erro→degradação, NULL→baseline, array vazio→baseline, config própria devolvida, e que o baseline devolvido é cópia (mutação não vaza).
+- decisão-de-execução (registrada): a 1ª da fila era a **cod-0041**, mas sua dependência cod-0031 não existia no código — a rotina pegou a cod-0031 (dependência, pequena e bem-definida, migration já rodada) em vez de implementar a cod-0041 com dependência ausente. Nota adicionada no bloco da cod-0041.
+- validação: **17/17 verdes** (`node --test`) + os testes puros pré-existentes que rodam no sandbox seguem verdes (**127 pass** no lote insights/alerts/agent-cota/periodo/guards + o novo). `node --check` OK. Firewall `--working` **OK** (22 arquivos no working tree, 0 tokens financeiros — as funções novas não conhecem plano/gate, de propósito). ⚠️ **Mount do sandbox truncou `src/supabase.js` de novo** (servia o arquivo cortado na linha ~1592, sem o `module.exports`) — problema recorrente documentado; o arquivo REAL no Windows está íntegro (edits via ferramenta de arquivo, verificados); a validação rodou em cópia limpa em /tmp reconstruída de `git show HEAD` + o mesmo patch.
+- pendências humanas: `npm run check` na sua máquina (gate final — confirma o arquivo real íntegro e a suíte completa com os testes de `sharp`); revisar e commitar (sugestão: `feat(alerta-pro): camada de persistência de acompanhamentos (cod-0031)`). Commitada esta, a **cod-0041 destrava**.
+- status: em-revisao (2026-07-11)
+
+### [P1] Corrigir copy obsoleta `nao_supermercado`
+- id: cod-0021
+- tipo: refino-codigo
+- skills-usadas: economizei-code-decisions, economizei-copywriter, copy-review, economizei-tdd, economizei-financial-firewall
+- o-que-foi-feito (2026-07-10, rotina matinal — SEM commit): a copy de erro parava de ser condizente com o comportamento real do bot desde 2026-06-04 (ele LÊ farmácia/posto/restaurante e salva como `tipo='outros'`, mas a mensagem de erro ainda dizia "só leio mercado... farmácia, restaurante e posto ainda não").
+  - `src/formatter.js`: string `nao_supermercado` (dentro de `montarMensagemErro`) reescrita — agora diz que o bot lê qualquer estabelecimento e registra como "Outros (não-mercado)", sem prometer rejeição por tipo de loja.
+  - `src/gemini.js`: `inferirCategoria` removeu o ramo que classificava motivo de erro como `nao_supermercado` só por citar farmácia/posto/restaurante — esse heurística estava desalinhada com o prompt (que já instrui `sucesso=true` + `tipo="outros"` pra qualquer estabelecimento) e mascarava o motivo real do erro (ex.: "não consegui ler os itens desse cupom de farmácia" caía em `nao_supermercado` em vez de `sem_itens`, porque o check de farmácia vinha antes do check de itens). Agora esses motivos caem no bucket certo (`sem_itens`/`borrado`/etc.) ou em `outro`. Também exportada (`module.exports`) pra ficar testável.
+  - `test/erro-copy.test.js` (novo, 6 testes): cobre a copy nova (não afirma mais rejeição, cita "Outros (não-mercado)") e a heurística corrigida de `inferirCategoria` (farmácia/posto/restaurante sozinhos não viram `nao_supermercado`; motivo real — item ilegível, borrado, cortado, não-é-cupom — continua detectado mesmo citando o tipo de loja).
+- validação: lógica verificada por execução isolada (node -e) reproduzindo exatamente o código de `inferirCategoria` e chamando `montarMensagemErro` direto — todas as asserções passam. **`node --test` completo não rodou limpo neste ambiente**: o mount do sandbox está servindo `src/formatter.js` e `src/gemini.js` truncados/desatualizados (problema recorrente já documentado — ex. sessões 2026-06-07, 2026-06-24, 2026-07-03), o que quebra por `SyntaxError` a carga desses módulos em VÁRIOS testes pré-existentes (`apagar.test.js`, `agent-classifier.test.js` etc.), não só o novo. Reconstruí uma cópia limpa em `/tmp` com o conteúdo real dos arquivos (confirmado via leitura direta) e nela a sintaxe de ambos os arquivos e do teste novo checou OK (`node --check`); o teste novo em si esbarrou em SIGBUS do `sharp` ao carregar `gemini.js` — mesmo problema ambiental já registrado nos testes `gemini-canonico`/`classificacao-corpus`, não é falha da lógica (confirmada isoladamente).
+- firewall financeiro: `node scripts/check-firewall.mjs --working` rodou **OK** contra o working tree real (0 tokens financeiros/proibidos nas mudanças).
+- pendências humanas: **`npm run check` na sua máquina é o gate final obrigatório desta vez** (mais do que o normal — o ambiente aqui não conseguiu validar `node --test` de ponta a ponta por causa do mount stale); depois, revisar e commitar (sugestão: 1 commit, `refactor(erro): copy nao_supermercado alinhada + inferirCategoria corrigida (cod-0021)`).
+- status: em-revisao (2026-07-10)
+
+### [P2] Testes do `formatter.js` (não-financeiro)
+- id: cod-0022
+- tipo: teste
+- skills-usadas: economizei-tdd, economizei-code-decisions (+ transversais)
+- o-que-foi-feito (2026-07-10, rotina matinal — SEM commit): criado `test/formatter.test.js` (novo, **28 testes**; nenhum arquivo de `src/` alterado) cobrindo as 6 mensagens não-financeiras do critério: `montarMensagemGastos` (estado-vazio honesto sem número; lista com label/valor/%; total; mês inválido degrada pra "esse mês"; bloco de conclusão F2 com e sem `temConclusao`; caso primeiro-mês), `montarMensagemInflacao` (estado-vazio; subiram/cairam com preço antigo→novo e %; teto de 4 subiram / 2 caíram; só-quedas), `montarMensagemEconomia` (estado-vazio; abaixo da média com número no topo; acima sem tom de bronca; linha do ano condicional; zona morta "em linha"), `montarMensagemCortar` (estado-vazio; sugestões com valor/%/comparação com média histórica; sem média não mostra comparação), `montarMensagemAlerta` **3 níveis** (acima com % no topo e saída /historico; abaixo com % absoluto sem sinal; normal sem %; null não lança exceção) e `montarMensagemComparativo` (estado-vazio sem número chutado; menor/maior/diferença/janela; elogio "comprou no mais barato"; "dava pra economizar"; aviso temMais). Nota: o critério citava `montarMensagemOndeCortar` — o nome real no `formatter.js` é `montarMensagemCortar` (F3); coberta essa.
+- validação: **28/28 verdes** (`node --test`). Suíte completa: **184 pass + 3 SIGBUS ambientais** do `sharp` no sandbox (`classificacao-corpus`, `gemini-canonico` e o `erro-copy` do cod-0021 — mesmos casos já documentados; passam no Windows). ⚠️ O mount do sandbox voltou a truncar arquivo editado (problema recorrente): após um ajuste no cabeçalho do teste, o mount serviu `test/formatter.test.js` cortado no meio da última linha — o arquivo REAL no Windows está íntegro; a validação final rodou em cópia completa em /tmp (28/28). O firewall inicialmente **bloqueou o próprio comentário** do teste (citava os nomes proibidos ao declarar o fora-de-escopo) — comentário reescrito sem os tokens; `check-firewall --working` agora **OK**.
+- pendências humanas: `npm run check` na sua máquina como gate final (confirma que o arquivo real está íntegro e os 28 passam junto com os 3 testes de `sharp`); revisar e commitar (sugestão: `test(formatter): cobre mensagens não-financeiras (cod-0022)`).
+- status: em-revisao (2026-07-10)
+
+### [P3] Nit — `inativo_d10` não citar contador do mês possivelmente resetado
+- id: cod-0024
+- tipo: refino-codigo
+- skills-usadas: economizei-code-decisions, economizei-tdd, economizei-copywriter (+ transversais)
+- o-que-foi-feito (2026-07-10, sequência da sessão — SEM commit): dos dois caminhos do critério ("contagem correta OU omite o número"), escolhido **omitir** — usar a contagem correta exigiria `mes_referencia` no select de `buscarElegiveisInativos` (`supabase.js`), e reescrever aquela linha (que contém `is_pro`) tropeçaria no scan de conteúdo do firewall; omitir é mais simples e igualmente honesto.
+  - `src/formatter.js`: `montarLembreteInativoD10()` reescrita **sem parâmetro e sem número** — mantém o gancho do resumo de fim de mês + convite ao cupom ("No fim do mês te mando o resumo completo de tudo que você registrar até lá...").
+  - `src/reengagement.js`: call site do `inativo_d10` deixa de passar `u.compras_mes_atual` (comentário explica o porquê). Demais lembretes intocados (o `montarLembreteFimMes` também cita o contador, mas é Segmento C — usuário ATIVO no mês corrente, contador válido — e está fora do escopo declarado).
+  - `test/reengagement-d10.test.js` (novo, 4 testes): mensagem sem nenhum dígito; gancho fim-de-mês/resumo/cupom preservado; argumento legado ignorado (retrocompatível); guarda estática de que o call site no `reengagement.js` não reinjeta `compras_mes_atual`.
+- validação: 4/4 verdes + os 28 do cod-0022 continuam verdes (32/32 juntos); `node --check` OK nos 3 arquivos; firewall `--working` **OK**. ⚠️ Mount do sandbox truncou `formatter.js` E `reengagement.js` nesta sessão (problema recorrente) — arquivos reais no Windows íntegros (verificados por leitura direta); validação rodou em cópia limpa em /tmp com os mesmos patches.
+- pendências humanas: `npm run check` na sua máquina (gate final); revisar e commitar (sugestão: `fix(reengajamento): inativo_d10 omite contagem possivelmente stale (cod-0024)`).
+- status: em-revisao (2026-07-10)
+
+### [P1] Agente — Leva 2a: intents com inteligência pronta
+- id: cod-0040
+- tipo: feature-codigo
+- skills-usadas: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-copywriter, copy-review, economizei-financial-firewall (+ transversais)
+- o-que-foi-feito (2026-07-10, sequência da sessão — SEM commit): **4 intents novas no registro do Agente**, reusando a inteligência já validada do `insights.js` — o classificador aprende sozinho pelo registro (`classifier.js` NÃO foi tocado):
+  - `inflacao_item` ("o que subiu de preço?") — `buscarHistoricoPrecoItens` + `analisarInflacaoPessoal` (F1). Fato rico: maior alta e maior queda (nome, preço antigo→novo via `brl()`, %), contagens; resposta destaca os 2 movimentos e aponta `/inflacao` pra lista completa.
+  - `raio_x_categorias` ("qual meu maior gasto?") — `buscarGastosPorCategoria` + `buscarHistoricoCategorias` + `analisarRaioXCategorias` (F2). Fato rico: top com valor/%, `comparativo` acima/abaixo/em-linha **repassado como a análise validou** (Camada 4, limiares ±5pp do insights.js), candidatoCorte como FATO (sem conselho). Histórico falhando → degrada sem comparação (padrão do `/gastos`).
+  - `economia_acumulada` ("quanto já economizei?") — `buscarTotaisMensais` + `calcularEconomia` (F4). Sem período explícito usa o mês mais recente da série (MESMO comportamento do `/economia` em produção); `economiaAno` só entra quando > 0; período fora da série → `temDados:false` (nunca número chutado).
+  - `onde_cortar` ("onde dá pra economizar?") — mesmos dados do raio-x + `analisarOndeCortar` (F3). Até 2 sugestões, "acima da sua média" só quando `acimaDaMedia === true`.
+  - Padrões honrados: todo número citável em `fmt.*` via `brl()` (fonte única — allowlist da Camada 5 no `render.js` já cobre `fmt` + template + `mesRef` + `fato.pct`); `temDados:false` → resposta honesta de ausência; `descricao` + 4 `exemplos` por intent; REGISTRO/exports atualizados.
+  - `test/agent-intents-leva2.test.js` (novo, **14 testes**): executar+template das 4 (com dados / sem dados / degradação de histórico / período fora da série / Camada 4). `test/agent-intents.test.js`: o teste "REGISTRO tem exatamente 3" atualizado pra 7 (era invariante do MVP, superado por esta tarefa — único toque no arquivo).
+- validação: suíte completa em cópia limpa `/tmp`: **230 pass / 3 falhas ambientais** (`sharp`/`gemini.js` — classificacao-corpus, gemini-canonico, erro-copy; passam no Windows). Firewall `--working` OK + **self-scan de tokens financeiros nas linhas novas: 0** (feito à parte porque o mount serviu `intents.js` stale — ver ⚠️ abaixo).
+- ⚠️ mount do sandbox nesta sessão: `intents.js` stale (a edição não propagou pro Linux) e `formatter.js` truncado — arquivos reais no Windows íntegros; TODA a validação rodou em `/tmp` com o conteúdo real reaplicado. **`npm run check` na sua máquina é o gate final obrigatório.**
+- pendências humanas: `npm run check` + revisar e commitar (sugestão: `feat(agente): leva 2a de intents — inflacao, raio-x, economia, onde-cortar (cod-0040)`). Depois de validar em produção, cod-0041 fica promovível (já está na fila).
+- status: em-revisao (2026-07-10)
 
 ### [P0] Agente — 5..8/8: render + mensagens + cota + orquestrador (CADEIA FECHADA)
 - id: cod-0014 + cod-0015 + cod-0016 + cod-0017
@@ -305,6 +416,27 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - **cod-0007 · Afinar limiares do alerta** (`ALERTA_*`) com base em dados reais — precisa de dados em produção primeiro.
 - **cod-0008 · Testes de `formatter.js`** nas mensagens não-financeiras (gastos, inflação, economia). **[Auditoria 06-25 · A6 🟠]** expandido em cod-0022 (cobre também `/cortar` e o alerta de 3 níveis).
 
+**💬 Assistente Conversacional — cadeia futura (2026-07-09, todas VALIDADAS pelo Gabriel; entram com o tempo, gated pela validação da etapa anterior):**
+*(doc-mãe: `Economizei app/Ideias_Assistente_Financeiro_Conversacional_2026-07-09.md`. Regra do Gabriel: aplicar em ordem, cada etapa só sobe pra "Fila pronta" depois que a anterior estiver validada em produção — o `perguntas_log` é o juiz.)*
+
+- **cod-0043 · Naturalidade 1 — contexto de follow-up (Eixo B2)** — memória curta do último `{intent, params}` por usuário (TTL ~10min) pra herdar parâmetros ("e em bebidas?", "e mês passado?"). A memória só ajuda a ENTENDER a pergunta; o número segue nascendo no executor. tipo: feature-codigo. skills: code-decisions, tdd, product-principles, financial-firewall. **Gate: Leva 2 (cod-0040..0042) no ar + log confirmando perguntas de sequência.**
+- **cod-0044 · Naturalidade 2 — sugestão de próxima pergunta (Eixo B3)** — cada intent declara `sugestoes[]`; a resposta termina com no máx. 1 sugestão contextual ("Quer ver por categoria?"). Mata o cold start "o que eu posso perguntar?". tipo: feature-codigo. skills: code-decisions, tdd, copywriter, copy-review, financial-firewall. **Gate: junto ou logo após cod-0043.**
+- **cod-0045 · Naturalidade 3 — prompt de narração menos robótico (Eixo B4)** — variar abertura/estrutura da narração LLM (tom "esperto do interior", sem gíria proibida, sem conselho); firewall de fidelidade intocado. tipo: refino-codigo. skills: copywriter, copy-review, financial-firewall, tdd. **Gate: `fidelidade_ok` estável no log (mexer no prompt só com a métrica saudável de baseline).**
+- **cod-0046 · ÁUDIO — entrada por voice note (Eixo B1, o maior salto de naturalidade)** — voice note → download via Z-API (padrão do download de imagem) → transcrição Gemini → MESMO pipeline do agente (cota/guardas idênticas). Resposta continua em texto (sem TTS). tipo: feature-codigo. skills: code-decisions, tdd, product-principles, security-lgpd (áudio é dado pessoal — processar em memória e descartar, como a imagem do cupom), financial-firewall. **Gate: Agente VALIDADO com texto em produção (fidelidade + intents estáveis) — não abrir o áudio antes.**
+- **cod-0047 · Análises novas + filtros compostos (Eixo A2/A3)** — funções puras novas no `insights.js`: `projetarFimDeMes` ("posso gastar mais?"), `rankearItens` (top 5), `gastoPorLoja`, `ticketMedioPorIda`, `ultimaCompraItem`, `frequenciaCompra` + params compostos categoria×período×loja×termo no vocabulário fechado. tipo: feature-codigo. skills: code-decisions, tdd, product-principles, copywriter, copy-review, financial-firewall. **Gate: log da Leva 2 mostrando quais dessas perguntas as pessoas REALMENTE fazem (construir só as pedidas); A9 rodada (loja/cnpj).**
+- **cod-0048 · Gráfico sob demanda na conversa (Eixo D2)** — intent `mostrar_grafico` reusando `charts.js`/QuickChart do `/gastos`. tipo: feature-codigo. skills: code-decisions, tdd, financial-firewall. **Gate: Leva 2 no ar.**
+- **cod-0049 · Insights proativos (Eixo C — lição da Erica: 60% proativo)** — biblioteca de gatilhos determinísticos (item recorrente subiu ≥X%, categoria cruzou a média no meio do mês, marco de economia, recap semanal opt-in) com cooldown anti-fadiga + base estatística mínima (Camada 4). **⚠️ NASCE UNIFICADO com o Alerta Pro (cod-0031..0035) — é UM sistema de proativos, não dois.** tipo: feature-codigo. skills: code-decisions, tdd, product-principles, copywriter, copy-review, financial-firewall. **Gate: Alerta Pro (cod-0032/0035) construído + decisão Free×Pro dos proativos (humano/firewall).**
+- **cod-0018 · Chat aberto / function-calling (Eixo B5)** — já registrado acima neste Backlog; segue como ÚLTIMO da escada. **Gate: `fidelidade_ok` alto e estável + log com perguntas recorrentes fora do cardápio de intents.**
+
+**🔭 Longo Prazo (2026-07-09 — Empresa BC ADIADA pra OUTUBRO/2026; doc-mãe: `Economizei app/Horizonte_Longo_Prazo_2026-07-09.md`):**
+*(sementes pro tempo até a abertura da empresa — janela de planejamento agora é de até 2 meses. Regra do Gabriel: NENHUMA sobe pra "Fila pronta" antes da **sessão de desdobramento** (discussão + insights, item em "Aguardando sua decisão"). Estas linhas existem pra ideia não se perder.)*
+
+- **cod-0060 · Frente 1 — Desenho técnico da ingestão multi-documento** — sessão de PLANEJAMENTO (Opus + Gabriel, não máquina): pipeline unificado documento→extração→classificação→insight pra fatura de cartão (PDF), comprovante PIX, notificação de banco e recibo genérico; taxonomia de tipos de registro; reuso das guardas de honestidade + princípio processa-em-memória-e-descarta (fatura expõe a vida financeira inteira — LGPD em dobro). **Gate: sessão de desdobramento.**
+- **cod-0061 · Frente 1 — Fundação: receber DOCUMENTO (PDF) no webhook** — detectar mensagem de documento no payload Z-API (hoje só texto/imagem), baixar com o mesmo padrão de retry/validação, rotear por MIME. Só a plumbing — não interpreta ainda. tipo: feature-codigo. skills: economizei-code-decisions, economizei-tdd, economizei-security-lgpd, economizei-financial-firewall. **Gate: cod-0060 + fila atual (Leva 2 + deploy do Agente) resolvida.**
+- **cod-0062 · Frente 1 — Leitura de comprovante PIX (foto/PDF)** — extração valor/data/destinatário via Gemini (temp 0, mesmo padrão do cupom), novo tipo de registro FORA da média de mercado, confirmação honesta. tipo: feature-codigo. skills: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-copywriter, economizei-security-lgpd, economizei-financial-firewall. ⚠️ "pix" é token do firewall — a tarefa é LER comprovante, não COBRAR; provável trip do `check:firewall` → revisão humana consciente. **Gate: cod-0061.**
+- **cod-0063 · Frente 2 — Fundação i18n** — camada de localidade (strings do bot por idioma, moeda/formatação por região) sem mudar NADA do comportamento pt-BR atual. tipo: refino-codigo. skills: economizei-code-decisions, economizei-tdd, economizei-copywriter, economizei-financial-firewall. **Gate: decisão de mercado-alvo + CANAL (a discussão dura: WhatsApp é fraco no Canadá/EUA).**
+- ~~**cod-0064 · Frente 2 — Leitura de recibo canadense (Vancouver)**~~ — ✅ **PROMOVIDA como MVP enxuto em cod-0065 (2026-07-09, pedido do Gabriel)** e movida pra "Fila pronta". O MVP cobre leitura + moeda + confirmação de recibo de qualquer comércio, reusando o pipeline. O que sobra desta semente (i18n completo das mensagens, persistência de moeda, provedor de WhatsApp) segue como follow-on / **cod-0063** / humano.
+
 **🔍 Achados da Auditoria de Código (2026-06-25) — ref: `Economizei app/Auditoria_Codigo_Direcao_2026-06-25.md`:**
 *(capturados aqui pra priorizar depois. Severidade: 🔴 crítico · 🟠 alto · 🟡 médio · 🟢 baixo. Itens de SQL/git/financeiro foram pro painel "Ações do Gabriel"; decisões de produto foram pra "Aguardando sua decisão".)*
 
@@ -318,7 +450,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - ~~**cod-0031 · Leitura de acompanhamentos (`supabase.js`)**~~ — ✅ **PROMOVIDA pra "Fila pronta" (2026-07-08)** após a decisão de pricing. Ver o bloco completo lá em cima.
 - **cod-0032 · Pilar A — bloco de supérfluo** no `/gastos` e no resumo mensal (formatter), via `buscarGastoSuperfluo`. Número primeiro, sem moralizar. tipo: feature-codigo. skills: code-decisions, tdd, copywriter, copy-review, product-principles, financial-firewall. depende-de: cod-0030.
 - **cod-0033 · Comandos** `/acompanhar`, `/limite`, `/acompanhamentos`, `/parar`, `/superfluo` (index.js + formatter.js) com mensagens curtas (sem gíria proibida). tipo: feature-codigo. skills: code-decisions, tdd, copywriter, copy-review, product-principles, financial-firewall. depende-de: cod-0031.
-- **cod-0034 · Intent NL `gasto_por_termo`** no Agente de Perguntas ("quanto gastei em cerveja?") reusando o matching + firewall de fidelidade do agente. tipo: feature-codigo. skills: tdd, copywriter, copy-review, financial-firewall. depende-de: cod-0030, cod-0017 (agente no ar).
+- **cod-0034 · Intent NL `gasto_por_termo`** no Agente de Perguntas ("quanto gastei em cerveja?") reusando o matching + firewall de fidelidade do agente. tipo: feature-codigo. skills: tdd, copywriter, copy-review, financial-firewall. depende-de: cod-0030 ✅, cod-0017 ✅ (agente no ar e validado em produção 2026-07-09) — **desbloqueado**; promovível à fila (é intent Free, na cota do Agente — decisão de pricing 07-08). Sequência: entra quando a Leva 2 abrir espaço.
 - **cod-0035 · Alerta proativo de limite** (per-compra, idempotente no mês — avisa só na virada do teto). tipo: feature-codigo. skills: code-decisions, tdd, copywriter, financial-firewall. depende-de: cod-0031, cod-0033.
 - ⚠️ **Humano (firewall):** migration de `acompanhamentos` + `usuarios.categorias_superfluas`; ligar o **gate Pro** (`temFeaturesProAtivas`/`is_pro`); decidir **Free×Pro** (Desenho §8). Ver "Ações do Gabriel" / "Aguardando decisão".
 - ~~**cod-0024 · 🟢 `inativo_d10` não citar contador do mês pra inativo [nit]**~~ — ✅ **PROMOVIDA pra "Fila pronta" (2026-07-08).** Ver o bloco completo lá em cima.
@@ -337,10 +469,30 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 > Esta seção é o seu painel. Guia: `Economizei app/Automacao_Maquina_Noturna.md`.
 
+**✅ ESTABILIZAÇÃO CONCLUÍDA (2026-07-09) — Agente + comparativo + salvar-cupom validados em produção:**
+- [x] **A9 RODADA** — `compras.cnpj` confirmado; salvar-cupom desbloqueado em produção.
+- [x] **A4 + `migration_FUTURA_agente_perguntas.sql` rodadas** no SQL Editor.
+- [x] **4 envs setadas** no Railway + `.env.example` (`LIMITE_PERGUNTAS_FREE`, `AGENTE_MODO`, `AGENTE_MODELO`, `COMPARATIVO_AMOSTRAS_FREE`).
+- [x] **Smoke test end-to-end PASSOU** — cupom salvou com `cnpj`; o número do Agente bateu com o `/gastos` (firewall de fidelidade OK); off-topic recusado sem inventar número. Roteiro: `Economizei app/Roteiro_Smoke_Test_2026-07-09.md`.
+
+**🔍 Auditoria Integral (2026-07-10) — ações suas (doc: `Economizei app/Auditoria_Integral_2026-07-10.md`):**
+- [ ] **[🔴 §1.4] Aplicar o patch do firewall** — 8 tokens novos (`temFeaturesProAtivas`, `COMPARATIVO_MAX_PRO`, `ehPro`, `marcarProAtivo`, `concederFeaturesPro`, `hotmart`, `ADMIN_SECRET`, roteamento `/planos`) + `--no-renames` nos 2 git diff (bypass por rename testado e confirmado) + path `src/hotmart.js`. Snippet pronto no doc. O arquivo é protegido de propósito — só você edita. Rodar `--selftest` depois.
+- [ ] **[🔴 §3.3] Rodar a query de verificação de schema** no SQL Editor (5min) — confirma as migrations antigas nunca verificadas E se a RPC `incrementar_compras_mes` existe em produção (se não existir, todo cupom usa fallback racy em silêncio).
+- [ ] **[🔴 §4.2 decisão] Copy da indicação promete "alerta inteligente" que não existe** — e a recompensa hoje não entrega nada (comparativo sem gate = Free vê o mesmo). Decidir: encurtar promessa + aplicar Gate Pro, ou segurar divulgação do `/convidar`.
+- [ ] **[🔴 §4.3 financeiro] Fluxo `/assinar` ainda gera checkout Mercado Pago** — MP abandonado juridicamente em 06-24; se alguém assinar hoje, entra dinheiro por via irregular. Mínimo sugerido: `/assinar` → instruções PIX até Hotmart/Wise (out/2026).
+- [ ] **[🟡 §2.3] Logar o fallback do incremento** em `salvarCompra` (1 linha; pode ir no mesmo commit consciente do patch do firewall).
+- [ ] **[🟡 §8.3 opcional] RPC `incrementar_perguntas_mes`** — SQL pronto no doc; depois a troca no código é tarefa de máquina.
+
+**🔍 Auditorias futuras (dependem de dados que só você acessa — material de preparação pronto no doc §7):**
+- [ ] **aud-01 · Classificação com cupons reais** (§7.1 — a mais valiosa; destrava Alerta Pro com confiança). Você traz: 15–30 fotos de cupons variados + resultado das queries de `monitoring_canonicos.sql`.
+- [ ] **aud-02 · Custo Gemini por chamada** (§7.2). Você traz: billing 30d do Google + as 2 queries de volume do doc.
+- [ ] **aud-03 · LGPD nos logs do Railway** (§7.3). Você traz: export de 1 dia de logs + política de retenção do plano Railway. (Parcial já feito: mascaramento de phone OK na amostra; 2 logs de conteúdo bruto anotados.)
+- [ ] **aud-04 · Custo total de infra vs orçado** (§7.4). Você traz: tier/uso de Railway, Supabase (storage/linhas), Z-API, Vercel. Atenção: Supabase free = 500MB com `precos_mercado` crescendo por design.
+
 **🔓 Pré-requisitos jurídicos/financeiros — desbloqueiam Meta Ads, Hotmart e Wise:**
 *(estas ações devem ser feitas ANTES de qualquer outra coisa de pagamento ou ads)*
 
-- [ ] **[BLOQUEADOR #1] Abrir empresa em BC** — sem isso, não dá pra vincular Meta Business Manager, Hotmart nem Wise Business. Passo a passo completo em `Economizei app/Abertura_Empresa_BC_2026-06-24.md`. Custo: ~CAD 380–600 (abertura) + ~CAD 650–2.000/ano (manutenção). Prazo: ~2 semanas do zero até operacional.
+- [ ] **[BLOQUEADOR #1] Abrir empresa em BC** — sem isso, não dá pra vincular Meta Business Manager, Hotmart nem Wise Business. Passo a passo completo em `Economizei app/Abertura_Empresa_BC_2026-06-24.md`. Custo: ~CAD 380–600 (abertura) + ~CAD 650–2.000/ano (manutenção). Prazo: ~2 semanas do zero até operacional. ⏸️ **ADIADO (2026-07-09): só será possível a partir de OUTUBRO/2026** — os bloqueadores #2..#5 herdam o adiamento; até lá o foco é construção (`Economizei app/Horizonte_Longo_Prazo_2026-07-09.md`).
   - [ ] Name Approval Request (NAR) — CAD 30 — [BC Registry](https://www.bcregistry.ca)
   - [ ] Incorporação provincial BC — CAD 350 — [Corporate Online](https://www.corporateonline.gov.bc.ca)
   - [ ] Abre conta bancária empresarial pessoalmente (RBC, TD ou Coast Capital)
@@ -356,6 +508,16 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - [ ] **[BLOQUEADOR #5] Regularizar conta bancária brasileira** — após saída fiscal declarada, conta corrente comum é irregular. Converter para CDE (Conta de Domiciliado no Exterior) ou encerrar. Consultar contador especializado em brasileiros no exterior.
 
 > ⚠️ **Aviso de custo:** abrir e manter a empresa em BC tem custo real. Abertura: ~CAD 380–600 (~R$1.500–2.400). Manutenção anual: ~CAD 650–2.000 (~R$2.600–8.000), sendo o maior item o contador para a declaração T2 obrigatória (~CAD 500–1.500/ano). Esses custos são necessários e se pagam rapidamente (só a economia nos impostos de Meta Ads já justifica parcialmente), mas devem estar no orçamento antes de iniciar.
+
+---
+
+**🇨🇦 Modo recibo Canadá (cod-0065) — o que só você/legal resolve (a máquina entrega a leitura, não isto):**
+*(insights: `Economizei app/Economizei_Vancouver_Recibos_2026-07-09.md`)*
+- [ ] **Fornecer 2–3 recibos reais de Vancouver** (mercado + outro comércio) pro mini-corpus de regressão da cod-0065 — sem eles, a classificação canadense não tem como ser validada.
+- [ ] **[LEGAL — CASL] Consentimento anti-spam** antes de QUALQUER mensagem proativa a usuário no Canadá (lembretes de reengajamento, alerta de limite): onboarding com consentimento explícito + opt-out em cada lembrete. Multa até CAD 10M/violação. A confirmação de cupom (iniciada pelo usuário) é transacional e provavelmente ok; o "volta aqui" não é.
+- [ ] **[LEGAL — privacidade] BC PIPA + PIPEDA** — dado de recibo cruzando fronteira (Supabase/Gemini). Nossa postura de processar-em-memória-e-descartar já ajuda; formalizar consentimento/finalidade/retenção quando houver usuário real na BC.
+- [ ] **Provedor de WhatsApp p/ número canadense** — a Z-API é focada no Brasil; um número CA provavelmente exige Meta WhatsApp Cloud API (ou Twilio) + template aprovado p/ mensagem fora da janela 24h. (Pode testar primeiro com o número BR atual e você mesmo como usuário.)
+- [ ] **(Opcional) Migration `compras.moeda TEXT DEFAULT 'BRL'`** — só se quiser **persistir** a moeda (a cod-0065 já mostra a moeda certa na confirmação sem gravar). Padrão A9: rodar o `ALTER` **antes** de qualquer código que grave `moeda`. `supabase/` = zona proibida da máquina; escrevo o `.sql` se você pedir.
 
 ---
 
@@ -386,10 +548,10 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 **🔍 Achados da auditoria (2026-06-25) — só humano (SQL / git / financeiro):**
 *(ref: `Economizei app/Auditoria_Codigo_Direcao_2026-06-25.md`)*
 - [~] **[A4 🟠] Versionar `CREATE TABLE resumos_mensais_enviados`** — **COMMITADO (`a795f65`):** `supabase/migration_2026-06-30_A4_resumos_mensais_enviados.sql` (idempotente; se a tabela já existe à mão, é no-op — só confere colunas). **Falta só RODAR no SQL Editor.**
-- [~] **[A9 🟡] `ALTER TABLE compras ADD COLUMN cnpj` + gravar no `salvarCompra`** — **COMMITADO (`a795f65`):** `supabase/migration_2026-06-30_A9_compras_cnpj.sql` + edição no `salvarCompra` (destructure + insert `cnpj`), tudo no `origin/main`. Prepara o comparativo (cod-0020). **Falta só RODAR o `ALTER` no SQL Editor — ANTES do próximo deploy do código** (senão o insert quebra). Cupons antigos ficam com `cnpj=NULL`; preenchem a partir do próximo.
+- [x] **[A9 🟡] `compras.cnpj` — RODADA (2026-07-09):** `ALTER TABLE compras ADD COLUMN cnpj` executado no SQL Editor; verificação retornou a coluna. O `salvarCompra` (que já gravava `cnpj` desde `a795f65`) está desbloqueado em produção. Cupons antigos ficam com `cnpj=NULL`; preenchem a partir do próximo.
 - [ ] **[A10 🟢] Corrigir o comentário de `beta_fundador` no `schema.sql`** ("garante 3 meses grátis + preço travado") — contradiz a decisão de 2026-05-19 que revogou os benefícios de Beta. (`supabase/` = você.)
 - [x] **[A7 🟡] Reconciliar memória × deploy — CONCLUÍDO (06-26):** working tree limpo e sincronizado com `origin/main` (F3 `/cortar`, encurtamento, testes e parser todos commitados em `b73b15b`/`e8de024`); `_writetest_root.tmp` removido; `CLAUDE.md` × `AGENDA.md` alinhados nesta sessão. ⚠️ Ressalva: a limpeza do GitHub Actions ficou **parcial** — `pages-ci.yml` saiu, mas `ci.yml` e `claude-nightly.yml` **ainda estão** em `.github/workflows/` (ver checklist "Limpeza do GitHub Actions" abaixo).
-- [ ] **[A1 🔴 financeiro] Ligar o gate Pro** do comparativo (cod-0020) e do alerta inteligente (cod-0023) via `temFeaturesProAtivas` — toca `is_pro` (firewall), é seu. **Sem isso, o pago entrega só cupons ilimitados** e a recompensa de indicação fica vazia.
+- [~] **[A1 🔴 financeiro] Ligar o gate Pro** do comparativo (cod-0020) e do alerta inteligente (cod-0023) via `temFeaturesProAtivas` — toca `is_pro` (firewall), é seu. **Sem isso, o pago entrega só cupons ilimitados** e a recompensa de indicação fica vazia. **✅ DESDOBRADO (2026-07-10):** snippets prontos + checklist em `Economizei app/Gate_Pro_Desdobramento_2026-07-10.md`. Decisões tomadas: Pro vê até 10 (`COMPARATIVO_MAX_PRO`); teaser Free com upsell honesto citando `/planos` (sem preço hardcoded). **Falta só você aplicar na sua máquina** (checklist de 7 passos no doc; firewall vai acusar de propósito — commit consciente).
 - [ ] **[A6 🟠] Testes do caminho do dinheiro** (`mercadopago.js`, conciliação de webhook, liga/desliga `is_pro`) — tocam tokens financeiros (firewall) → escrever/revisar é humano.
 
 **Limpeza do GitHub Actions — ✅ CONCLUÍDA (commit `f384dab`, confirmado 2026-07-02):**
@@ -416,7 +578,8 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - [x] **[Auditoria 06-25 · §4] Sequência — CONFIRMADA (2026-06-27):** fechar a promessa do pago (`/apagar` ✅ → comparativo cod-0020 → alerta Pro cod-0030..0035) **antes** de escalar anual/afiliados/ads e antes do Agente de Perguntas (cod-0013→0017 descem na fila). Ordem aceita pelo Gabriel. *(numeração corrigida 2026-07-02: a cadeia Pro vai até cod-0035, não 0036.)*
 - **[2026-06-27] Alerta Inteligente Pro — pré-requisitos humanos** (desenho: `Economizei app/Desenho_Alerta_Inteligente_Pro_2026-06-27.md`):
   - [x] **Decisão de pricing Free×Pro — DECIDIDA (2026-07-08): proposta do desenho.** **Free** = alerta de 3 níveis + `/cortar` + pergunta avulsa "quanto gastei em X" (dentro da cota do Agente). **Pro** = acompanhamentos persistentes + alerta de limite proativo + supérfluo configurável.
-  - [ ] **Rodar a migration** `supabase/migration_FUTURA_alerta_pro_acompanhamentos.sql` (JÁ ESCRITA — tabela `acompanhamentos` + `usuarios.categorias_superfluas` + RLS + cascade pro `/apagar`) no SQL Editor. **Rodar antes de o cod-0031 funcionar em produção.**
-  - [ ] **Ligar o gate Pro** (`temFeaturesProAtivas`/`is_pro`) nas peças Pro (comandos `/acompanhar`, alerta de limite, supérfluo configurável) — toca financeiro (firewall), é seu. **Bloqueia cod-0032/0033/0035** de virarem feature Pro de verdade.
+  - [x] **Migration RODADA e confirmada (2026-07-08):** `supabase/migration_FUTURA_alerta_pro_acompanhamentos.sql` aplicada no Supabase de produção. Verificado por query: tabela `acompanhamentos` existe com RLS `true`, coluna `usuarios.categorias_superfluas` criada. O cod-0031 já pode funcionar em produção assim que for escrito/deployado.
+  - [~] **Ligar o gate Pro** (`temFeaturesProAtivas`/`is_pro`) nas peças Pro (comandos `/acompanhar`, alerta de limite, supérfluo configurável) — toca financeiro (firewall), é seu. **✅ DESDOBRADO (2026-07-10)** em `Economizei app/Gate_Pro_Desdobramento_2026-07-10.md` (Peça 3): a máquina constrói cod-0032/0033/0035 **sem gate** (firewall-limpo) e você insere as ~3 linhas de gate na revisão do diff. `/acompanhamentos` e `/parar` ficam SEM gate (quem caiu do Pro precisa ver/parar o que configurou). **Com isso, cod-0032/0033 estão promovíveis pra Fila pronta** na próxima sessão de planejamento; pendente de decisão fina: bloco de supérfluo com baseline aparece pra todos ou só Pro (sugestão no doc: baseline pra todos, configuração `/superfluo` gated).
   - [x] **Classificação primeiro — FEITA:** cod-0026 (`nome_canonico` pelo tipo genérico) + cod-0027 (corpus) + cod-0030 (matching puro) já commitados. O chão do Pilar B está pronto.
   - [ ] **cod-0034 (intent NL "quanto gastei em X")** depende do **Agente no ar em produção** (migration do agente + envs) — só enfileirar depois disso.
+- [ ] **[2026-07-09] Sessão de desdobramento do Longo Prazo (Frentes 1 e 2)** — discutir os insights do `Economizei app/Horizonte_Longo_Prazo_2026-07-09.md` (canal fora do Brasil, sensibilidade da fatura de cartão, ordem das fases jul→out) e só então quebrar as sementes **cod-0060..0064** em tarefas de fila. **Nada do Longo Prazo sobe pra "Fila pronta" antes desta sessão.**
