@@ -73,7 +73,9 @@ async function _montarTarefas() {
   // --- Segmento B — inatividade (ciclo único, mesRef = null) ---
   const inativos = [
     { dias: 3,  id: 'inativo_d3',  texto: () => formatter.montarLembreteInativoD3() },
-    { dias: 10, id: 'inativo_d10', texto: (u) => formatter.montarLembreteInativoD10(u.compras_mes_atual ?? 0) },
+    // cod-0024: não passa `compras_mes_atual` — o reset preguiçoso pode deixá-lo
+    // stale (mês anterior) pra usuário inativo; a mensagem omite o número.
+    { dias: 10, id: 'inativo_d10', texto: () => formatter.montarLembreteInativoD10() },
     { dias: 30, id: 'inativo_d30', texto: () => formatter.montarLembreteInativoD30() },
     { dias: 60, id: 'inativo_d60', texto: () => formatter.montarLembreteInativoD60() },
   ];

@@ -127,11 +127,14 @@ function reconciliarItens(total, itens) {
   };
 }
 
+// Não infere mais "nao_supermercado" a partir de farmácia/posto/restaurante no
+// motivo: desde 2026-06-04 o bot LÊ qualquer estabelecimento (tipo="outros"),
+// então o tipo de loja nunca é o motivo real de uma falha de extração — só
+// reflete o problema real (borrado/sem itens/cupom cortado/não é cupom/outro).
 function inferirCategoria(motivo) {
   if (typeof motivo !== 'string') return 'outro';
   const m = motivo.toLowerCase();
   if (m.includes('borrad') || m.includes('escur') || m.includes('legíve') || m.includes('legive')) return 'borrado';
-  if (m.includes('farmác') || m.includes('farmac') || m.includes('restaurante') || m.includes('posto')) return 'nao_supermercado';
   if (m.includes('item') || m.includes('itens')) return 'sem_itens';
   if (m.includes('cortad') || m.includes('long') || m.includes('parcial')) return 'muito_longo';
   if (m.includes('não é cupom') || m.includes('nao é cupom') || m.includes('não parece')) return 'nao_e_cupom';
@@ -435,4 +438,4 @@ function _scoreReconciliacao(resultado) {
   return Math.max(0, 100 - Math.min(100, rc.divergencia_pct ?? 100));
 }
 
-module.exports = { lerRecibo, avaliarQualidadeCanonicoItem };
+module.exports = { lerRecibo, avaliarQualidadeCanonicoItem, inferirCategoria };

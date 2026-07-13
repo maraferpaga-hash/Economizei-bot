@@ -168,9 +168,9 @@ function montarMensagemErro(motivo, categoria = 'outro') {
       '• Cupom esticado, sem dobras\n' +
       '• Câmera paralela ao papel, sem ângulo',
     nao_supermercado:
-      '🏪 *Esse cupom não é de supermercado.*\n\n' +
-      'Por enquanto eu só leio cupons de mercado/atacadão. ' +
-      'Farmácia, restaurante e posto ainda não — tô focado em economia de mercado primeiro.',
+      '📋 *Não consegui processar esse cupom.*\n\n' +
+      'Eu leio cupom de qualquer estabelecimento — mercado, farmácia, posto, restaurante — ' +
+      'e registro como "Outros (não-mercado)". Tenta de novo com boa luz e o cupom bem esticado.',
     sem_itens:
       '⚠️ *Li o cupom, mas os itens estão ilegíveis.*\n\n' +
       'Tira de novo bem focado na lista de itens — ou se preferir, salvo só o total dessa compra.',
@@ -794,10 +794,12 @@ function montarLembreteInativoD3() {
   );
 }
 
-function montarLembreteInativoD10(qtdComprasMes) {
-  const qtd = Number(qtdComprasMes) || 0;
+// cod-0024: NÃO cita a contagem de compras do mês — com o reset preguiçoso,
+// `compras_mes_atual` pode refletir o mês ANTERIOR pra usuário inativo há 10
+// dias (número enganoso). Decisão do critério de aceite: omitir o número.
+function montarLembreteInativoD10() {
   return (
-    `Oi! Você já tem ${qtd} compra(s) registrada(s) este mês. No fim do mês te mando o resumo completo de tudo — ainda dá pra completar, manda mais um cupom quando puder. 📋`
+    'Oi! No fim do mês te mando o resumo completo de tudo que você registrar até lá. Ainda dá tempo — manda a foto do cupom da próxima compra que ela entra na conta. 📋'
   );
 }
 
