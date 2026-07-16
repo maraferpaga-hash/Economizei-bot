@@ -230,68 +230,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 > **✅ RECONCILIADO em 2026-07-13 (sessão de entrega — Cowork):** TODAS as tarefas que estavam aqui foram commitadas e pushadas em 6 commits (`origin/main` sincronizado, working tree limpo): **cod-0021 + cod-0024** (`7082535`), **cod-0022** (`473ea18`), **cod-0031** (`86dbb64`), **cod-0040** (`0dc9159`), **cod-0050** (`0b81181`) e docs/memória (`9182b91`). As históricas (cod-0013, cod-0014..0017, cod-0020) já estavam em `d4eaf51`/`3b2f375` desde 07-08. Detalhes de cada tarefa preservados em "✅ Concluído" abaixo. Seção esvaziada (curadoria).
 
-### [P3] Testes do dedup (`despacharComDedup`) + validação do webhook
-- id: cod-0052
-- tipo: teste
-- skills: economizei-tdd, economizei-code-decisions
-- objetivo: a Lei 5 (idempotência) nunca foi exercitada por teste (achado §6.2). Cobrir `despacharComDedup` e a validação de payload do webhook.
-- arquivos-alvo: `src/index.js` (só exportar `despacharComDedup` e, se preciso, extrair a validação de payload pra função pura — refactor mínimo sem mudar comportamento), `test/webhook-dedup.test.js` (novo)
-- criterios-de-aceite:
-  - duplicado=true → fn NÃO roda e loga `webhook_evento_duplicado`; duplicado=false → fn roda; sem messageId → fn roda e loga `webhook_sem_message_id` ✅ (+ registrar nunca é consultado sem messageId; erro em fn propaga pro `.catch` do chamador; logs mascaram o phone — LGPD)
-  - dedup com dependência injetada/mockada (nunca Supabase real) ✅ (param opcional `deps = {}` em `despacharComDedup`; default = módulos reais, produção inalterada)
-  - validação de payload: phone inválido, text vazio, imageUrl não-http → rejeitados ✅ (19 testes: phone ausente/não-string/curto/letras, `+` normalizado, body nulo sem exceção, text vazio/whitespace/não-string, imageUrl ftp/relativa/ausente/não-string, messageId trim/whitespace→null, delivery receipt → tipo `ignorado`)
-  - node --test verde ✅ (355/355 na réplica /tmp com `sharp` stubado — SIGBUS é ambiental); firewall verde ✅ (`--working`, 13 arquivos, 0 tokens financeiros)
-- fora-de-escopo: NÃO tocar handlers de pagamento (`/assinar`, `/pix`, webhook MP); não mudar semântica do dedup (registrar-antes-de-processar é decisão registrada — Auditoria §2.7)
-- nota de implementação (2026-07-15, rotina matinal): (1) a validação de payload virou a função pura `validarPayloadWebhook(body)` e o handler `POST /webhook` passou a usá-la — **mesma ordem de antes** (phone inválido rejeita ANTES do rate limit; text/imagem malformado rejeita DEPOIS; mesmos logs `payload_invalido`/`webhook_recebido`); (2) pra o `require('../src/index.js')` do teste não abrir porta, o `app.listen` (+ scheduler + guarda de schema) ficou atrás de `if (require.main === module)` — `npm start` roda direto, comportamento de produção idêntico; (3) o `setInterval` de limpeza do rate limiter ganhou `.unref()` (não segura o processo do node --test; em produção o servidor mantém o processo, nada muda); (4) exports test-only no fim do arquivo (`despacharComDedup`, `validarPayloadWebhook`); (5) handler MP (`/webhook/mercadopago`) **intocado**. ⚠️ o mount do sandbox truncou o `src/index.js` editado DE NOVO (recorrente) — validação em réplica /tmp reconstruída de HEAD + edições; **`npm run check` na máquina do Gabriel é o gate final**.
-- status: em-revisao (2026-07-15)
-
-### [P2] Agente — Leva 2b: comparativo + supérfluo como intents
-- id: cod-0041
-- tipo: feature-codigo
-- skills: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-copywriter, copy-review, economizei-financial-firewall
-- objetivo: 2 intenções — `comparativo_mercados` ("onde tá mais barato?") reusando `compararPrecosMercado`/`buscarObservacoesComparativo` com o MESMO teaser por env do `/comparar` (`COMPARATIVO_AMOSTRAS_FREE`, sem citar plano), e `gasto_superfluo` ("quanto foi de besteira?") reusando `buscarGastoSuperfluo` + `buscarCategoriasSuperfluas` (baseline doces+bebidas).
-- arquivos-alvo: `src/agent/intents.js`, `test/`
-- criterios-de-aceite:
-  - mesmos padrões do cod-0040 (fato rico, fmt via brl, temDados honesto, exemplos no registro) ✅
-  - comparativo: estado-vazio honesto quando a base `precos_mercado` não casa ≥2 lojas (nunca número chutado) ✅ (testado)
-  - testes verdes ✅ (275/278 — 3 SIGBUS ambientais do `sharp`, passam no Windows); firewall verde ✅ (0 tokens financeiros)
-- fora-de-escopo: gate Pro (humano); `gasto_por_termo` (é o cod-0034, depende do Agente no ar); nada financeiro
-- nota-gate (2026-07-10): quando esta intent subir, o executor do comparativo deve receber `ehPro` pra usar `COMPARATIVO_MAX_PRO` no Pro — já preparado: `deps.maxComparativos` existe pro wiring do gate ser 1 linha no chamador (`Gate_Pro_Desdobramento_2026-07-10.md` Peça 4); zero decisão nova
-- depende-de: cod-0040 (`0dc9159` ✅); cod-0031 (`86dbb64` ✅)
-- nota (2026-07-13, rotina matinal): as 2 intents JÁ ESTAVAM implementadas no working tree (`src/agent/intents.js`, mudança de ~02:28 de hoje, execução anterior incompleta — sem teste, sem AGENDA, sem relatório). Esta execução COMPLETOU a tarefa: revisei a implementação contra os critérios (ok — padrões da 2a, estado-vazio honesto, teaser pela mesma env), escrevi `test/agent-intents-leva2b.test.js` (16 testes) e atualizei o invariante do REGISTRO (7→9 intents) em `test/agent-intents.test.js`. Detalhes no `RELATORIO_MATINAL.md`.
-- nota (2026-07-13, tarde — Cowork): mistério resolvido — a "execução anterior incompleta" era a sessão Cowork da madrugada (Gabriel pediu 2 tarefas; a implementação parou nos testes). Na retomada, a sessão reconciliou com o trabalho da rotina (nada refeito, nada conflitou) e seguiu pra cod-0042.
-- status: em-revisao (2026-07-13)
-
-### [P3] Agente — intent `duvida_sobre_bot` (ajuda natural)
-- id: cod-0042
-- tipo: feature-codigo
-- skills: economizei-code-decisions, economizei-tdd, economizei-copywriter, copy-review, economizei-financial-firewall
-- objetivo: "o que você sabe fazer?", "como funciona?" respondidos naturalmente (lista viva derivada do registro de intents + comandos), em vez de caírem em `fora_de_escopo`. Reduz o maior balde de frustração esperado no log.
-- arquivos-alvo: `src/agent/intents.js`, `src/formatter.js` (se precisar de template), `test/`
-- criterios-de-aceite:
-  - a resposta lista exemplos de pergunta reais derivados dos `exemplos` do registro (não hardcoded duplicado) ✅ (lista viva: 1 exemplo por intent, calculada em runtime do REGISTRO; nº de bullets = REGISTRO.length−1, testado)
-  - não consome cota (como off-topic — decisão do orquestrador cod-0017) ✅ (flag `consomeCota:false` na intent + guarda no passo [6] do orquestrador; testado de ponta a ponta com aviso-do-meio como sentinela)
-  - sem citar preço/plano ✅; testes verdes ✅ (284/284 no lote puro em réplica /tmp); firewall verde ✅ (`--working`, 5 arquivos, 0 tokens)
-- fora-de-escopo: reescrever /ajuda; nada financeiro
-- depende-de: cod-0040 (`0dc9159` ✅)
-- nota de implementação (2026-07-13, Cowork): (1) o template NÃO foi pro `formatter.js` de propósito — a lista viva precisa do REGISTRO e o `formatter` é importado pelo `intents.js` (seria dependência circular); (2) `executar()` devolve `temDados:false` → o render responde pelo template SEM chamar o LLM (Camada 3) — ajuda tem custo zero de Gemini; (3) o passo [6] do orquestrador (`src/agent/index.js`) ganhou a guarda `if (def.consomeCota !== false)` — edição fora dos arquivos-alvo, necessária pro critério da cota, declarada aqui; (4) exemplos exibidos na ajuda passam por filtro de gíria ("tá"/"tô" ficam pro classificador, a mensagem do bot mostra o primeiro exemplo limpo — regra 2026-05-26; precedente: `montarForaDeEscopo` mostra "estou", não "tô"); (5) intent nova entra no registro e o classificador aprende sozinho (prompt derivado — zero mudança no `classifier.js`); invariante do REGISTRO atualizado 9→10.
-- status: em-revisao (2026-07-13)
-
-### [P2] Testes da rede de segurança da EXTRAÇÃO (reconciliação + schema + parse)
-- id: cod-0051
-- tipo: teste
-- skills: economizei-tdd, economizei-code-decisions
-- objetivo: cobrir com teste as funções que protegem o coração do produto e hoje têm ZERO teste (achado §6.1 da Auditoria Integral): `reconciliarItens`, `validarSchema`, `_scoreReconciliacao` e o parse seguro do JSON do Gemini em `src/gemini.js`.
-- arquivos-alvo: `test/gemini-extracao.test.js` (novo) + export mínimo em `src/gemini.js` (sem mudar comportamento).
-- criterios-de-aceite:
-  - reconciliarItens: soma fecha com o total (ok), diverge além da tolerância (flag), tolerância entre R$2 e 15% ✅ (piso R$2 e teto 15% testados dos 2 lados; fallback `preco_unitario`; preço string pt-BR; preço ilegível conta 0)
-  - validarSchema: campo faltando, itens vazios, categoria inválida → saída segura (`outros`/`nao_mercado`), nunca exceção ✅ (14 casos, incl. item nulo, itens não-array, total em string pt-BR, loja/data fallback)
-  - parse: JSON com cerca de markdown, JSON quebrado, texto livre → `{ok:false}` sem exceção ✅ (6 casos, incl. null/undefined/vazio)
-  - _scoreReconciliacao: escolhe a tentativa que melhor fecha ✅ (incl. clamp de divergência >100%)
-  - node --test verde ✅ (31 testes novos; 47/47 no lote gemini em réplica /tmp com `sharp` stubado — SIGBUS é ambiental, passam no Windows); firewall verde ✅ (`--working`, 10 arquivos, 0 tokens financeiros)
-- fora-de-escopo: não mudar prompt/limiar (só cobrir o que existe); nada financeiro
-- nota de implementação (2026-07-14, rotina matinal): o parse inline de `lerRecibo` (fence + JSON.parse + catch) foi extraído pra função pura `parseRespostaGemini(textoBruto)` → `{ok, dados?, texto}` — era a única forma de cumprir o critério do parse sem chamar o Gemini; `lerRecibo` usa a função nova com comportamento idêntico (mesmos logs `gemini_json_invalido`/`gemini_resposta_bruta`, mesmo fallback/continue). Exports adicionados em `gemini.js`: `reconciliarItens`, `validarSchema`, `parseRespostaGemini`, `_scoreReconciliacao` (comentados como test-only). Limitação honesta: `validarSchema(null)` seguiria lançando (protegido pelo try de `lerRecibo`) — endurecer seria mudança de comportamento, fora do escopo; testado só com objeto. ⚠️ o mount do sandbox truncou o `gemini.js` editado DE NOVO (recorrente) — validação feita em réplica /tmp reconstruída; **`npm run check` na máquina do Gabriel é o gate final**.
-- status: em-revisao (2026-07-14)
+> **✅ RECONCILIADO em 2026-07-16 (comando `/entregar`):** 4 tarefas commitadas e pushadas em 4 commits (`origin/main` sincronizado, working tree limpo, 355/355 testes verdes, firewall verde): **cod-0041+0042** (`c355d74`), **cod-0051** (`38689b9`), **cod-0052** (`a40110f`) e docs/painel (`73f8cce`). Detalhes preservados em "✅ Concluído" abaixo. Seção esvaziada.
 
 ---
 
@@ -306,6 +245,12 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - **cod-0031 · Alerta Pro — camada de persistência de acompanhamentos** (commit `86dbb64`, 2026-07-13) — 5 funções + baseline no `supabase.js` (`buscarAcompanhamentos`, `salvarAcompanhamento` upsert, `desativarAcompanhamento` soft-delete, `set/buscarCategoriasSuperfluas` com baseline `['doces','bebidas']`), degradação segura, `cliente` injetável. `test/acompanhamentos-io.test.js` (17 testes). **Inerte em produção até a cod-0041/0032+ ligarem.** *(skills: code-decisions, tdd, financial-firewall, security-lgpd)*
 - **cod-0040 · Agente — Leva 2a: 4 intents com inteligência pronta** (commit `0dc9159`, 2026-07-13) — `inflacao_item`, `raio_x_categorias`, `economia_acumulada`, `onde_cortar` no registro do Agente, reusando F1/F2/F3/F4 do `insights.js`; fato rico via `brl()`, `temDados` honesto, Camada 4/5 respeitadas; `classifier.js` intocado (aprende pelo registro). `test/agent-intents-leva2.test.js` (14 testes) + invariante do MVP atualizado (3→7 intents). *(skills: code-decisions, tdd, product-principles, copywriter, copy-review, financial-firewall)*
 - **cod-0050 · Guarda de schema no boot** (commit `0b81181`, 2026-07-13) — `src/schemaGuard.js` (12 checagens críticas via probe de leitura vazia; NUNCA bloqueia o boot; log `schema_guard_faltando` + aviso opcional via `ADMIN_PHONE`) + wiring fire-and-forget no `app.listen`. Rede de segurança do incidente A9. `test/schema-guard.test.js` (13 testes). ⚠️ Vai acusar `acompanhamentos`/`usuarios.categorias_superfluas` até a migration do Alerta Pro rodar — é o desenho. *(skills: code-decisions, tdd, financial-firewall, debugging)*
+
+> **Entrega de 2026-07-16:** 4 tarefas commitadas e pushadas via `/entregar` (firewall verde, 355/355 testes verdes, origin/main sincronizado).
+
+- **cod-0041 + cod-0042 · Agente — Leva 2b** (commit `c355d74`, 2026-07-16) — `comparativo_mercados` + `gasto_superfluo` como intents (reusam `compararPrecosMercado`/`buscarGastoSuperfluo`); `duvida_sobre_bot` com lista viva derivada do REGISTRO; `consomeCota:false` + guarda no passo [6] do orquestrador; `test/agent-intents-leva2b.test.js` (16 testes) + `test/agent-duvida-bot.test.js`; invariante REGISTRO 9→10. *(skills: code-decisions, tdd, product-principles, copywriter, copy-review, financial-firewall)*
+- **cod-0051 · Testes da extração Gemini** (commit `38689b9`, 2026-07-16) — `parseRespostaGemini` extraída de `lerRecibo` (pura, testável); exports test-only em `gemini.js`; `test/gemini-extracao.test.js` (31 testes: `reconciliarItens`, `validarSchema`, `parseRespostaGemini`, `_scoreReconciliacao`). Fecha zero-teste no coração da extração. *(skills: tdd, code-decisions)*
+- **cod-0052 · Testes dedup + validação de payload webhook** (commit `a40110f`, 2026-07-16) — `validarPayloadWebhook` extraída pura; `app.listen` atrás de `require.main === module`; exports test-only em `index.js`; `test/webhook-dedup.test.js` (19 testes: dedup com deps injetadas, payload malformado, messageId/phone/imageUrl). *(skills: tdd, code-decisions, financial-firewall)*
 
 > **Reconciliado em 2026-07-02:** as 6 tarefas abaixo já estavam commitadas e pushadas (working tree limpo em `a795f65 = origin/main`); a AGENDA é que estava stale (ainda as listava em "Em revisão"). Verificado por `git log`.
 
