@@ -91,6 +91,19 @@ function limparMarkdownFence(texto) {
     .trim();
 }
 
+// Parse SEGURO da resposta do Gemini: limpa a cerca de markdown e tenta o
+// JSON.parse sem NUNCA lançar exceção. Retorna { ok:true, dados, texto } ou
+// { ok:false, texto } — o chamador decide o log/fallback. Extraída do corpo de
+// lerRecibo (cod-0051) pra ser testável como função pura; comportamento idêntico.
+function parseRespostaGemini(textoBruto) {
+  const texto = limparMarkdownFence(String(textoBruto ?? ''));
+  try {
+    return { ok: true, dados: JSON.parse(texto), texto };
+  } catch {
+    return { ok: false, texto };
+  }
+}
+
 // Coerce: aceita "99,90" ou "99.90" ou 99.9 e retorna number (ou NaN se impossível)
 function coerceNumber(valor) {
   if (typeof valor === 'number') return valor;
@@ -374,24 +387,21 @@ async function lerRecibo(imageBuffer) {
   for (const tentativa of tentativas) {
     try {
       const textoBruto = await chamarGemini(model, tentativa.buffer, tentativa.mimeType);
-      const texto = limparMarkdownFence(textoBruto);
+      const parse = parseRespostaGemini(textoBruto);
 
       log('gemini_resposta_bruta', {
         tentativa: tentativa.label,
-        tamanho_chars: texto.length,
-        inicio: texto.slice(0, 120),
+        tamanho_chars: parse.texto.length,
+        inicio: parse.texto.slice(0, 120),
       });
 
-      let dados;
-      try {
-        dados = JSON.parse(texto);
-      } catch {
-        log('gemini_json_invalido', { tentativa: tentativa.label, texto: texto.slice(0, 300) });
+      if (!parse.ok) {
+        log('gemini_json_invalido', { tentativa: tentativa.label, texto: parse.texto.slice(0, 300) });
         ultimoResultado = { sucesso: false, categoria_erro: 'outro', motivo: 'Erro interno ao ler imagem' };
         continue; // tenta com o buffer seguinte
       }
 
-      const resultado = validarSchema(dados);
+      const resultado = validarSchema(parse.dados);
       ultimoResultado = resultado;
 
       if (resultado.sucesso) {
@@ -438,4 +448,14 @@ function _scoreReconciliacao(resultado) {
   return Math.max(0, 100 - Math.min(100, rc.divergencia_pct ?? 100));
 }
 
-module.exports = { lerRecibo, avaliarQualidadeCanonicoItem, inferirCategoria };
+module.exports = {
+  lerRecibo,
+  avaliarQualidadeCanonicoItem,
+  inferirCategoria,
+  // Exports mínimos pra teste (cod-0051) — rede de segurança da extração.
+  // Não mudam comportamento; só expõem as funções puras já existentes.
+  reconciliarItens,
+  validarSchema,
+  parseRespostaGemini,
+  _scoreReconciliacao,
+};
