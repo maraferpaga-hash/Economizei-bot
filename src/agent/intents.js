@@ -34,6 +34,8 @@ const {
   analisarInflacaoPessoal,
   analisarRaioXCategorias,
   analisarOndeCortar,
+  compararPrecosMercado,
+  buscarGastoSuperfluo,
 } = require('../insights');
 
 // Lazy require — só resolve supabase.js (e o createClient que ele dispara no
@@ -522,6 +524,209 @@ const ondeCortar = {
   },
 };
 
+// ═════════════════════════════════════════════════════════════════════════════
+// Leva 2b (cod-0041) — comparativo entre mercados + gasto supérfluo como
+// intents de conversa. Mesmos padrões da Leva 2a: fato rico, fmt.* via brl()
+// (fonte única), temDados honesto (estado-vazio NUNCA vira número chutado).
+// O gate por plano é passo HUMANO separado (AGENDA cod-0041, nota-gate) —
+// aqui o limite do comparativo é o MESMO teaser por env do /comparar.
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────────────────────
+// comparativo_mercados — "onde tá mais barato?"
+// Reusa buscarObservacoesComparativo (supabase.js) + compararPrecosMercado
+// (insights.js, cod-0020 — puro, já testado). Honestidade: nada casa em ≥2
+// lojas → estado-vazio, nunca número inventado. Fato rico: o destaque é o
+// comparativo de MAIOR diferença (a lista completa fica no /comparar).
+// ─────────────────────────────────────────────────────────────────────────────
+const comparativoMercados = {
+  id: 'comparativo_mercados',
+  descricao: 'Em qual mercado os produtos que a pessoa compra estão mais baratos (comparativo de preços entre lojas)',
+  exemplos: [
+    'onde tá mais barato', 'qual mercado é mais barato',
+    'onde compro mais barato', 'compara os preços dos mercados',
+  ],
+  parametros: {},
+
+  async executar(phone, params = {}, deps = {}) {
+    const buscar = deps.buscarObservacoesComparativo || _supabase().buscarObservacoesComparativo;
+    // MESMO teaser por env do /comparar (cod-0020): limite único pra todos,
+    // nenhuma decisão de plano aqui. deps.maxComparativos existe pra o wiring
+    // futuro do limite por perfil ser 1 linha no chamador, sem tocar esta função.
+    const maxComparativos = deps.maxComparativos != null
+      ? deps.maxComparativos
+      : (Number(process.env.COMPARATIVO_AMOSTRAS_FREE) || 3);
+
+    const { observacoes, produtosDoUsuario, lojaDoUsuario } = await buscar(phone);
+    const resultado = compararPrecosMercado(observacoes, {
+      produtosDoUsuario,
+      lojaDoUsuario,
+      minEconomiaPct: 3, // mesma régua do /comparar — diferença irrelevante não vira "achado"
+      maxComparativos,
+    });
+
+    if (!resultado.temComparativo) return { temDados: false };
+
+    const destaque = resultado.comparativos[0]; // maior diferença primeiro (ordenação do insights.js)
+    const fmt = {
+      menorPreco: `R$ ${brl(destaque.menor.preco)}`,
+      maiorPreco: `R$ ${brl(destaque.maior.preco)}`,
+      economia: `R$ ${brl(destaque.economia)}`,
+      economiaPct: `${destaque.economiaPct}%`,
+      nComparaveis: String(resultado.totalComparaveis),
+    };
+    if (destaque.economiaUsuario) {
+      fmt.precoUsuario = `R$ ${brl(destaque.precoUsuario)}`;
+      fmt.economiaUsuario = `R$ ${brl(destaque.economiaUsuario)}`;
+    }
+
+    return {
+      temDados: true,
+      destaque,
+      totalComparaveis: resultado.totalComparaveis,
+      mostrados: resultado.mostrados,
+      temMais: resultado.temMais,
+      janelaDias: resultado.janelaDias,
+      fmt,
+    };
+  },
+
+  template(fato) {
+    if (!fato.temDados) {
+      return 'Ainda não encontrei o mesmo produto em mercados diferentes pra comparar os preços. Quanto mais cupons a rede registra, mais rico fica o comparativo — continue mandando os seus.';
+    }
+    const d = fato.destaque;
+    let txt = `A maior diferença que encontrei: ${d.produto} sai por ${fato.fmt.menorPreco} no ${d.menor.loja} e ${fato.fmt.maiorPreco} no ${d.maior.loja} — ${fato.fmt.economia} (${fato.fmt.economiaPct}) de diferença.`;
+    if (d.posicaoUsuario === 'mais_barato') {
+      txt += ' Você já comprou no mais barato.';
+    } else if (fato.fmt.economiaUsuario) {
+      txt += ` Você pagou ${fato.fmt.precoUsuario} — dava pra economizar ${fato.fmt.economiaUsuario}.`;
+    }
+    if (fato.totalComparaveis > 1) {
+      txt += ` Tenho ${fato.fmt.nComparaveis} produtos comparáveis — pra lista completa: /comparar.`;
+    }
+    return txt;
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// gasto_superfluo — "quanto foi de besteira?"
+// Reusa buscarGastosPorCategoria + buscarCategoriasSuperfluas (supabase.js) +
+// buscarGastoSuperfluo (insights.js, cod-0030 — baseline doces+bebidas quando
+// o usuário não configurou nada). Distingue os dois vazios honestamente: sem
+// gasto nenhum no mês ≠ com gastos mas nada nas categorias supérfluas.
+// ─────────────────────────────────────────────────────────────────────────────
+const gastoSuperfluo = {
+  id: 'gasto_superfluo',
+  descricao: 'Quanto a pessoa gastou em itens supérfluos (besteiras) no mês, e em quais categorias',
+  exemplos: [
+    'quanto foi de besteira', 'quanto gastei em besteira esse mês',
+    'quanto foi de supérfluo', 'gastei muito em bobagem',
+  ],
+  parametros: {
+    periodo: { tipo: 'periodo', obrigatorio: false, default: 'mes_atual' },
+  },
+
+  async executar(phone, params = {}, deps = {}) {
+    const buscarGastos = deps.buscarGastosPorCategoria || _supabase().buscarGastosPorCategoria;
+    const buscarCats = deps.buscarCategoriasSuperfluas || _supabase().buscarCategoriasSuperfluas;
+    const mesRef = _resolverMesRef(params.periodo, 'mes_atual');
+
+    const dados = await buscarGastos(phone, mesRef);
+    if (!dados || dados.length === 0) {
+      return { temDados: false, mesRef, teveGastoNoMes: false };
+    }
+
+    let categorias = null; // null → baseline (doces+bebidas) dentro da análise
+    try {
+      categorias = await buscarCats(phone);
+    } catch (_) { /* degradação segura: análise segue no baseline */ }
+
+    const analise = buscarGastoSuperfluo(dados, categorias);
+    if (!analise.porCategoria.length || analise.totalSuperfluo <= 0) {
+      return { temDados: false, mesRef, teveGastoNoMes: true };
+    }
+
+    const fmt = {
+      total: `R$ ${brl(analise.totalSuperfluo)}`,
+      pct: `${analise.pctDoMes}%`,
+    };
+    analise.porCategoria.forEach((c, i) => {
+      fmt[`c${i + 1}Valor`] = `R$ ${brl(c.valor)}`;
+    });
+
+    return {
+      temDados: true,
+      mesRef,
+      totalSuperfluo: analise.totalSuperfluo,
+      pctDoMes: analise.pctDoMes,
+      pct: analise.pctDoMes, // o render autoriza o % cru na allowlist via fato.pct
+      porCategoria: analise.porCategoria,
+      fmt,
+    };
+  },
+
+  template(fato) {
+    if (!fato.temDados) {
+      if (fato.teveGastoNoMes) {
+        return `Em ${nomeDoMes(fato.mesRef)} não encontrei gasto nas suas categorias de supérfluo. Bom sinal.`;
+      }
+      return `Ainda não tenho gastos registrados em ${nomeDoMes(fato.mesRef)}.`;
+    }
+    const partes = fato.porCategoria.map(
+      (c, i) => `${rotuloCategoria(c.categoria)} ${fato.fmt[`c${i + 1}Valor`]}`
+    );
+    return `Em ${nomeDoMes(fato.mesRef)} foram ${fato.fmt.total} em itens supérfluos (${fato.fmt.pct} do mês): ${partes.join(', ')}.`;
+  },
+};
+
+// ═════════════════════════════════════════════════════════════════════════════
+// cod-0042 — duvida_sobre_bot: "o que você sabe fazer?" respondido natural-
+// mente, em vez de cair em fora_de_escopo (o maior balde de frustração
+// esperado no log). A lista de exemplos é VIVA: derivada dos `exemplos` do
+// próprio REGISTRO em tempo de execução — intent nova entra na ajuda sozinha,
+// sem duplicar copy. Não consome cota (flag `consomeCota:false`, mesma
+// decisão do off-topic no orquestrador cod-0017): ajuda não é pergunta sobre
+// os gastos. `temDados:false` no fato garante resposta pelo template, sem
+// LLM (Camada 3) e sem custo.
+// ═════════════════════════════════════════════════════════════════════════════
+const duvidaSobreBot = {
+  id: 'duvida_sobre_bot',
+  descricao: 'A pessoa pergunta o que o Economizei sabe fazer, como funciona ou o que dá pra perguntar (ajuda sobre o próprio bot)',
+  exemplos: [
+    'o que você sabe fazer', 'como funciona',
+    'que perguntas posso fazer', 'me ajuda a usar o bot',
+  ],
+  parametros: {},
+  consomeCota: false,
+
+  async executar() {
+    // Sem I/O e sem número. temDados:false → o render responde direto pelo
+    // template (não há dado pro LLM enfeitar) e nada é buscado no banco.
+    return { temDados: false, ajuda: true };
+  },
+
+  template() {
+    // Lista viva: 1 exemplo real por intent, exceto esta própria. Registro
+    // cresceu → a ajuda cresce junto, sem tocar aqui. Exibe o primeiro
+    // exemplo SEM gíria: os exemplos do registro são voz de usuário (bom pro
+    // classificador), mas mensagem do bot não usa gíria (regra 2026-05-26).
+    // \b do JS falha após vogal acentuada ("tá") — compara sem acento.
+    const temGiria = (e) => /\b(ce|ta|ne|to)\b/.test(
+      String(e).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    );
+    const exemplos = REGISTRO
+      .filter((i) => i && i.id !== 'duvida_sobre_bot' && Array.isArray(i.exemplos) && i.exemplos.length)
+      .map((i) => i.exemplos.find((e) => !temGiria(e)) || i.exemplos[0])
+      .map((e) => `• _${e}?_`);
+    return (
+      `Eu leio a foto do seu cupom e respondo perguntas sobre os seus gastos de mercado. 📸\n\n` +
+      `Pode perguntar, por exemplo:\n${exemplos.join('\n')}\n\n` +
+      `Pra ver os comandos: /ajuda`
+    );
+  },
+};
+
 const REGISTRO = [
   gastoTotalMes,
   gastoPorCategoria,
@@ -530,6 +735,9 @@ const REGISTRO = [
   raioXCategorias,
   economiaAcumulada,
   ondeCortar,
+  comparativoMercados,
+  gastoSuperfluo,
+  duvidaSobreBot,
 ];
 
 module.exports = {
@@ -541,6 +749,9 @@ module.exports = {
   raioXCategorias,
   economiaAcumulada,
   ondeCortar,
+  comparativoMercados,
+  gastoSuperfluo,
+  duvidaSobreBot,
   CATEGORIAS_VALIDAS,
   rotuloCategoria,
 };

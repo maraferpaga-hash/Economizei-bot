@@ -106,10 +106,15 @@ async function responderPergunta(phone, texto, deps = {}) {
     await d.enviarMensagem(phone, resultado.texto);
 
     // [6] Cota + aviso do meio (idempotente por igualdade — cod-0016) + LOG.
-    const novas = await d.incrementarPerguntas(phone);
-    const usadasAgora = novas != null ? novas : cota.usadas + 1;
-    if (decidirCota(usadasAgora, cota.limite).cruzouMetade) {
-      await d.enviarMensagem(phone, montarAvisoMeioLimitePerguntas(usadasAgora, cota.limite));
+    // Intent marcada com consomeCota:false (ex.: duvida_sobre_bot, cod-0042)
+    // não incrementa nem dispara o aviso — mesma decisão do off-topic: ajuda
+    // não é pergunta sobre os gastos.
+    if (def.consomeCota !== false) {
+      const novas = await d.incrementarPerguntas(phone);
+      const usadasAgora = novas != null ? novas : cota.usadas + 1;
+      if (decidirCota(usadasAgora, cota.limite).cruzouMetade) {
+        await d.enviarMensagem(phone, montarAvisoMeioLimitePerguntas(usadasAgora, cota.limite));
+      }
     }
 
     _logPergunta(d, {
