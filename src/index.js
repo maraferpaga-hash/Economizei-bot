@@ -124,12 +124,15 @@ function checkRateLimit(phone) {
   return { permitido: false, segundosRestantes: Math.ceil((entrada.resetAt - agora) / 1000) };
 }
 
+// .unref(): o timer de limpeza não segura o processo vivo — em produção roda
+// igual (o servidor mantém o processo); em teste (require do módulo) permite
+// o node --test encerrar normalmente (cod-0052).
 setInterval(() => {
   const agora = Date.now();
   for (const [phone, dados] of rateLimiter.entries()) {
     if (dados.resetAt < agora) rateLimiter.delete(phone);
   }
-}, 5 * 60 * 1000);
+}, 5 * 60 * 1000).unref();
 
 // ---------------------------------------------------------------
 // Indicação (/convidar) — helpers de código e link wa.me
@@ -157,17 +160,62 @@ function montarLinkConvite(codigo) {
 // messageId já foi processado, ignora — não duplica compra nem contador.
 // Sem messageId no payload, processa normalmente (sem dedup possível).
 // ---------------------------------------------------------------
-async function despacharComDedup(messageId, phone, tipo, fn) {
+// deps injetáveis (cod-0052): testes passam { registrarMensagemProcessada, log }
+// fake — em produção nada muda (defaults = módulos reais).
+async function despacharComDedup(messageId, phone, tipo, fn, deps = {}) {
+  const registrar = deps.registrarMensagemProcessada || registrarMensagemProcessada;
+  const logar = deps.log || log;
   if (messageId) {
-    const { duplicado } = await registrarMensagemProcessada(messageId, phone, tipo);
+    const { duplicado } = await registrar(messageId, phone, tipo);
     if (duplicado) {
-      log('webhook_evento_duplicado', { phone: maskPhone(phone), tipo, message_id: messageId });
+      logar('webhook_evento_duplicado', { phone: maskPhone(phone), tipo, message_id: messageId });
       return;
     }
   } else {
-    log('webhook_sem_message_id', { phone: maskPhone(phone), tipo });
+    logar('webhook_sem_message_id', { phone: maskPhone(phone), tipo });
   }
   await fn();
+}
+
+// ---------------------------------------------------------------
+// Validação pura do payload do webhook (sem I/O) — extraída pra teste
+// (cod-0052), comportamento idêntico ao inline anterior. Retorna sempre:
+//   { ok:false, motivo, phone:null }             → phone inválido (rejeita ANTES do rate limit)
+//   { ok:false, motivo, phone, tipo, messageId } → texto/imagem malformado (rejeita DEPOIS do rate limit)
+//   { ok:true,  phone, tipo, messageId, mensagem?|imageUrl? } → válido
+// tipo: 'texto' | 'imagem' | 'ignorado' (delivery receipts etc.)
+// ---------------------------------------------------------------
+function validarPayloadWebhook(body) {
+  // Remove o '+' inicial que alguns gateways incluem no DDI (ex: +15551234567 → 15551234567)
+  const phoneRaw = typeof body?.phone === 'string' ? body.phone.replace(/^\+/, '') : body?.phone;
+  if (typeof phoneRaw !== 'string' || !/^\d{10,15}$/.test(phoneRaw)) {
+    return { ok: false, motivo: 'phone inválido', phone: null };
+  }
+  const phone = phoneRaw;
+
+  const tipo = body.text ? 'texto' : body.image ? 'imagem' : 'ignorado';
+
+  // messageId do Z-API: chave de idempotência. Reentrega do mesmo evento não
+  // pode gerar compra/contador duplicado (lei 5 do CODE_GUIDE).
+  const messageId = typeof body.messageId === 'string' && body.messageId.trim()
+    ? body.messageId.trim()
+    : null;
+
+  if (tipo === 'texto') {
+    if (typeof body.text.message !== 'string' || body.text.message.trim() === '') {
+      return { ok: false, motivo: 'text.message ausente', phone, tipo, messageId };
+    }
+    return { ok: true, phone, tipo, messageId, mensagem: body.text.message };
+  }
+
+  if (tipo === 'imagem') {
+    if (typeof body.image.imageUrl !== 'string' || !body.image.imageUrl.startsWith('http')) {
+      return { ok: false, motivo: 'image.imageUrl ausente', phone, tipo, messageId };
+    }
+    return { ok: true, phone, tipo, messageId, imageUrl: body.image.imageUrl };
+  }
+
+  return { ok: true, phone, tipo, messageId };
 }
 
 // ---------------------------------------------------------------
@@ -182,49 +230,37 @@ app.post('/webhook', (req, res) => {
   // A partir daqui o Z-API não vai reenviar — respostas adicionais causariam erro
   res.sendStatus(200);
 
-  const body = req.body;
-  // Remove o '+' inicial que alguns gateways incluem no DDI (ex: +15551234567 → 15551234567)
-  const phone = typeof body?.phone === 'string' ? body.phone.replace(/^\+/, '') : body?.phone;
+  const val = validarPayloadWebhook(req.body);
 
-  if (typeof phone !== 'string' || !/^\d{10,15}$/.test(phone)) {
-    log('payload_invalido', { motivo: 'phone inválido' });
+  // phone inválido: rejeita ANTES do rate limit (não polui o limiter) — mesma ordem de antes
+  if (!val.phone) {
+    log('payload_invalido', { motivo: val.motivo });
     return;
   }
 
-  const rateCheck = checkRateLimit(phone);
+  const rateCheck = checkRateLimit(val.phone);
   if (!rateCheck.permitido) {
-    log('rate_limit_atingido', { phone: maskPhone(phone), segundos_restantes: rateCheck.segundosRestantes });
-    enviarMensagem(phone, `⏳ Você enviou muitas mensagens em pouco tempo. Aguarde ${rateCheck.segundosRestantes} segundos e tente novamente.`)
-      .catch((err) => log('rate_limit_envio_erro', { phone: maskPhone(phone), erro: err.message }));
+    log('rate_limit_atingido', { phone: maskPhone(val.phone), segundos_restantes: rateCheck.segundosRestantes });
+    enviarMensagem(val.phone, `⏳ Você enviou muitas mensagens em pouco tempo. Aguarde ${rateCheck.segundosRestantes} segundos e tente novamente.`)
+      .catch((err) => log('rate_limit_envio_erro', { phone: maskPhone(val.phone), erro: err.message }));
     return;
   }
 
-  const tipo = body.text ? 'texto' : body.image ? 'imagem' : 'ignorado';
-  log('webhook_recebido', { tipo });
+  log('webhook_recebido', { tipo: val.tipo });
 
-  // messageId do Z-API: chave de idempotência. Reentrega do mesmo evento não
-  // pode gerar compra/contador duplicado (lei 5 do CODE_GUIDE).
-  const messageId = typeof body.messageId === 'string' && body.messageId.trim()
-    ? body.messageId.trim()
-    : null;
+  // texto/imagem malformado: rejeita DEPOIS do rate limit — mesma ordem de antes
+  if (!val.ok) {
+    log('payload_invalido', { motivo: val.motivo });
+    return;
+  }
 
-  if (body.text) {
-    if (typeof body.text.message !== 'string' || body.text.message.trim() === '') {
-      log('payload_invalido', { motivo: 'text.message ausente' });
-      return;
-    }
-    const mensagem = body.text.message;
-    despacharComDedup(messageId, phone, 'texto', () => processarTexto(phone, mensagem)).catch((err) =>
-      log('cupom_erro_interno', { phone: maskPhone(phone), erro: err.message })
+  if (val.tipo === 'texto') {
+    despacharComDedup(val.messageId, val.phone, 'texto', () => processarTexto(val.phone, val.mensagem)).catch((err) =>
+      log('cupom_erro_interno', { phone: maskPhone(val.phone), erro: err.message })
     );
-  } else if (body.image) {
-    if (typeof body.image.imageUrl !== 'string' || !body.image.imageUrl.startsWith('http')) {
-      log('payload_invalido', { motivo: 'image.imageUrl ausente' });
-      return;
-    }
-    const imageUrl = body.image.imageUrl;
-    despacharComDedup(messageId, phone, 'imagem', () => processarImagem(phone, imageUrl)).catch((err) =>
-      log('cupom_erro_interno', { phone: maskPhone(phone), erro: err.message })
+  } else if (val.tipo === 'imagem') {
+    despacharComDedup(val.messageId, val.phone, 'imagem', () => processarImagem(val.phone, val.imageUrl)).catch((err) =>
+      log('cupom_erro_interno', { phone: maskPhone(val.phone), erro: err.message })
     );
   }
   // Delivery receipts, status updates e outros eventos Z-API — ignorados silenciosamente
@@ -1059,23 +1095,31 @@ async function mostrarHistorico(phone) {
 }
 
 // ---------------------------------------------------------------
-// Sobe o servidor
+// Sobe o servidor — só quando executado diretamente (node src/index.js).
+// Quando requerido como módulo (testes — cod-0052), não abre porta, não
+// inicia scheduler e não roda a guarda de schema. `npm start` não muda.
 // ---------------------------------------------------------------
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Bot Economizei rodando na porta ${PORT}`);
-  iniciarScheduler();
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Bot Economizei rodando na porta ${PORT}`);
+    iniciarScheduler();
 
-  // Guarda de schema (cod-0050): checagem NÃO-bloqueante — se faltar coluna/
-  // tabela crítica (lição do incidente A9), loga alerta gritante e, se houver
-  // ADMIN_PHONE, manda 1 aviso. Nunca derruba nem atrasa o boot.
-  verificarSchemaCritico({
-    avisar: process.env.ADMIN_PHONE
-      ? (faltando) =>
-          enviarMensagem(
-            process.env.ADMIN_PHONE,
-            `⚠️ Guarda de schema: faltando no banco → ${faltando.join(', ')}.\nRode a migration correspondente em supabase/ (logs: schema_guard_faltando).`
-          )
-      : null,
-  }).catch((e) => log('schema_guard_erro', { etapa: 'boot', erro: e && e.message ? e.message : String(e) }));
-});
+    // Guarda de schema (cod-0050): checagem NÃO-bloqueante — se faltar coluna/
+    // tabela crítica (lição do incidente A9), loga alerta gritante e, se houver
+    // ADMIN_PHONE, manda 1 aviso. Nunca derruba nem atrasa o boot.
+    verificarSchemaCritico({
+      avisar: process.env.ADMIN_PHONE
+        ? (faltando) =>
+            enviarMensagem(
+              process.env.ADMIN_PHONE,
+              `⚠️ Guarda de schema: faltando no banco → ${faltando.join(', ')}.\nRode a migration correspondente em supabase/ (logs: schema_guard_faltando).`
+            )
+        : null,
+    }).catch((e) => log('schema_guard_erro', { etapa: 'boot', erro: e && e.message ? e.message : String(e) }));
+  });
+}
+
+// Exports test-only (cod-0052): dedup por messageId (lei 5) e validação pura
+// do payload do webhook. Nenhum outro módulo de produção importa daqui.
+module.exports = { despacharComDedup, validarPayloadWebhook };
 // fim do arquivo
