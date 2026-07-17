@@ -754,6 +754,16 @@ function montarDigestSemanal(dados) {
 
 // Enviada quando a imagem ficou borrada mesmo após pré-processamento automático.
 // Orienta o usuário a reenviar como documento — o WhatsApp não comprime arquivos.
+// Documento (arquivo) com tipo que não sei ler — só foto/PDF de recibo por
+// enquanto. Honesto sobre o limite, sem gíria, sem prometer nada além do que faz
+// hoje (a leitura de outros tipos de comprovante é cod-0062). Guia pro que funciona.
+function montarMensagemDocumentoNaoSuportado() {
+  return (
+    '📎 Recebi seu arquivo, mas por enquanto só consigo ler *foto* ou *PDF* de um recibo.\n\n' +
+    'Manda o cupom como imagem (foto normal) ou como PDF, que eu leio pra você. 🧾'
+  );
+}
+
 function montarMensagemEnviarComoArquivo() {
   return (
     '📎 *Dica: tente enviar como arquivo!*\n\n' +
@@ -973,6 +983,7 @@ module.exports = {
   montarLimitePerguntasAtingido,
   montarErroAgente,
   montarMensagemEnviarComoArquivo,
+  montarMensagemDocumentoNaoSuportado,
   montarLembreteOnboardingD2,
   montarLembreteOnboardingD7,
   montarLembreteInativoD3,

@@ -1,51 +1,53 @@
-# 🌅 Relatório Matinal — 2026-07-15
+# ☀️ Relatório Matinal — Máquina Local do Economizei
 
-## Tarefa executada: cod-0052 — Testes do dedup (`despacharComDedup`) + validação do webhook
-
-**Tipo:** teste (achado §6.2 da Auditoria Integral 2026-07-10 — a Lei 5/idempotência nunca tinha teste)
-**Skills usadas:** economizei-tdd, economizei-code-decisions (+ transversais: financial-firewall, product-principles)
-**Status:** implementada, movida pra "Em revisão" na AGENDA. **SEM commit — revisão sua.**
-
----
-
-## O que mudou e onde
-
-### `src/index.js` (refactor mínimo, comportamento de produção idêntico)
-1. **`despacharComDedup` ganhou param opcional `deps = {}`** — testes injetam `{ registrarMensagemProcessada, log }` fake; sem injeção, usa os módulos reais (produção inalterada).
-2. **Validação de payload extraída pra função pura `validarPayloadWebhook(body)`** e o handler `POST /webhook` passou a usá-la. **Mesma ordem de antes:** phone inválido rejeita ANTES do rate limit (não polui o limiter); text/imagem malformado rejeita DEPOIS do rate limit; mesmos logs (`payload_invalido`, `webhook_recebido` com o mesmo `tipo`).
-3. **`app.listen` (+ scheduler + guarda de schema) atrás de `if (require.main === module)`** — necessário pra o teste poder dar `require` no módulo sem abrir porta. `npm start` executa direto → produção idêntica.
-4. **`.unref()` no `setInterval` de limpeza do rate limiter** — o timer não segura o processo do `node --test` vivo; em produção o servidor mantém o processo, nada muda.
-5. **Exports test-only no fim:** `module.exports = { despacharComDedup, validarPayloadWebhook }`.
-6. **Handler do Mercado Pago (`/webhook/mercadopago`) e comandos de pagamento: INTOCADOS** (fora-de-escopo da tarefa, zona do firewall).
-
-### `test/webhook-dedup.test.js` (NOVO — 19 testes)
-- **Dedup (6):** duplicado=true → fn NÃO roda + loga `webhook_evento_duplicado`; duplicado=false → fn roda 1x; sem messageId → fn roda + loga `webhook_sem_message_id` E o registro nunca é consultado; registrar recebe messageId/phone/tipo corretos; logs mascaram o phone (LGPD); erro dentro de fn propaga (o `.catch` do chamador é quem trata).
-- **Payload (13):** phone ausente/não-string/curto/com letras rejeitados; `+` de DDI normalizado; body nulo/vazio sem exceção; text.message vazio/whitespace/não-string rejeitados (phone válido preservado pro rate limit); texto válido ok; imageUrl ftp/relativa/ausente/não-string rejeitadas; https ok; messageId trimado, whitespace/não-string → null; delivery receipt → `tipo: 'ignorado'`.
-- Supabase **nunca** é chamado: dedup usa deps injetadas, validação é pura. Env dummy só pra carga do módulo (mesmo padrão do `acompanhamentos-io.test.js`).
-
-### `AGENDA.md`
-- cod-0052 movida de "Fila pronta" pra "Em revisão" (critérios marcados ✅ + nota de implementação).
-- Próxima da fila: **cod-0065** (modo recibo Canadá) — ⚠️ é feature GRANDE; a rotina de amanhã deve avaliar se cabe ou se espera sessão com você.
+**Data:** 2026-07-16
+**Tarefa pega:** `cod-0061` — Frente 1: receber DOCUMENTO (foto/PDF) no webhook (plumbing)
+**Tamanho:** pequena/bem-definida (plumbing com teste) → implementada.
+**Resultado:** ✅ implementada, testada e movida pra **Em revisão**. **Não commitada** (aguarda você).
 
 ---
 
-## Resultado do `npm run check` (equivalente, em réplica /tmp)
+## O que mudou (e em quais arquivos)
 
-⚠️ **O mount do sandbox truncou o `src/index.js` editado DE NOVO** (problema recorrente — o arquivo real no Windows está íntegro; o Edit tool valida contra o conteúdo real). Validação feita em réplica `/tmp` reconstruída de `git show HEAD` + as 4 edições reaplicadas byte a byte, com `sharp` stubado (SIGBUS ambiental do sandbox):
+**`src/zapi.js`**
+- Nova `baixarDocumento(mediaUrl)` — espelha `baixarImagem` (2 tentativas, validação de tamanho mínimo, timeout de 15s), com logs próprios (`zapi_documento_download_*`). Exportada.
 
-- ✅ **Testes: 355/355 verdes** (inclui os 19 novos + todo o working tree pendente: cod-0041/0042/0051)
-- ✅ **Firewall `--working`: verde** — 13 arquivos alterados, 0 tokens financeiros
-- ✅ **check-pages: verde** (5 páginas, 0 erros)
-- ✅ `node --check src/index.js`: sintaxe ok na réplica
+**`src/index.js`**
+- `mimeAceitavel(mime)` — helper puro: aceita só `image/*` e `application/pdf`. MIME ausente/desconhecido → recusa (protege o orçamento do Gemini e guia o usuário). Exportado test-only.
+- `validarPayloadWebhook` agora reconhece `body.document` → `tipo: 'documento'`. URL defensiva (`documentUrl` → `url` → `fileUrl`, precisa ser `http`); `mimeType` opcional (`mimeType`/`mime`). Texto e imagem mantêm precedência.
+- Dispatch do webhook: novo ramo `'documento'` → `processarDocumento` (com dedup por `messageId`, igual imagem/texto).
+- **Refactor sem mudança de comportamento:** o miolo pós-download de `processarImagem` virou `processarReciboRecebido(phone, baixar)`. `processarImagem` agora é um wrapper fino que passa `() => baixarImagem(url)`. `processarDocumento` faz o gate de MIME e, se aceito, chama o mesmo núcleo com `() => baixarDocumento(url)`. O fluxo de imagem/cupom é idêntico.
 
-**Gate final obrigatório: rode `npm run check` na sua máquina antes de commitar.**
+**`src/formatter.js`**
+- `montarMensagemDocumentoNaoSuportado()` — mensagem honesta (só leio foto/PDF de recibo), sem gíria, sem token financeiro. Exportada.
+
+**`test/webhook-documento.test.js`** (novo) — 11 testes: `validarPayloadWebhook` documento (válido; campos alternativos de URL; sem mime; URL inválida rejeitada preservando phone; precedência texto/imagem; trim de messageId), `mimeAceitavel` (aceita/recusa/ausente), e a mensagem honesta (guia pra foto/PDF, sem gíria).
+
+---
+
+## Resultado do `npm run check`
+
+- **Firewall financeiro:** ✅ VERDE (0 token financeiro). Removi de propósito a palavra "pix" dos comentários — cod-0061 é plumbing e tem que passar limpo; a leitura de PIX é cod-0062, onde o "pix" acusa conscientemente.
+- **check-pages:** ✅ OK (5 páginas, 0 erro, só avisos pré-existentes).
+- **Testes:** ✅ **366 passam / 0 falham** — rodados em **cópia limpa `/tmp` com `sharp` stubado**.
+
+> ⚠️ **Por que a cópia limpa (regra 11):** rodando `node --test` direto no mount do sandbox, dois problemas ambientais aparecem e NÃO refletem o código real:
+> 1. `sharp` (usado no `gemini.js`) dá **SIGBUS** no Linux do sandbox — binário nativo incompatível; roda normal no seu Windows. Já é conhecido (AGENDA).
+> 2. O mount serviu `src/zapi.js` **truncado** no meio de uma linha e `src/index.js` com **padding de bytes NUL** no fim — puro artefato do mount (o `require()` carregou os arquivos inteiros e os 11 testes novos passaram quando o mount estava estável). Os arquivos autorais (via ferramentas de arquivo) estão íntegros; `node --check` passa nos 3 na cópia limpa.
+>
+> **Gate final é na sua máquina (Windows):** rode `npm run check` aí antes de commitar — é a verdade.
 
 ---
 
 ## O que precisa de você (Gabriel)
 
-1. **`npm run check` na máquina** (gate final — o sandbox não é confiável pro `src/index.js` por causa do mount).
-2. **Revisar + commitar** — sugestão: commit único da cod-0052 (`src/index.js` + `test/webhook-dedup.test.js`), separado dos commits pendentes de cod-0041/0042/0051 que já estão em revisão desde 07-13/07-14. Ou use o `/entregar` (ele agrupa por tarefa e checa migrations).
-3. **SEM migration nova, SEM env nova** — a tarefa é só teste + refactor interno.
-4. ⚠️ Continua pendente de 07-13: **`PAINEL.html` untracked na raiz, origem desconhecida** — verificar antes de commitar (não é desta sessão nem das anteriores conhecidas).
-5. Ponto de atenção na revisão: o guard `require.main === module` no `app.listen` — confirme que o deploy do Railway sobe via `npm start`/`node src/index.js` (é o que o `package.json` define; se o Railway usar outro entrypoint que dê `require` no index, o servidor não subiria — improvável, mas vale 10 segundos de conferência).
+1. **Revisar e commitar** (a máquina não commita). Diff em `src/{zapi,index,formatter}.js` + `test/webhook-documento.test.js`. Firewall verde, sem migration nova, sem env nova.
+2. **Decisão de escopo (rápida) pra confirmar na revisão:** hoje "documento" = foto/PDF de recibo enviado como arquivo → roteei pelo **mesmo fluxo do cupom**. Isso fecha um gap real: a `montarMensagemEnviarComoArquivo` já manda o usuário "reenviar como arquivo (Documento)", mas até agora não existia handler pra isso — o bot ignorava. A classificação por tipo (cupom × comprovante) e a persistência de tipos novos ficam pra **cod-0062**. Se preferir que documento NÃO caia no fluxo de cupom até a cod-0062, é só avisar que eu ajusto.
+3. **Pré-req humano (não bloqueia o commit, bloqueia a validação em produção):** confirmar o **payload real de documento da Z-API**. Meu parser é defensivo (`documentUrl`/`url`/`fileUrl` + `mimeType`/`mime`), mas o nome exato do campo precisa ser verificado num evento real antes de confiar 100%.
+
+**Próxima da fila** depois desta: `cod-0062` (ler comprovante de PIX) — que depende do commit da cod-0061 + dos seus 2–3 comprovantes reais pro corpus.
+
+---
+
+## Nota sobre o working tree
+Além dos meus 4 arquivos, o working tree já tinha bastante coisa não-commitada de sessões anteriores (CLAUDE.md/AGENDA.md enxugados, docs novos em `Economizei app/`, arquivos da raiz movidos pra `arquivo-historico/`). **Não mexi em nada disso** — são mudanças suas de antes. Meus arquivos: `src/zapi.js`, `src/index.js`, `src/formatter.js`, `test/webhook-documento.test.js` (+ AGENDA.md e este relatório, que a rotina atualiza).

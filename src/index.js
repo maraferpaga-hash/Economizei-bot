@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const express = require('express');
-const { enviarMensagem, baixarImagem, enviarImagem } = require('./zapi');
+const { enviarMensagem, baixarImagem, baixarDocumento, enviarImagem } = require('./zapi');
 const { lerRecibo } = require('./gemini');
 const {
   apagarDadosUsuario,
@@ -59,6 +59,7 @@ const {
   montarApagarConcluido,
   montarApagarErro,
   montarMensagemEnviarComoArquivo,
+  montarMensagemDocumentoNaoSuportado,
   montarMensagemConvite,
   montarBoasVindasIndicado,
   montarAvisoIndicacaoAtivada,
@@ -177,13 +178,23 @@ async function despacharComDedup(messageId, phone, tipo, fn, deps = {}) {
   await fn();
 }
 
+// MIME aceitável pra leitura de recibo (cod-0061): só foto ou PDF. Qualquer
+// outra coisa (áudio, vídeo, contato, zip…) recebe mensagem honesta em vez de
+// consumir uma leitura do Gemini à toa. MIME ausente/desconhecido → NÃO aceita
+// (protege o orçamento e guia o usuário a mandar como foto/PDF). Pura e testável.
+function mimeAceitavel(mime) {
+  if (typeof mime !== 'string') return false;
+  const m = mime.trim().toLowerCase();
+  return m.startsWith('image/') || m.startsWith('application/pdf');
+}
+
 // ---------------------------------------------------------------
 // Validação pura do payload do webhook (sem I/O) — extraída pra teste
 // (cod-0052), comportamento idêntico ao inline anterior. Retorna sempre:
 //   { ok:false, motivo, phone:null }             → phone inválido (rejeita ANTES do rate limit)
-//   { ok:false, motivo, phone, tipo, messageId } → texto/imagem malformado (rejeita DEPOIS do rate limit)
-//   { ok:true,  phone, tipo, messageId, mensagem?|imageUrl? } → válido
-// tipo: 'texto' | 'imagem' | 'ignorado' (delivery receipts etc.)
+//   { ok:false, motivo, phone, tipo, messageId } → texto/imagem/documento malformado (rejeita DEPOIS do rate limit)
+//   { ok:true,  phone, tipo, messageId, mensagem?|imageUrl?|documentUrl?+mimeType? } → válido
+// tipo: 'texto' | 'imagem' | 'documento' | 'ignorado' (delivery receipts etc.)
 // ---------------------------------------------------------------
 function validarPayloadWebhook(body) {
   // Remove o '+' inicial que alguns gateways incluem no DDI (ex: +15551234567 → 15551234567)
@@ -193,7 +204,7 @@ function validarPayloadWebhook(body) {
   }
   const phone = phoneRaw;
 
-  const tipo = body.text ? 'texto' : body.image ? 'imagem' : 'ignorado';
+  const tipo = body.text ? 'texto' : body.image ? 'imagem' : body.document ? 'documento' : 'ignorado';
 
   // messageId do Z-API: chave de idempotência. Reentrega do mesmo evento não
   // pode gerar compra/contador duplicado (lei 5 do CODE_GUIDE).
@@ -213,6 +224,22 @@ function validarPayloadWebhook(body) {
       return { ok: false, motivo: 'image.imageUrl ausente', phone, tipo, messageId };
     }
     return { ok: true, phone, tipo, messageId, imageUrl: body.image.imageUrl };
+  }
+
+  if (tipo === 'documento') {
+    // Payload de documento do Z-API ainda a confirmar em produção (pré-req humano
+    // na AGENDA). Defensivo quanto ao nome do campo de URL: documentUrl (padrão,
+    // espelha image.imageUrl) com fallback pra url/fileUrl. mimeType é metadado
+    // opcional passado adiante — o gate de MIME acontece no processarDocumento.
+    const doc = body.document || {};
+    const urlRaw = doc.documentUrl || doc.url || doc.fileUrl;
+    if (typeof urlRaw !== 'string' || !urlRaw.startsWith('http')) {
+      return { ok: false, motivo: 'document.documentUrl ausente', phone, tipo, messageId };
+    }
+    const mimeType = typeof doc.mimeType === 'string' ? doc.mimeType
+      : typeof doc.mime === 'string' ? doc.mime
+      : null;
+    return { ok: true, phone, tipo, messageId, documentUrl: urlRaw, mimeType };
   }
 
   return { ok: true, phone, tipo, messageId };
@@ -260,6 +287,10 @@ app.post('/webhook', (req, res) => {
     );
   } else if (val.tipo === 'imagem') {
     despacharComDedup(val.messageId, val.phone, 'imagem', () => processarImagem(val.phone, val.imageUrl)).catch((err) =>
+      log('cupom_erro_interno', { phone: maskPhone(val.phone), erro: err.message })
+    );
+  } else if (val.tipo === 'documento') {
+    despacharComDedup(val.messageId, val.phone, 'documento', () => processarDocumento(val.phone, val.documentUrl, val.mimeType)).catch((err) =>
       log('cupom_erro_interno', { phone: maskPhone(val.phone), erro: err.message })
     );
   }
@@ -569,9 +600,39 @@ async function processarTexto(phone, texto) {
 }
 
 // ---------------------------------------------------------------
-// Processa imagens de cupons fiscais — fluxo principal
+// Processa imagens de cupons fiscais — fluxo principal.
+// Entry-point fino: baixa por URL com baixarImagem e entrega ao núcleo
+// compartilhado (processarReciboRecebido). Comportamento inalterado.
 // ---------------------------------------------------------------
 async function processarImagem(phone, imageUrl) {
+  return processarReciboRecebido(phone, () => baixarImagem(imageUrl));
+}
+
+// ---------------------------------------------------------------
+// Processa DOCUMENTO (foto/PDF enviado como arquivo) — Frente 1 (cod-0061).
+// Faz o gate de MIME (só foto/PDF) e, sendo aceito, roteia pelo MESMO pipeline
+// do cupom por imagem — fechando o gap do "reenviar como arquivo"
+// (montarMensagemEnviarComoArquivo). A classificação por tipo de comprovante e a
+// persistência de novos tipos são cod-0062; aqui é só a plumbing.
+// ---------------------------------------------------------------
+async function processarDocumento(phone, documentUrl, mimeType) {
+  if (!mimeAceitavel(mimeType)) {
+    log('documento_mime_recusado', { phone: maskPhone(phone), mime: mimeType || '(vazio)' });
+    try {
+      await enviarMensagem(phone, montarMensagemDocumentoNaoSuportado());
+    } catch (_) { /* já logado em zapi_erro */ }
+    return;
+  }
+  return processarReciboRecebido(phone, () => baixarDocumento(documentUrl));
+}
+
+// ---------------------------------------------------------------
+// Núcleo compartilhado imagem/documento: recebe o phone e uma função que baixa
+// o buffer (baixarImagem OU baixarDocumento). A partir do buffer tudo é igual:
+// gate de onboarding/limite, leitura no Gemini, gravação e resposta. Extraído
+// de processarImagem (cod-0061) sem mudar o comportamento do fluxo de imagem.
+// ---------------------------------------------------------------
+async function processarReciboRecebido(phone, baixar) {
   try {
     const usuario = await upsertUsuario(phone);
     const step = usuario.onboarding_step ?? 0;
@@ -590,7 +651,7 @@ async function processarImagem(phone, imageUrl) {
     }
 
     log('cupom_iniciando', { phone: maskPhone(phone) });
-    const buffer = await baixarImagem(imageUrl);
+    const buffer = await baixar();
     const dados = await lerRecibo(buffer);
 
     if (!dados.sucesso) {
@@ -1119,7 +1180,8 @@ if (require.main === module) {
   });
 }
 
-// Exports test-only (cod-0052): dedup por messageId (lei 5) e validação pura
-// do payload do webhook. Nenhum outro módulo de produção importa daqui.
-module.exports = { despacharComDedup, validarPayloadWebhook };
+// Exports test-only (cod-0052/cod-0061): dedup por messageId (lei 5), validação
+// pura do payload do webhook e o gate de MIME de documento. Nenhum outro módulo
+// de produção importa daqui.
+module.exports = { despacharComDedup, validarPayloadWebhook, mimeAceitavel };
 // fim do arquivo

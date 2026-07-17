@@ -67,6 +67,41 @@ async function baixarImagem(mediaUrl) {
   throw new Error('Falha ao baixar imagem do Z-API');
 }
 
+// Download de DOCUMENTO (foto/PDF enviado como arquivo). Espelha baixarImagem:
+// mesmo retry (2 tentativas), mesma validação de tamanho e timeout. Separado só
+// para diferenciar os logs (documento × imagem) e servir de ponto de reuso da
+// Frente 1 (cod-0061 plumbing; a leitura específica do conteúdo é cod-0062). O
+// corpo é genérico — fetch de bytes por URL — então funciona pra imagem e PDF.
+async function baixarDocumento(mediaUrl) {
+  const MAX_TENTATIVAS = 2;
+  let ultimoErro;
+
+  for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+    try {
+      const resp = await fetch(mediaUrl, { signal: AbortSignal.timeout(15_000) });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      const buffer = Buffer.from(await resp.arrayBuffer());
+
+      if (buffer.length < 1000) {
+        throw new Error(`Buffer muito pequeno (${buffer.length} bytes) — documento provavelmente corrompido`);
+      }
+
+      log('zapi_documento_download_ok', { tentativa, tamanho_kb: Math.round(buffer.length / 1024) });
+      return buffer;
+    } catch (err) {
+      ultimoErro = err;
+      log('zapi_documento_download_tentativa', { tentativa, erro: err.message });
+      if (tentativa < MAX_TENTATIVAS) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+  }
+
+  log('zapi_documento_download_erro', { url: mediaUrl, erro: ultimoErro.message });
+  throw new Error('Falha ao baixar documento do Z-API');
+}
+
 /**
  * Verifica se a instância Z-API está conectada ao WhatsApp.
  * Retorna { conectado: boolean, dados?, erro? }
@@ -120,4 +155,4 @@ async function enviarImagem(phone, imageUrl, caption = '') {
   return data;
 }
 
-module.exports = { enviarMensagem, baixarImagem, verificarConexao, enviarImagem };
+module.exports = { enviarMensagem, baixarImagem, baixarDocumento, verificarConexao, enviarImagem };
