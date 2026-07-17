@@ -6,9 +6,11 @@ description: Mantém o CLAUDE.md vivo, organizado e atualizado como cérebro ins
 # 🧠 economizei-memory-system
 
 ## Objetivo
+
 Garantir que o `CLAUDE.md` continue sendo a fonte única de verdade da empresa: legível em 10 minutos, fiel ao histórico, e atualizado com cirurgia (sem inchar, sem perder nada).
 
 ## Quando usar
+
 - No **início de toda sessão**: ler o CLAUDE.md por completo antes de qualquer outra ação.
 - Toda vez que o Gabriel **toma uma decisão**, mesmo que pareça pequena.
 - Toda vez que aparece **aprendizado, dado novo, mudança de premissa**.
@@ -16,39 +18,67 @@ Garantir que o `CLAUDE.md` continue sendo a fonte única de verdade da empresa: 
 - Quando uma seção do CLAUDE.md ficar **maior que 2 telas** e precisar consolidar.
 - Antes de **encerrar a sessão**: salvar o que mudou.
 
+
+
 ## Quando NÃO usar
+
 - Para criar documentos de produto separados (use docx ou markdown direto).
 - Para escrever copy ou conteúdo (use as skills específicas).
 - Para registrar pensamentos rascunho — só vai pro CLAUDE.md o que tem valor durável.
 
+
+
 ## Entradas ideais
+
 - O CLAUDE.md atual.
 - Uma decisão fechada, aprendizado, ou comando — com data, racional, e área afetada.
 
+
+
 ## Saídas esperadas
+
 - Edição cirúrgica do CLAUDE.md (`Edit` tool, não `Write`).
 - Confirmação do que foi alterado, com diff resumido (não a versão inteira).
 - Quando relevante, marcação de item de roadmap como concluído.
 
+
+
 ## Regras de comportamento
 
+
+
 ### Princípios da memória
+
 1. **Nunca reescrever o CLAUDE.md inteiro.** Sempre edição pontual.
 2. **Cada linha adicionada precisa ganhar seu espaço.** Se for óbvia ou efêmera, fica fora.
 3. **Datas no formato ISO** (`2026-05-13`).
 4. **Comandos do Gabriel vão na seção 10 com aspas literais.** Não parafrasear o que ele disse.
 5. **Decisões vão na tabela da seção 7.** Uma linha. Data | Decisão | Racional curto.
 6. **Aprendizados consolidados vão na seção 8** com cabeçalho de mês.
-7. **Roadmap concluído vira `[x]`**, não some.
+7. **Roadmap concluído vira** `[x]`, não some.
 8. **Quando a seção 7 passar de 30 linhas**, oferecer um arquivo `decisoes-historicas-anteriores.md` e manter só as últimas 20 no CLAUDE.md.
 9. **Sempre que atualizar**, mudar a "Última atualização" no topo (linha 16).
+10. **TETO POR SESSÃO (regra 2026-07-15, anti-inchaço).** Cada sessão registra no [CLAUDE.md](http://CLAUDE.md) NO MÁXIMO:
+  (a) 1 linha na tabela de Decisões (seção 8), com pointer pro doc de sessão em `Economizei app/`;
+    (b) 1 frase na "Última atualização" — ela NÃO é log corrido de sessões;
+    (c) verbatim na seção 11 SOMENTE se o comando criar regra permanente de comportamento.
+    O detalhe completo da sessão mora num doc próprio em `Economizei app/` — nunca duplicado no [CLAUDE.md](http://CLAUDE.md).
+11. **Gatilhos de consolidação (endurecidos em 2026-07-15):** [CLAUDE.md](http://CLAUDE.md) > 800 linhas OU tabela de
+  Decisões > 30 linhas OU 6 semanas desde a última consolidação → mover pro
+    `Economizei app/arquivo-historico/` mantendo ~20 decisões comprimidas (precedentes: 2026-06-04, 2026-07-15).
+
+12. **A [AGENDA.md](http://AGENDA.md) também tem teto (regra 2026-07-16 — lida no boot de TODA sessão, igual ao [CLAUDE.md](http://CLAUDE.md)).** Mesmo cuidado cirúrgico: (a) **"Concluído" ≤ 10 tarefas** — ao passar, migrar as antigas pro snapshot `Economizei app/arquivo-historico/AGENDA_arquivo_AAAA-MM-DD.md` mantendo o hash de commit; (b) tarefa concluída **sai assim que o commit está no `origin/main`**; (c) descrição no Backlog **≤ 3 linhas + pointer**; (d) status do topo e notas da Fila **não viram log corrido**. **NUNCA comprimir/mover:** molde parseável das tarefas `pronta`, ordem de prioridade, "🚫 Zona proibida", `/entregar`, painéis "Ações do Gabriel"/"Aguardando decisão". Fonte no Protocolo da AGENDA (§ "♻️ Regra anti-inchaço").
 
 ### Estrutura sagrada (não mexer sem pedir)
+
 Seções 1 (Identidade) e 5 (As 7 áreas) são estruturais. Mudanças aqui exigem confirmação explícita do Gabriel.
 
 ## Fluxo de execução
 
+
+
 ### Modo "Leitura inicial"
+
 ```
 1. Read no CLAUDE.md (arquivo completo).
 2. Resumir mentalmente: estágio atual, última semana do roadmap, decisões recentes (últimas 5).
@@ -56,7 +86,10 @@ Seções 1 (Identidade) e 5 (As 7 áreas) são estruturais. Mudanças aqui exige
 4. Carregar as skills relevantes àquela área.
 ```
 
+
+
 ### Modo "Atualização"
+
 ```
 1. Identificar o tipo de update:
    - Decisão → Seção 7 (tabela).
@@ -70,7 +103,10 @@ Seções 1 (Identidade) e 5 (As 7 áreas) são estruturais. Mudanças aqui exige
 4. Confirmar ao Gabriel em 2 linhas: "Atualizei: X. Caminho: linha N."
 ```
 
+
+
 ### Modo "Consolidação" (a cada 6 semanas ou quando passar de 800 linhas)
+
 ```
 1. Mover decisões com mais de 60 dias para decisoes-historicas-anteriores.md.
 2. Consolidar aprendizados do mês em parágrafo único.
@@ -78,7 +114,10 @@ Seções 1 (Identidade) e 5 (As 7 áreas) são estruturais. Mudanças aqui exige
 4. Verificar se a seção 5 (áreas) reflete a operação real.
 ```
 
+
+
 ## Checklist de qualidade
+
 - [ ] Não escrevi o arquivo inteiro?
 - [ ] A data está em ISO?
 - [ ] A "Última atualização" foi mudada?
@@ -87,13 +126,18 @@ Seções 1 (Identidade) e 5 (As 7 áreas) são estruturais. Mudanças aqui exige
 - [ ] Diff confirmado em 2 linhas ao usuário?
 - [ ] Não desestruturei seções 1 ou 5?
 
+
+
 ## Erros comuns a evitar
+
 - **Reescrever o CLAUDE.md inteiro.** Quebra o histórico e o git diff.
 - **Registrar decisão sem racional.** Em 2 meses ninguém lembra por quê.
 - **Parafrasear o Gabriel.** Perde nuance. Seção 10 é aspas literais.
 - **Esquecer de marcar roadmap concluído.** O painel mental do Gabriel desencaixa.
 - **Adicionar "rascunho" no CLAUDE.md.** Só vai o que dura.
 - **Mover decisões antigas sem perguntar.** Confirme antes de consolidar.
+
+
 
 ## Exemplo de uso prático
 
@@ -108,9 +152,12 @@ Edit no CLAUDE.md, seção 7 (Decisões Tomadas):
 ```
 
 Edit no topo:
+
 ```
 **Última atualização:** 2026-05-13
 ```
 
 Confirmação ao Gabriel:
+
 > "Registrei a decisão de Mercado Pago como gateway na linha 7 da tabela de Decisões e atualizei a data no topo. Nada mais foi tocado."
+

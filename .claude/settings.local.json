@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "PowerShell(Get-ChildItem -Recurse \"C:\\\\Economizei\" | Where-Object { !$_.PSIsContainer } | Select-Object -ExpandProperty FullName)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

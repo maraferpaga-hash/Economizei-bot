@@ -99,11 +99,13 @@ Se a resposta é tier 1-3 (factual curta, conversa), **NÃO use dual-format** �
 
 Antes de encerrar:
 
-1. **Atualizar `CLAUDE.md`** (decisão estratégica/produto/negócio):
-   - Decisão fechada → seção 7 (tabela de Decisões), formato `| YYYY-MM-DD | decisão | racional curto |`.
-   - Aprendizado → seção 8 (Aprendizados).
-   - Comando importante do Gabriel → seção 10 (aspas literais, sem paráfrase).
-   - Roadmap concluído → marcar `[x]`.
+1. **Atualizar `CLAUDE.md`** (decisão estratégica/produto/negócio) — **respeitando o TETO POR SESSÃO** (regra de 2026-07-15, anti-inchaço):
+   - Decisão fechada → seção 8 (tabela de Decisões), **máx. 1 linha por sessão**, formato `| YYYY-MM-DD | decisão | racional curto + pointer pro doc de sessão em Economizei app/ |`.
+   - "Última atualização" (topo) → **máx. 1 frase** (não é log corrido; o detalhe mora no doc de sessão).
+   - Comando do Gabriel → seção 11 (aspas literais) **SOMENTE se criar regra permanente de comportamento**.
+   - Aprendizado durável → seção 9 (Aprendizados). Roadmap concluído → marcar `[x]`.
+   - **O detalhe completo da sessão vai num doc próprio em `Economizei app/`** — nunca duplicado no CLAUDE.md.
+   - Limites da skill `economizei-memory-system`: CLAUDE.md > 800 linhas OU tabela de Decisões > 30 linhas → consolidar pro `arquivo-historico/` (precedentes: 2026-06-04 e 2026-07-15).
 2. **Atualizar `CODE_GUIDE.md`** (decisão técnica/código):
    - Decisão técnica fechada → seção 8 (tabela), formato `| YYYY-MM-DD | decisão | racional curto |`.
    - Aprendizado de bug → seção 9 (parágrafo curto com "linha-mãe").
