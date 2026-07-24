@@ -61,7 +61,34 @@ function _mesProximoDe(mesRef) {
   return `${ano}-${String(mes + 1).padStart(2, '0')}`;
 }
 
-function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia = null) {
+// cod-0032 — bloco de gasto supérfluo (Alerta Pro, Pilar A).
+// Recebe o resultado de buscarGastoSuperfluo (insights.js, cod-0030) e devolve
+// um bloco pronto pra anexar no /gastos e no resumo mensal. Número primeiro,
+// sem moralizar. Estados honestos e DISTINTOS:
+//   analise == null/inválida (não calculada ou leitura falhou) → '' — o bloco
+//     some em silêncio; nunca finge que analisou.
+//   houve gasto no mês mas nada nas categorias supérfluas → "bom sinal"
+//     (≠ "sem gasto no mês" — quem decide isso é quem chama: só passe a análise
+//     quando o mês TEM gastos por categoria).
+function montarBlocoSuperfluo(analise) {
+  if (!analise || !Array.isArray(analise.porCategoria)) return '';
+
+  if (analise.porCategoria.length === 0 || !(analise.totalSuperfluo > 0)) {
+    return '\n\n🍬 *Supérfluos:* nenhum gasto nas suas categorias de supérfluo — bom sinal.';
+  }
+
+  const partes = analise.porCategoria.map((c) => {
+    const label = LABELS_CATEGORIA[c.categoria] || c.categoria;
+    return `${label} R$ ${brl(c.valor)}`;
+  });
+
+  return (
+    `\n\n🍬 *Supérfluos: R$ ${brl(analise.totalSuperfluo)}* — ` +
+    `${analise.pctDoMes}% do mês (${partes.join(', ')})`
+  );
+}
+
+function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia = null, superfluo = null) {
   const { totalGasto, qtdCompras, ticketMedio, topLojas = [], topItens = [] } = dadosAtual;
 
   const labelCompras = qtdCompras === 1 ? 'compra' : 'compras';
@@ -108,7 +135,8 @@ function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia =
     `${linhaComparacao}` +
     `${linhaEconomia}\n\n` +
     `🏪 *Onde mais gastou:*\n${linhasLojas}` +
-    `${blocoItens}`
+    `${blocoItens}` +
+    montarBlocoSuperfluo(superfluo)
   );
 }
 
@@ -430,7 +458,7 @@ function _blocoConclusaoRaioX(analise) {
  * @param {string} mesReferencia - "YYYY-MM"
  * @param {object|null} analise - resultado de analisarRaioXCategorias (F2), opcional
  */
-function montarMensagemGastos(dados, mesReferencia, analise = null) {
+function montarMensagemGastos(dados, mesReferencia, analise = null, superfluo = null) {
   if (!dados || dados.length === 0) {
     return (
       '📊 Ainda não tenho dados de categoria para esse período.\n\n' +
@@ -450,6 +478,7 @@ function montarMensagemGastos(dados, mesReferencia, analise = null) {
     `📊 *Gastos por categoria — ${nomeDoMes(mesReferencia)}*\n\n` +
     linhas.join('\n') +
     `\n\n💰 *Total: R$ ${brl(total)}*` +
+    montarBlocoSuperfluo(superfluo) +
     _blocoConclusaoRaioX(analise) +
     `\n\n_Mande /gastos a qualquer hora para ver o gráfico atualizado._`
   );
@@ -970,6 +999,7 @@ module.exports = {
   montarOnboarding4,
   montarResumoMensal,
   montarMensagemGastos,
+  montarBlocoSuperfluo,
   montarMensagemInflacao,
   montarMensagemEconomia,
   montarMensagemCortar,

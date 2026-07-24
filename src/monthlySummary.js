@@ -1,9 +1,10 @@
 const { listarUsuariosAtivosNoMes, buscarComprasDoMes, verificarResumoJaEnviado,
-        marcarResumoEnviado, buscarGastosPorCategoria, buscarTotaisMensais } = require('./supabase');
+        marcarResumoEnviado, buscarGastosPorCategoria, buscarTotaisMensais,
+        buscarCategoriasSuperfluas } = require('./supabase');
 const { enviarMensagem, enviarImagem } = require('./zapi');
 const { montarResumoMensal, nomeDoMes } = require('./formatter');
 const { gerarUrlGraficoCategorias } = require('./charts');
-const { calcularEconomia } = require('./insights');
+const { calcularEconomia, buscarGastoSuperfluo } = require('./insights');
 const { log, maskPhone } = require('./logger');
 
 function calcularMesAnterior(mesRef) {
@@ -41,14 +42,30 @@ async function executarResumoMensal(mesReferencia, phoneEspecifico = null) {
         log('resumo_economia_erro', { phone: maskPhone(phone), erro: errEco.message });
       }
 
-      const texto = montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia);
+      // cod-0032 — bloco de supérfluo no resumo. Busca as categorias do mês
+      // ANTES do texto (reusadas pro gráfico logo abaixo). Degradação segura:
+      // qualquer falha → superfluo null → o bloco some, o resumo sai normal.
+      // Só calcula quando o mês TEM gastos por categoria — o "bom sinal" é
+      // "gastou mas nada de supérfluo", nunca "mês sem compra".
+      let dadosCat = null;
+      let superfluo = null;
+      try {
+        dadosCat = await buscarGastosPorCategoria(phone, mesReferencia);
+        if (dadosCat && dadosCat.length > 0) {
+          const categoriasSup = await buscarCategoriasSuperfluas(phone);
+          superfluo = buscarGastoSuperfluo(dadosCat, categoriasSup);
+        }
+      } catch (errSup) {
+        log('resumo_superfluo_erro', { phone: maskPhone(phone), erro: errSup.message });
+      }
+
+      const texto = montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia, superfluo);
 
       await enviarMensagem(phone, texto);
       await marcarResumoEnviado(phone, mesReferencia, dadosAtual.qtdCompras, dadosAtual.totalGasto);
 
       // Tenta enviar gráfico de categorias logo após o texto do resumo
       try {
-        const dadosCat = await buscarGastosPorCategoria(phone, mesReferencia);
         if (dadosCat && dadosCat.length > 0) {
           const titulo   = nomeDoMes(mesReferencia);
           const chartUrl = gerarUrlGraficoCategorias(dadosCat, titulo);

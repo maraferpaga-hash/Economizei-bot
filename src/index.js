@@ -18,6 +18,7 @@ const {
   buscarHistoricoPrecoItens,
   buscarTotaisMensais,
   buscarObservacoesComparativo,
+  buscarCategoriasSuperfluas,
   setOptOutPrecos,
   gerarCodigoIndicacao,
   registrarIndicacaoPendente,
@@ -85,7 +86,7 @@ const {
   validarAssinaturaWebhook,
 } = require('./mercadopago');
 const { gerarUrlGraficoCategorias } = require('./charts');
-const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar, compararPrecosMercado } = require('./insights');
+const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar, compararPrecosMercado, buscarGastoSuperfluo } = require('./insights');
 const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
 const { interpretarApagar } = require('./apagar');
 const { responderPergunta } = require('./agent');
@@ -1132,8 +1133,21 @@ async function mostrarGastos(phone) {
     log('gastos_analise_erro', { phone: maskPhone(phone), erro: err.message });
   }
 
+  // cod-0032 — bloco de supérfluo (baseline doces+bebidas quando o usuário não
+  // configurou nada; buscarCategoriasSuperfluas devolve null em erro e a análise
+  // cai no baseline sozinha). Degradação segura: falhou → bloco simplesmente some.
+  // Só calcula porque aqui dadosCat JÁ tem gastos (o vazio retornou lá em cima) —
+  // assim o "bom sinal" nunca aparece pra mês sem compra.
+  let superfluo = null;
+  try {
+    const categoriasSup = await buscarCategoriasSuperfluas(phone);
+    superfluo = buscarGastoSuperfluo(dadosCat, categoriasSup);
+  } catch (err) {
+    log('gastos_superfluo_erro', { phone: maskPhone(phone), erro: err.message });
+  }
+
   // Sempre envia o texto com os valores detalhados (+ conclusão quando houver)
-  await enviarMensagem(phone, montarMensagemGastos(dadosCat, mesAlvo, analise));
+  await enviarMensagem(phone, montarMensagemGastos(dadosCat, mesAlvo, analise, superfluo));
 }
 
 // ---------------------------------------------------------------
