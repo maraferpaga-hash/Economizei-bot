@@ -189,6 +189,26 @@ function mimeAceitavel(mime) {
 }
 
 // ---------------------------------------------------------------
+// Autenticação do webhook (cod-0053) — mesma trava dos endpoints /admin e /cron.
+// O Z-API chama /webhook sem credencial própria, então o segredo vai na URL
+// (/webhook/<token>) ou, se o painel Z-API permitir, no header x-webhook-token.
+// Rollout SEM downtime: enquanto ZAPI_WEBHOOK_TOKEN não estiver setada, PASSA e
+// loga (modo 'aberto') — não derruba produção antes de reconfigurar o Z-API.
+// Com a env setada, EXIGE o segredo (modo 'fechado', fail-closed).
+//   { ok:true,  modo:'aberto'  } → env ausente; processa normal (compat)
+//   { ok:true,  modo:'fechado' } → env setada + segredo correto
+//   { ok:false, modo:'fechado' } → env setada + segredo errado/ausente → 401
+// ---------------------------------------------------------------
+function autenticarWebhook(req) {
+  const esperado = process.env.ZAPI_WEBHOOK_TOKEN;
+  if (!esperado) return { ok: true, modo: 'aberto' };
+  const noPath = req && req.params ? req.params.token : null;
+  const noHeader = req && typeof req.header === 'function' ? req.header('x-webhook-token') : null;
+  const recebido = noPath || noHeader;
+  return { ok: recebido === esperado, modo: 'fechado' };
+}
+
+// ---------------------------------------------------------------
 // Validação pura do payload do webhook (sem I/O) — extraída pra teste
 // (cod-0052), comportamento idêntico ao inline anterior. Retorna sempre:
 //   { ok:false, motivo, phone:null }             → phone inválido (rejeita ANTES do rate limit)
@@ -248,14 +268,26 @@ function validarPayloadWebhook(body) {
 // ---------------------------------------------------------------
 // POST /webhook — ponto de entrada de todos os eventos do Z-API
 // ---------------------------------------------------------------
-app.post('/webhook', (req, res) => {
-  // Único ponto de rejeição 4xx — antes do 200; não veio do Z-API, sem risco de reenvio
+app.post(['/webhook', '/webhook/:token'], (req, res) => {
+  // Autenticação (cod-0053) — ANTES de qualquer processamento. Segredo no path
+  // (/webhook/<token>) ou header x-webhook-token; mesma trava dos /admin e /cron.
+  const auth = autenticarWebhook(req);
+  if (!auth.ok) {
+    log('webhook_token_invalido', { veio_no_path: !!(req.params && req.params.token) });
+    return res.status(401).json({ erro: 'unauthorized' });
+  }
+
+  // Único ponto de rejeição 4xx por formato — antes do 200; não veio do Z-API, sem risco de reenvio
   if (!req.is('application/json')) {
     return res.status(400).json({ erro: 'Content-Type deve ser application/json' });
   }
 
   // A partir daqui o Z-API não vai reenviar — respostas adicionais causariam erro
   res.sendStatus(200);
+
+  // Sentinela do rollout: enquanto não há segredo configurado, avisa — assim você
+  // sabe quando é seguro exigir (Fase 3). Some quando ZAPI_WEBHOOK_TOKEN for setada.
+  if (auth.modo === 'aberto') log('webhook_sem_token_configurado', {});
 
   const val = validarPayloadWebhook(req.body);
 
@@ -1183,5 +1215,5 @@ if (require.main === module) {
 // Exports test-only (cod-0052/cod-0061): dedup por messageId (lei 5), validação
 // pura do payload do webhook e o gate de MIME de documento. Nenhum outro módulo
 // de produção importa daqui.
-module.exports = { despacharComDedup, validarPayloadWebhook, mimeAceitavel };
+module.exports = { despacharComDedup, validarPayloadWebhook, mimeAceitavel, autenticarWebhook };
 // fim do arquivo
