@@ -15,9 +15,9 @@
 > Guia do sistema: `Economizei app/Automacao_Maquina_Noturna.md`.
 
 **Última curadoria:** 2026-07-16 (AGENDA enxugada ~68 KB→~37 KB — histórico integral no snapshot `Economizei app/arquivo-historico/AGENDA_arquivo_2026-07-15.md`; regra anti-inchaço no Protocolo). · **Modo:** execução local (GitHub Actions descontinuado).
-**🎯 Estado (2026-07-20, rotina matinal):** `origin/main` sincronizado até `882cf6e`. **Working tree pendente de commit (você), 2 pacotes** em "Em revisão", ambos pelo `/entregar` (como pacotes separados): **cod-0034** (rotina 07-18 — `src/agent/intents.js` + `src/supabase.js` + `test/`) e **cod-0032** (run de domingo 07-19 que caiu sem registrar — `src/formatter.js` + `src/index.js` + `src/monthlySummary.js` + `test/superfluo-bloco.test.js`; verificada e registrada em 07-20, 393/393 verdes). Último checkpoint integral: **2026-07-08 (Nível 2, 🟡→🟢)** — `Economizei app/Sistema_Checkpoints_Benchmarks_2026-06-30.md`.
+**🎯 Estado (2026-07-24, `/entregar`):** `origin/main` sincronizado até `b923805`. Working tree limpo (só `.claude/settings.local.json` local, fora do escopo de qualquer tarefa). Último checkpoint integral: **2026-07-08 (Nível 2, 🟡→🟢)** — `Economizei app/Sistema_Checkpoints_Benchmarks_2026-06-30.md`.
 **🗄️ Migrations:** todas as pendências de deploy **rodadas e confirmadas** (A4/A9 + agente + alerta pro, 07-08/07-09); 2 futuras commitadas em `supabase/` (`a795f65`). Detalhe no snapshot arquivado.
-**🎯 Foco (2026-07-20):** **Frente 1 (ingestão multi-documento)** — cod-0062 lidera a fila (desbloqueada pelo commit da cod-0061, mas **aguarda os 2–3 comprovantes reais** — pré-req humano); Alerta Pro Free: cod-0032 e cod-0034 implementadas (em revisão), cod-0033 é a próxima da fila. Frente 2 (repensar canal/Plaid) espera sessão própria. ⚠️ **Auditoria Integral 07-10 — 🔴 abertos no painel do Gabriel:** §1.4 patch firewall · §4.3 `/assinar` ainda gera checkout MP.
+**🎯 Foco (2026-07-24):** **Frente 1 (ingestão multi-documento)** — cod-0062 lidera a fila (**aguarda os 2–3 comprovantes reais** — pré-req humano); Alerta Pro Free: **cod-0032/cod-0034/cod-0053 entregues** (`6cadcb8`..`b923805`), **cod-0033 é a próxima da fila** (arquivos-alvo `index.js`/`formatter.js` já commitados, sem mais conflito). Frente 2 (repensar canal/Plaid) espera sessão própria. ⚠️ **Auditoria Integral 07-10 — 🔴 abertos no painel do Gabriel:** §4.2 copy indicação · §4.3 `/assinar` ainda gera checkout MP. (§1.4 patch do firewall ✅ aplicado e pushado, `27fcc16`.)
 **📌 Pointers:** Pilares `Pilares_do_Negocio_2026-06-30.md` · Mapeamento `Mapeamento_Geral_Pendencias_2026-06-24.md` · Auditorias `Auditoria_Codigo_Direcao_2026-06-25.md` + `Auditoria_Integral_2026-07-10.md`.
 
 ---
@@ -132,7 +132,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 *(a máquina executa de cima pra baixo, uma por execução — rotina automática às 8:02 AM Vancouver, ou manual via `/tarefa`)*
 
 
-> **📍 Estado da fila (2026-07-20, rotina matinal).** Sequência viva §4 (06-27): fechar a promessa do pago antes de escalar; a **classificação é o coração** (CODE_GUIDE §0). **cod-0062 segue no topo mas NÃO é pra run autônoma** (avaliação de 07-17/07-18 mantida: prompt do Gemini = coração; firewall acusa "pix" de propósito; falta o pré-req humano dos 2–3 comprovantes reais) — rodar **com você presente**. **cod-0032 e cod-0034 estão implementadas, em "Em revisão"** (2 pacotes no working tree aguardando `/entregar`). Fila abaixo: **cod-0062** → **cod-0033** (Alerta Pro Free — `depende-de: cod-0031` ✅ `86dbb64`; ⚠️ toca `index.js`/`formatter.js`, que já têm mudanças da cod-0032 não commitadas — melhor rodar DEPOIS do `/entregar`) → **cod-0065** (recibo Canadá — espera 2–3 recibos reais + a sessão de canal/Plaid). **A ordem dos blocos abaixo = a prioridade** (o `/tarefa` pega o 1º `status: pronta`). Desenhos: `Desenho_Ingestao_Multi_Documento_2026-07-15.md` · `Desenho_Alerta_Inteligente_Pro_2026-06-27.md` · `Ideias_Assistente_Financeiro_Conversacional_2026-07-09.md`.
+> **📍 Estado da fila (2026-07-24, pós-`/entregar`).** Sequência viva §4 (06-27): fechar a promessa do pago antes de escalar; a **classificação é o coração** (CODE_GUIDE §0). **cod-0062 segue no topo mas NÃO é pra run autônoma** (avaliação de 07-17/07-18 mantida: prompt do Gemini = coração; firewall acusa "pix" de propósito; falta o pré-req humano dos 2–3 comprovantes reais) — rodar **com você presente**. **cod-0032/cod-0034/cod-0053 entregues** (`6cadcb8`..`b923805`). Fila abaixo: **cod-0062** → **cod-0033** (Alerta Pro Free — `depende-de: cod-0031` ✅ `86dbb64`; `index.js`/`formatter.js` já commitados, sem mais conflito) → **cod-0065** (recibo Canadá — espera 2–3 recibos reais + a sessão de canal/Plaid). **A ordem dos blocos abaixo = a prioridade** (o `/tarefa` pega o 1º `status: pronta`). Desenhos: `Desenho_Ingestao_Multi_Documento_2026-07-15.md` · `Desenho_Alerta_Inteligente_Pro_2026-06-27.md` · `Ideias_Assistente_Financeiro_Conversacional_2026-07-09.md`.
 
 ### [P2] Frente 1 — ler comprovante de PIX (foto/PDF)
 - id: cod-0062
@@ -160,7 +160,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
   - `/acompanhar cerveja` cria acompanhamento; `/parar` desativa (soft-delete cod-0031); `/acompanhamentos` lista; `/superfluo doces` ajusta baseline; confirmações curtas e honestas
   - node --test verde; firewall verde (o gate Pro dos que precisam é ~3 linhas humanas na revisão)
 - fora-de-escopo: alerta proativo de limite (é cod-0035); intent NL (é cod-0034); gate Pro humano
-- depende-de: cod-0031 (✅ `86dbb64`), cod-0033 usa a I/O dele; ⚠️ arquivos-alvo (`index.js`/`formatter.js`) têm mudanças da cod-0032 não commitadas — rodar depois do `/entregar`
+- depende-de: cod-0031 (✅ `86dbb64`), cod-0033 usa a I/O dele; `index.js`/`formatter.js` já commitados (cod-0032 entregue `d2cc3c4`, 2026-07-24) — sem conflito
 - status: pronta
 
 ### [P2] Modo recibo Canadá (Vancouver) — entender e armazenar qualquer recibo
@@ -185,51 +185,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ## 🔧 Em revisão
 *(a máquina move pra cá ao abrir um PR — esperando o Gabriel revisar/commitar)*
 
-> **🚚 ORDEM DE ENTREGA — Rota A (sessão 2026-07-21).** A working tree tem 3 tarefas + o patch do firewall + docs. Sequência pro `/entregar` funcionar:
-> 1. **ANTES do `/entregar`: commitar o patch do firewall sozinho, consciente.** `scripts/check-firewall.mjs` (patch 07-10: `--no-renames`, `hotmart`, `ADMIN_SECRET`, `temFeaturesProAtivas`, `COMPARATIVO_MAX_PRO`, `/planos`) **se auto-acusa de propósito** — então o `npm run check` fica vermelho enquanto ele estiver na árvore. Commite à mão (`git add scripts/check-firewall.mjs && git commit`); se o hook pre-push barrar, `--no-verify` **consciente só nesse arquivo**. Isso fecha a pendência #1 da Auditoria Externa 07-17.
-> 2. **Depois, `/entregar`** agrupa: **cod-0053** (webhook) + **cod-0032** (supérfluo) + **cod-0034** (gasto por termo) + docs. O `npm run check` fica verde (o resto é não-financeiro).
-> 3. ⚠️ **`src/index.js` é dividido entre cod-0032 e cod-0053** — o `/entregar` (ETAPA 2) vai oferecer `git add -p` pra fatiar; aceite os hunks de cada tarefa no commit dela (ou faça 1 commit combinado dos dois — decisão sua).
-> 4. ⚠️ **ETAPA 2.5 do `/entregar` vai apontar env nova:** `ZAPI_WEBHOOK_TOKEN` (do cod-0053) → setar no Railway ANTES/junto do deploy (ver bloco cod-0053).
-
-### [P0] Segurança — autenticar o webhook do Z-API (segredo no path/header)
-- id: cod-0053
-- tipo: feature-codigo
-- skills-usadas: economizei-code-decisions, economizei-tdd, economizei-security-lgpd, economizei-financial-firewall (+ transversais default)
-- objetivo: fechar o buraco N1 da Auditoria Externa 07-17 — `/webhook` aceitava payload forjado de qualquer origem (spam pelo número Z-API, queima de Gemini, consumo de cota Free de terceiros). Exige um segredo, com o mesmo molde dos endpoints `/admin` e `/cron`.
-- o-que-mudou (sessão Cowork 2026-07-21):
-  - `src/index.js`: helper puro `autenticarWebhook(req)` (exportado test-only) — sem `ZAPI_WEBHOOK_TOKEN` retorna `{ok:true, modo:'aberto'}` (rollout sem downtime); com a env, exige o segredo no path (`/webhook/<token>`) OU no header `x-webhook-token` (fail-closed). Rota virou `app.post(['/webhook', '/webhook/:token'])`; auth ANTES do `res.sendStatus(200)`, `401 {erro:'unauthorized'}` em token inválido (log `webhook_token_invalido`); sentinela de rollout `webhook_sem_token_configurado` enquanto a env não existe. Export test-only += `autenticarWebhook`.
-  - `test/webhook-auth.test.js`: **NOVO** — 9 testes (modo aberto sem env; path/header corretos; errados; sem token = payload forjado; robustez a req sem params/header).
-- validação (2026-07-21, cópia limpa /tmp com `sharp` stubado — regra 11): suíte **402/402** (9 do cod-0053 + cod-0032/0034 inclusos); firewall `--working` — **minhas linhas saem limpas** (só o `check-firewall.mjs` do patch se auto-acusa, item 1 da ordem acima). Gate final `npm run check` na sua máquina antes do commit.
-- pendências humanas: (1) **env nova `ZAPI_WEBHOOK_TOKEN`** → gerar (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) + setar no **Railway**; (2) linha `ZAPI_WEBHOOK_TOKEN=` no `.env.example` (arquivo `.env*` = zona proibida do firewall → commit consciente, à parte); (3) **rollout sem downtime**: deploy do código → reconfigurar a URL do webhook no Z-API pra `/webhook/<token>` → só então setar a env no Railway (vira fail-closed). Sem migration nova.
-- status: em-revisao (2026-07-21)
-
-### [P2] Alerta Pro — Pilar A: bloco de gasto supérfluo no `/gastos` e no resumo mensal
-- id: cod-0032
-- tipo: feature-codigo
-- skills-usadas: economizei-code-decisions, economizei-tdd, economizei-copywriter, copy-review, economizei-product-principles, economizei-financial-firewall (+ transversais default)
-- objetivo: bloco de gasto supérfluo (via `buscarGastoSuperfluo`, cod-0030) no `/gastos` e no resumo mensal. Número primeiro, sem moralizar; baseline doces+bebidas do cod-0031 (✅ `86dbb64`).
-- o-que-mudou (implementada na run de DOMINGO 2026-07-19, que caiu antes de registrar; **verificada e registrada pela rotina de 2026-07-20**):
-  - `src/formatter.js`: `montarBlocoSuperfluo(analise)` (exportada) + parâmetro opcional `superfluo` em `montarMensagemGastos` e `montarResumoMensal` (retrocompatível: sem o parâmetro, mensagem idêntica à antiga). 3 estados distintos: análise null/inválida → bloco some em silêncio (nunca finge que analisou) ≠ gastou mas nada de supérfluo → "bom sinal" ≠ com dados → "🍬 Supérfluos: R$ X — N% do mês (categorias)".
-  - `src/index.js` (`mostrarGastos`): busca `buscarCategoriasSuperfluas` + `buscarGastoSuperfluo` SÓ quando o mês tem gastos por categoria; degradação segura (erro → log + bloco some).
-  - `src/monthlySummary.js`: mesmo wiring no resumo mensal; `dadosCat` passou a ser buscado uma vez e REUSADO pelo gráfico logo abaixo (antes o gráfico buscava de novo). ⚠️ Efeito colateral menor pra revisão: se essa busca falhar, o gráfico também é pulado (antes tinha fetch próprio).
-  - `test/superfluo-bloco.test.js`: **NOVO** — 13 testes (estados do bloco, número primeiro, retrocompatibilidade, copy sem gíria/plano/moralização, posição na mensagem).
-- validação (2026-07-20, cópia limpa /tmp com `sharp` stubado — regra 11): firewall `--working` **verde** (15 arquivos, zero token financeiro); testes **393/393** (13 da cod-0032 + 14 da cod-0034 inclusos); `check-pages` OK (0 erro).
-- pendências humanas: (1) **gate Pro = suas ~3 linhas na revisão** (`Gate_Pro_Desdobramento_2026-07-10.md`) — a máquina construiu SEM gate, como manda o fora-de-escopo; (2) decisão fina em aberto ("Aguardando sua decisão"): bloco baseline pra todos ou só Pro?; (3) `/entregar` — pacote separado da cod-0034. Sem migration nova (só lê `usuarios.categorias_superfluas`, rodada 07-08) e sem env nova.
-- status: em-revisao (2026-07-19; registrada 2026-07-20)
-
-### [P2] Agente — intent `gasto_por_termo` ("quanto gastei em cerveja?")
-- id: cod-0034
-- tipo: feature-codigo
-- skills-usadas: economizei-code-decisions, economizei-tdd, economizei-copywriter, copy-review, economizei-financial-firewall (+ transversais default)
-- objetivo: intent NL Free no Agente que soma o gasto por palavra-chave livre ("cerveja", "chocolate", "ração") reusando `casarItemComAlvo`/`buscarGastoPorAlvo` (cod-0030) + o firewall de fidelidade numérica (o número nasce no executor, nunca no LLM).
-- o-que-mudou (rotina matinal 2026-07-18):
-  - `src/agent/intents.js`: intent `gasto_por_termo` (registro 10→11 — a `duvida_sobre_bot` a incorpora sozinha na lista viva). `termo` obrigatório (Camada 1); períodos via `_resolverMesRef`; soma via `buscarGastoPorAlvo`; `fmt.*` via `brl()`. **4 estados-vazios honestos e distintos:** sem termo (pede o item) ≠ mês sem compras ≠ termo que não casou (nunca número chutado) ≠ **erro de leitura** ("não consegui consultar" — nunca "não encontrei" com o banco fora do ar).
-  - `src/supabase.js`: **`buscarItensDoMes(phone, mesRef, cliente)`** — leitura nova (linhas de `itens_compra` dos cupons de mercado do mês; filtro `tipo='mercado'` como as demais leituras). ⚠️ **Desvio consciente do arquivos-alvo** (que listava só `intents.js` + `test/`): nenhuma função existente devolvia itens linha-a-linha do mês; a leitura segue o padrão do cod-0031 (`cliente` injetável, erro → `null` distinto de vazio). Revisar este ponto em especial.
-  - `test/agent-gasto-por-termo.test.js`: 14 testes (registro+guards, matching palavra-inteira "uva"≠"luva", fallback `nome` sem canônico, singular/plural, os 4 vazios, copy sem gíria/plano, e a I/O nova com cliente fake — janela do mês, virada de ano, erro→null).
-  - `test/agent-intents.test.js`: invariante do REGISTRO 10→11.
-- validação: firewall **verde** (1 trip de "pix" num comentário de teste foi reescrito na hora); `check-pages` OK (0 erro); testes **380/380** em cópia limpa `/tmp` com `sharp` stubado (SIGBUS ambiental no sandbox — regra 11: **gate final `npm run check` na sua máquina antes do commit**).
-- pendências humanas: (1) revisar o desvio de escopo (`buscarItensDoMes` em `supabase.js`); (2) `/entregar`. Sem migration nova (só lê tabelas existentes) e sem env nova.
-- status: em-revisao (2026-07-18)
+> **✅ RECONCILIADO em 2026-07-24 (comando `/entregar`):** as 3 tarefas que estavam aqui foram commitadas e pushadas em 4 commits (`origin/main` sincronizado, working tree limpo, 402/402 testes verdes, `npm run check` verde antes de cada commit): **cod-0053** (`6cadcb8`), **cod-0032** (`d2cc3c4`), **cod-0034** (`d3e0169`) e docs/memória (`b923805`). `src/index.js` (compartilhado por cod-0053 e cod-0032) foi fatiado por hunk via patch, não `git add -p` interativo. Push final precisou de `--no-verify` **consciente, autorizado pelo Gabriel** — o pre-push comparou contra o `27fcc16` (patch do firewall) ainda não pushado, que se autoacusa por design (a trava não se edita sozinha). Detalhes de cada tarefa preservados em "✅ Concluído" abaixo. Seção esvaziada.
 
 > **✅ RECONCILIADO em 2026-07-13 (sessão de entrega — Cowork):** TODAS as tarefas que estavam aqui foram commitadas e pushadas em 6 commits (`origin/main` sincronizado, working tree limpo): **cod-0021 + cod-0024** (`7082535`), **cod-0022** (`473ea18`), **cod-0031** (`86dbb64`), **cod-0040** (`0dc9159`), **cod-0050** (`0b81181`) e docs/memória (`9182b91`). As históricas (cod-0013, cod-0014..0017, cod-0020) já estavam em `d4eaf51`/`3b2f375` desde 07-08. Detalhes de cada tarefa preservados em "✅ Concluído" abaixo. Seção esvaziada (curadoria).
 
@@ -239,6 +195,10 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 ## ✅ Concluído
 *(tarefas mergeadas — registro histórico, mais recente no topo)*
+
+- **cod-0053 · Segurança — autenticação do webhook Z-API** (commit `6cadcb8`, 2026-07-24) — fecha o N1 da Auditoria Externa 07-17 (`/webhook` aceitava payload forjado de qualquer origem). `autenticarWebhook(req)`: segredo no path (`/webhook/<token>`) ou header `x-webhook-token`; sem `ZAPI_WEBHOOK_TOKEN` = modo aberto (rollout sem downtime), com a env = fail-closed (401). `test/webhook-auth.test.js` (9 testes). ⚠️ Pendência humana: gerar+setar `ZAPI_WEBHOOK_TOKEN` no Railway e reconfigurar a URL do webhook no Z-API pra `/webhook/<token>` — NESSA ORDEM (ver "Ações do Gabriel"). *(skills: code-decisions, tdd, security-lgpd, financial-firewall)*
+- **cod-0032 · Alerta Pro — bloco de gasto supérfluo no `/gastos` e resumo mensal** (commit `d2cc3c4`, 2026-07-24) — `montarBlocoSuperfluo` via `buscarGastoSuperfluo` (cod-0030) + baseline doces/bebidas (cod-0031 ✅ `86dbb64`); número primeiro, sem moralizar; 3 estados honestos (sem análise → some / gastou mas nada supérfluo → "bom sinal" / com dados → valor+%). `monthlySummary.js` passou a reusar `dadosCat` pro gráfico logo abaixo (antes buscava de novo). `test/superfluo-bloco.test.js` (13 testes). ⚠️ Pendência humana: gate Pro (baseline pra todos ou só Pro? — ver "Aguardando sua decisão"). *(skills: code-decisions, tdd, copywriter, copy-review, product-principles, financial-firewall)*
+- **cod-0034 · Agente — intent `gasto_por_termo`** (commit `d3e0169`, 2026-07-24) — "quanto gastei em cerveja?" via `buscarGastoPorAlvo` (cod-0030); o número nasce só no executor, nunca no LLM. 4 estados-vazios honestos e distintos: sem termo / mês sem compras / termo sem match / erro de leitura. Nova leitura `buscarItensDoMes` em `supabase.js` (desvio consciente do arquivos-alvo original, revisado na entrega). `test/agent-gasto-por-termo.test.js` (14 testes). Inclui também o log `incremento_fallback` em `salvarCompra` (auditoria 07-10 §2.3, mesmo arquivo). *(skills: code-decisions, tdd, copywriter, copy-review, financial-firewall)*
 
 - **cod-0061 · Frente 1 — receber documento (foto/PDF) no webhook** (commit `e7f236d`, no `origin/main` — reconciliado pela rotina matinal 07-18) — `baixarDocumento` no `zapi.js`, `validarPayloadWebhook` reconhece `body.document`, gate de MIME (`image/*`+PDF) e roteamento pro MESMO pipeline de recibo via núcleo `processarReciboRecebido`; mensagem honesta de MIME não suportado; `test/webhook-documento.test.js` (11 testes). ⚠️ Pendência que sobrevive ao commit: **confirmar o payload real de documento da Z-API em produção** (parser defensivo `documentUrl`/`url`/`fileUrl`). *(skills: code-decisions, tdd, security-lgpd, financial-firewall, copywriter)*
 
@@ -299,7 +259,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - **cod-0021 / cod-0022 / cod-0023** — ✅ cod-0021 (copy `nao_supermercado`) e cod-0022 (testes formatter) entregues 07-13; cod-0023 (alerta Pro) DESENHADO → virou cod-0026/0027/0030 + cadeia cod-0031..0035.
 
 **❤️ Alerta Inteligente Pro — cadeia restante (desenho: `Economizei app/Desenho_Alerta_Inteligente_Pro_2026-06-27.md`):**
-- ✅ **cod-0031** (I/O acompanhamentos) entregue `86dbb64`; **cod-0032 / cod-0033 / cod-0034** promovidas pra "Fila pronta" (07-15) — blocos lá em cima.
+- ✅ **cod-0031** (I/O acompanhamentos) entregue `86dbb64`; ✅ **cod-0032** (`d2cc3c4`) e ✅ **cod-0034** (`d3e0169`) entregues 2026-07-24; **cod-0033** segue na "Fila pronta" — bloco lá em cima.
 - **cod-0035 · Alerta proativo de limite** (per-compra, idempotente no mês). tipo: feature-codigo. depende-de: cod-0031 ✅, cod-0033.
 - **cod-0025 · 🔴 Onboarding tranca comandos de pagamento [A3]** — steps 0–1 tratam todo texto como onboarding → `/planos`/`/assinar`/`/pix` não respondem até 1 cupom (bloqueia conversão paga). ⚠️ mexe no roteamento de pagamento (`index.js`) → **provável trip do firewall; revisão humana, não soltar sozinha.** tipo: bugfix.
 - ⚠️ **Humano (firewall):** migration de `acompanhamentos` + `usuarios.categorias_superfluas` (✅ rodada 07-08) · Free×Pro (✅ decidido 07-08) · **ligar o gate Pro** (desdobrado, você aplica — `Gate_Pro_Desdobramento_2026-07-10.md`).
@@ -317,9 +277,10 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 > Esta seção é o seu painel. Guia: `Economizei app/Automacao_Maquina_Noturna.md`.
 
-**🆕 Pendente AGORA — revisar/commitar (working tree, 2026-07-20):**
-- [ ] **cod-0032 (bloco de supérfluo) — em "Em revisão".** Implementada pela run de DOMINGO 07-19 que caiu sem registrar (achado da sentinela); a rotina de 07-20 verificou o diff, validou (firewall verde, 393/393, check-pages OK) e registrou. **Na revisão: (a) gate Pro = suas ~3 linhas** (`Gate_Pro_Desdobramento_2026-07-10.md`); (b) efeito colateral no `monthlySummary.js` (gráfico agora reusa o `dadosCat` do bloco); (c) `/entregar` como pacote separado. Relatório: `RELATORIO_MATINAL.md`.
-- [ ] **cod-0034 (intent `gasto_por_termo`) — em "Em revisão".** A rotina matinal 07-18 implementou (`src/agent/intents.js` + `src/supabase.js` + 2 arquivos de teste); 380/380 verdes + firewall verde em cópia limpa. Rode `npm run check` na sua máquina → `/entregar`. **Ponto de atenção na revisão: `buscarItensDoMes` nova em `supabase.js`** (desvio consciente do arquivos-alvo — detalhe no bloco em "Em revisão").
+**🆕 Pendente AGORA (2026-07-24, pós-`/entregar`):**
+- [x] ~~cod-0053 (autenticação do webhook) — commitar~~ — ✅ commitado/pushado (`6cadcb8`). **Falta o rollout humano, NESSA ORDEM:** deploy do código → reconfigurar a URL do webhook no Z-API pra `/webhook/<token>` → só então gerar (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) e setar `ZAPI_WEBHOOK_TOKEN` no Railway (vira fail-closed).
+- [x] ~~cod-0032 (bloco de supérfluo) — commitar~~ — ✅ commitado/pushado (`d2cc3c4`). Decisão fina que segue aberta: bloco baseline pra todos ou só Pro? (ver "Aguardando sua decisão").
+- [x] ~~cod-0034 (intent `gasto_por_termo`) — commitar~~ — ✅ commitado/pushado (`d3e0169`).
 - [ ] **Destravar a cod-0062:** fornecer os **2–3 comprovantes PIX reais** (mini-corpus) e rodá-la com você presente (firewall acusa "pix" por design → commit consciente).
 - [x] ~~cod-0061 revisar/commitar~~ — ✅ commitado/pushado (`e7f236d`). Sobrou só a confirmação do payload real da Z-API (ver "Concluído").
 - [x] ~~Commitar o enxugamento de memória~~ — ✅ (`882cf6e`).
@@ -327,7 +288,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 **✅ Estabilização (2026-07-09) — CONCLUÍDA:** A9/A4/migration do agente rodadas + 4 envs no Railway + smoke test end-to-end passou. Detalhe: `Economizei app/Roteiro_Smoke_Test_2026-07-09.md` / snapshot.
 
 **🔍 Auditoria Integral (2026-07-10) — ações suas (doc: `Economizei app/Auditoria_Integral_2026-07-10.md`):**
-- [ ] **[🔴 §1.4] Aplicar o patch do firewall** — 8 tokens novos (`temFeaturesProAtivas`, `COMPARATIVO_MAX_PRO`, `ehPro`, `marcarProAtivo`, `concederFeaturesPro`, `hotmart`, `ADMIN_SECRET`, roteamento `/planos`) + `--no-renames` nos 2 git diff (bypass por rename testado e confirmado) + path `src/hotmart.js`. Snippet pronto no doc. O arquivo é protegido de propósito — só você edita. Rodar `--selftest` depois.
+- [x] ~~**[🔴 §1.4] Aplicar o patch do firewall**~~ — ✅ commitado e pushado (`27fcc16`, reconciliado 2026-07-24 junto com o `/entregar`). 8 tokens novos + `--no-renames` + path `src/hotmart.js`, como planejado.
 - [ ] **[🔴 §3.3] Rodar a query de verificação de schema** no SQL Editor (5min) — confirma as migrations antigas nunca verificadas E se a RPC `incrementar_compras_mes` existe em produção (se não existir, todo cupom usa fallback racy em silêncio).
 - [ ] **[🔴 §4.2 decisão] Copy da indicação promete "alerta inteligente" que não existe** — e a recompensa hoje não entrega nada (comparativo sem gate = Free vê o mesmo). Decidir: encurtar promessa + aplicar Gate Pro, ou segurar divulgação do `/convidar`.
 - [ ] **[🔴 §4.3 financeiro] Fluxo `/assinar` ainda gera checkout Mercado Pago** — MP abandonado juridicamente em 06-24; se alguém assinar hoje, entra dinheiro por via irregular. Mínimo sugerido: `/assinar` → instruções PIX até Hotmart/Wise (out/2026).
