@@ -88,6 +88,11 @@ async function salvarCompra(phoneNumber, dados) {
 
     // Fallback manual caso a RPC não exista ainda
     if (erroUpdate) {
+      // Sentinela: se este log aparecer em produção, a RPC incrementar_compras_mes
+      // falhou e TODO cupom está usando o read-then-write racy (lost update em
+      // corrida). Investigar se a RPC existe no Supabase (auditoria 07-10 §2.3/§3.3).
+      log('incremento_fallback', { fn: 'salvarCompra', phone: maskPhone(phoneNumber), erro: erroUpdate.message });
+
       const { data: usuario } = await supabase
         .from('usuarios')
         .select('compras_mes_atual')
@@ -646,6 +651,45 @@ async function buscarHistoricoPrecoItens(phoneNumber, nMeses = 6) {
   } catch (err) {
     log('supabase_erro', { fn: 'buscarHistoricoPrecoItens', erro: err.message });
     return [];
+  }
+}
+
+// cod-0034 — itens dos cupons de MERCADO do mês, linha a linha, pro matching
+// por termo/categoria do Agente (insights.casarItemComAlvo/buscarGastoPorAlvo).
+// Mesmo filtro tipo='mercado' das outras leituras de mercado. Retornos:
+//   []   → mês sem compras/itens (estado-vazio legítimo)
+//   null → ERRO de leitura — o chamador distingue "não tem" de "não consegui
+//          ler" e nunca responde "não encontrei itens" com o banco fora do ar.
+// `cliente` injetável pra teste (mesmo padrão do cod-0031).
+async function buscarItensDoMes(phoneNumber, mesReferencia, cliente = supabase) {
+  try {
+    const primeiroDia = `${mesReferencia}-01`;
+    const [ano, mes] = String(mesReferencia).split('-').map(Number);
+    const proximoMes = mes === 12
+      ? `${ano + 1}-01-01`
+      : `${ano}-${String(mes + 1).padStart(2, '0')}-01`;
+
+    const { data: compras, error: errC } = await cliente
+      .from('compras')
+      .select('id')
+      .eq('phone_number', phoneNumber)
+      .eq('tipo', 'mercado')
+      .gte('data_compra', primeiroDia)
+      .lt('data_compra', proximoMes);
+    if (errC) throw errC;
+    if (!compras || compras.length === 0) return [];
+
+    const ids = compras.map((c) => c.id);
+    const { data: itens, error: errI } = await cliente
+      .from('itens_compra')
+      .select('compra_id, nome, nome_canonico, categoria, preco, preco_total, quantidade')
+      .in('compra_id', ids);
+    if (errI) throw errI;
+
+    return itens || [];
+  } catch (err) {
+    log('supabase_erro', { fn: 'buscarItensDoMes', erro: err.message });
+    return null;
   }
 }
 
@@ -1727,6 +1771,7 @@ module.exports = {
   buscarMesMaisRecenteComGastos,
   buscarHistoricoCategorias,
   buscarHistoricoPrecoItens,
+  buscarItensDoMes,
   buscarTotaisMensais,
   buscarObservacoesComparativo,
   setOptOutPrecos,

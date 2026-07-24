@@ -36,6 +36,7 @@ const {
   analisarOndeCortar,
   compararPrecosMercado,
   buscarGastoSuperfluo,
+  buscarGastoPorAlvo,
 } = require('../insights');
 
 // Lazy require — só resolve supabase.js (e o createClient que ele dispara no
@@ -680,6 +681,84 @@ const gastoSuperfluo = {
   },
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// gasto_por_termo — "quanto gastei em cerveja?" (cod-0034)
+// Reusa buscarItensDoMes (supabase.js) + buscarGastoPorAlvo (insights.js,
+// cod-0030 — matching puro por palavra inteira sobre nome_canonico||nome).
+// O número NUNCA nasce no LLM: a soma vem do executor (buscarGastoPorAlvo);
+// nada casa → estado-vazio honesto, nunca número chutado. Três vazios
+// distintos e honestos: sem termo ≠ mês sem compras ≠ termo que não casou —
+// e leitura com ERRO (null) vira "não consegui consultar", não "não achei".
+// ─────────────────────────────────────────────────────────────────────────────
+const gastoPorTermo = {
+  id: 'gasto_por_termo',
+  descricao: 'Quanto a pessoa gastou em um item ou produto específico, buscando por palavra livre nos itens dos cupons (ex.: cerveja, chocolate, ração, café)',
+  exemplos: [
+    'quanto gastei em cerveja', 'quanto foi de chocolate esse mês',
+    'quanto gastei com ração', 'quanto estou gastando de café',
+  ],
+  parametros: {
+    termo: { tipo: 'texto', obrigatorio: true },
+    periodo: { tipo: 'periodo', obrigatorio: false, default: 'mes_atual' },
+  },
+
+  async executar(phone, params = {}, deps = {}) {
+    const buscar = deps.buscarItensDoMes || _supabase().buscarItensDoMes;
+    const mesRef = _resolverMesRef(params.periodo, 'mes_atual');
+    const termo = typeof params.termo === 'string'
+      ? params.termo.trim().toLowerCase()
+      : '';
+
+    // Defesa em profundidade: `termo` é obrigatório na Camada 1 (guards), mas
+    // se chegar vazio por outra via, a resposta pede o item — nunca quebra.
+    if (!termo) return { temDados: false, mesRef, termo: null, semTermo: true };
+
+    const itens = await buscar(phone, mesRef);
+    if (itens === null) {
+      return { temDados: false, mesRef, termo, erroLeitura: true };
+    }
+    if (!Array.isArray(itens) || itens.length === 0) {
+      return { temDados: false, mesRef, termo, teveGastoNoMes: false };
+    }
+
+    const r = buscarGastoPorAlvo(itens, { tipo: 'termo', valor: termo });
+    if (!r.itensCasados.length || r.total <= 0) {
+      return { temDados: false, mesRef, termo, teveGastoNoMes: true };
+    }
+
+    return {
+      temDados: true,
+      mesRef,
+      termo,
+      total: r.total,
+      qtdCompras: r.qtdCompras,
+      fmt: {
+        total: `R$ ${brl(r.total)}`,
+        qtdCompras: String(r.qtdCompras),
+      },
+    };
+  },
+
+  template(fato) {
+    if (!fato.temDados) {
+      if (fato.semTermo) {
+        return 'Me diga qual item você quer saber — por exemplo: "quanto gastei em cerveja?".';
+      }
+      if (fato.erroLeitura) {
+        return 'Não consegui consultar seus gastos agora. Tente novamente em instantes.';
+      }
+      if (fato.teveGastoNoMes) {
+        return `Não encontrei itens de "${fato.termo}" nos seus cupons de ${nomeDoMes(fato.mesRef)}.`;
+      }
+      return `Ainda não tenho gastos registrados em ${nomeDoMes(fato.mesRef)}.`;
+    }
+    const compras = fato.qtdCompras === 1
+      ? '1 compra'
+      : `${fato.fmt.qtdCompras} compras`;
+    return `Em ${nomeDoMes(fato.mesRef)} você gastou ${fato.fmt.total} em ${fato.termo} (${compras}).`;
+  },
+};
+
 // ═════════════════════════════════════════════════════════════════════════════
 // cod-0042 — duvida_sobre_bot: "o que você sabe fazer?" respondido natural-
 // mente, em vez de cair em fora_de_escopo (o maior balde de frustração
@@ -737,6 +816,7 @@ const REGISTRO = [
   ondeCortar,
   comparativoMercados,
   gastoSuperfluo,
+  gastoPorTermo,
   duvidaSobreBot,
 ];
 
@@ -751,6 +831,7 @@ module.exports = {
   ondeCortar,
   comparativoMercados,
   gastoSuperfluo,
+  gastoPorTermo,
   duvidaSobreBot,
   CATEGORIAS_VALIDAS,
   rotuloCategoria,
