@@ -71,13 +71,13 @@
   <header class="top">
     <h1><span class="dot">●</span> Painel Economizei</h1>
   </header>
-  <p class="sub">Apanhado do projeto · gerado em <b>quarta, 15 de julho de 2026</b> · janela em construção até a empresa BC (out/2026).</p>
+  <p class="sub">Apanhado do projeto · gerado em <b>segunda, 20 de julho de 2026</b> · atualiza toda segunda de manhã.</p>
 
   <!-- CHIPS DE STATUS -->
   <div class="chips">
-    <div class="chip warn"><div class="n">4</div><div class="l">aguardando sua revisão/commit</div></div>
-    <div class="chip info"><div class="n">1</div><div class="l">pronta na fila (cod-0065)</div></div>
-    <div class="chip ok"><div class="n">7</div><div class="l">commits em 13/07 (0 novos desde)</div></div>
+    <div class="chip info"><div class="n">4</div><div class="l">tarefas prontas na fila</div></div>
+    <div class="chip warn"><div class="n">1</div><div class="l">aguardando sua revisão (cod-0034)</div></div>
+    <div class="chip ok"><div class="n">7</div><div class="l">commits na semana (15 e 17/07)</div></div>
     <div class="chip warn"><div class="n">4</div><div class="l">pendências suas 🔴</div></div>
     <div class="chip ok"><div class="n">✓</div><div class="l">main = origin · tree sujo</div></div>
   </div>
@@ -87,15 +87,15 @@
     <!-- BLOCO 1: AGENDA -->
     <section class="card">
       <h2><span class="ic">🗂️</span> Estado da AGENDA</h2>
-      <p class="muted" style="font-size:12.5px;margin:-6px 0 12px">A máquina rodou 3 madrugadas (13→15/07) e empilhou 4 tarefas prontas no working tree, sem commit.</p>
+      <p class="muted" style="font-size:12.5px;margin:-6px 0 12px">Fila em ordem de prioridade (a 1ª é a próxima). 1 tarefa em revisão: <b>cod-0034</b> (intent <code>gasto_por_termo</code>, rotina matinal de 18/07) — working tree tem código dela esperando seu commit.</p>
       <ul class="list">
-        <li><span class="tag t-amber">revisão</span><div class="li-body"><b>Agente — Leva 2b: comparativo + supérfluo como intents</b><br><span class="id">cod-0041 · em revisão desde 13/07 · <code>src/agent/intents.js</code></span></div></li>
-        <li><span class="tag t-amber">revisão</span><div class="li-body"><b>Agente — intent <code>duvida_sobre_bot</code> ("o que você faz?")</b><br><span class="id">cod-0042 · em revisão desde 13/07 · não consome cota</span></div></li>
-        <li><span class="tag t-amber">revisão</span><div class="li-body"><b>Testes da rede de segurança da EXTRAÇÃO (o coração)</b><br><span class="id">cod-0051 · em revisão desde 14/07 · 31 testes · <code>gemini.js</code></span></div></li>
-        <li><span class="tag t-amber">revisão</span><div class="li-body"><b>Testes do dedup + validação do webhook</b><br><span class="id">cod-0052 · em revisão desde 15/07 (hoje) · 19 testes · <code>src/index.js</code></span></div></li>
-        <li><span class="tag t-p2">fila · P2</span><div class="li-body"><b>Modo recibo Canadá (Vancouver) — MVP</b><br><span class="id">cod-0065 · única pronta na fila · feature GRANDE, precisa 2–3 recibos reais seus</span></div></li>
+        <li><span class="tag t-p2">próxima · P2</span><div class="li-body"><b>Frente 1 — ler comprovante de PIX (foto/PDF)</b><br><span class="id">cod-0062 · desbloqueada pela cod-0061, mas espera 2–3 comprovantes reais seus · rodar com você presente</span></div></li>
+        <li><span class="tag t-p2">fila · P2</span><div class="li-body"><b>Alerta Pro — bloco de gasto supérfluo no <code>/gastos</code> e resumo mensal</b><br><span class="id">cod-0032 · depende do cod-0031 (✅ commitado)</span></div></li>
+        <li><span class="tag t-p3">fila · P3</span><div class="li-body"><b>Alerta Pro — comandos <code>/acompanhar</code> <code>/limite</code> <code>/acompanhamentos</code> <code>/parar</code> <code>/superfluo</code></b><br><span class="id">cod-0033</span></div></li>
+        <li><span class="tag t-p2">fila · P2</span><div class="li-body"><b>Modo recibo Canadá (Vancouver) — entender qualquer recibo</b><br><span class="id">cod-0065 · espera 2–3 recibos reais + sessão de canal/Plaid</span></div></li>
+        <li><span class="tag t-amber">revisão</span><div class="li-body"><b>Agente — intent <code>gasto_por_termo</code> ("quanto gastei em cerveja?")</b><br><span class="id">cod-0034 · em revisão desde 18/07 · atenção: <code>buscarItensDoMes</code> nova em <code>supabase.js</code> (desvio consciente de escopo)</span></div></li>
       </ul>
-      <div class="note amber" style="margin-top:14px"><b>Ação nº1:</b> na sua máquina, <code>npm run check</code> → revisar os diffs → commitar. Sugestão: use <code>/entregar</code> (agrupa por tarefa e checa migrations). <b>Sem migration nova, sem env nova</b> nas 4. Depois disso a fila esvazia até a cod-0065 (que espera decisão sua: cabe na rotina ou é sessão com você?).</div>
+      <div class="note amber" style="margin-top:14px"><b>Working tree:</b> código modificado (<code>src/agent/intents.js</code>, <code>src/supabase.js</code>, <code>src/index.js</code>, <code>formatter.js</code>, <code>monthlySummary.js</code> + 3 arquivos de teste) — é a impl da cod-0034 esperando <code>npm run check</code> na sua máquina + <code>/entregar</code>. Sem migration nova, sem env nova. Também há docs não-rastreados (auditoria externa 17/07, contexto do Projeto Claude 19/07, <code>RELATORIO_SENTINELA.md</code>).</div>
     </section>
 
     <!-- BLOCO 2: PENDÊNCIAS DO GABRIEL -->
@@ -105,48 +105,48 @@
       <ul class="list">
         <li><span class="tag t-red">🔴</span><div class="li-body"><b>Aplicar o patch do firewall</b> — 8 tokens novos + <code>--no-renames</code> + <code>src/hotmart.js</code> na denylist<br><span class="id">Auditoria §1.4 · snippet pronto no doc</span></div></li>
         <li><span class="tag t-red">🔴</span><div class="li-body"><b>Rodar query de verificação de schema</b> no SQL Editor (5 min) — confirma a RPC <code>incrementar_compras_mes</code><br><span class="id">Auditoria §3.3</span></div></li>
-        <li><span class="tag t-red">🔴</span><div class="li-body"><b>Copy da indicação promete alerta que não existe</b> — encurtar + gate Pro, ou segurar o <code>/convidar</code><br><span class="id">Auditoria §4.2</span></div></li>
-        <li><span class="tag t-red">🔴</span><div class="li-body"><b>Fluxo <code>/assinar</code> ainda gera checkout Mercado Pago</b> — trocar por instruções PIX até out/2026<br><span class="id">Auditoria §4.3 · financeiro</span></div></li>
-        <li><span class="tag t-amber">🟠</span><div class="li-body">Gate Pro do comparativo — snippets prontos, falta aplicar <span class="id">A1 · Gate_Pro_Desdobramento_2026-07-10.md</span></div></li>
+        <li><span class="tag t-red">🔴</span><div class="li-body"><b>Copy da indicação promete alerta que não existe</b> — encurtar + gate Pro, ou segurar o <code>/convidar</code><br><span class="id">Auditoria §4.2 · decisão</span></div></li>
+        <li><span class="tag t-red">🔴</span><div class="li-body"><b>Fluxo <code>/assinar</code> ainda gera checkout Mercado Pago</b> — trocar por instruções PIX até Hotmart/Wise (out/2026)<br><span class="id">Auditoria §4.3 · financeiro</span></div></li>
+        <li><span class="tag t-amber">agora</span><div class="li-body"><b>Revisar/commitar a cod-0034</b> (working tree) — <code>npm run check</code> → <code>/entregar</code>; atenção ao <code>buscarItensDoMes</code> <span class="id">RELATORIO_MATINAL.md</span></div></li>
+        <li><span class="tag t-amber">agora</span><div class="li-body"><b>Destravar a cod-0062:</b> fornecer 2–3 comprovantes PIX reais + verificar CHECK em <code>compras.tipo</code> + confirmar payload de documento da Z-API</div></li>
         <li><span class="tag t-amber">🟡</span><div class="li-body">Logar o fallback do incremento em <code>salvarCompra</code> · RPC <code>incrementar_perguntas_mes</code> (opcional) <span class="id">§2.3 / §8.3</span></div></li>
         <li><span class="tag t-p3">aud</span><div class="li-body">Auditorias com dados seus: aud-01 cupons reais · aud-02 custo Gemini · aud-03 LGPD logs · aud-04 custo infra <span class="id">§7 do doc</span></div></li>
+        <li><span class="tag t-p3">CA</span><div class="li-body">cod-0065: 2–3 recibos de Vancouver · consentimento CASL · BC PIPA/PIPEDA · provedor WhatsApp p/ número CA</div></li>
       </ul>
-      <div class="note amber" style="margin-top:14px"><b>Em pausa até out/2026:</b> empresa BC e tudo que depende dela (Meta Ads, Hotmart, Wise, afiliados). A janela atual é <b>tempo de construção</b>, não de monetizar — a métrica que manda é retenção W2, não receita.</div>
+      <div class="note amber" style="margin-top:14px"><b>Em pausa até out/2026:</b> empresa BC e tudo que depende dela (Meta Ads, Hotmart, Wise, afiliados — bloqueadores #1..#5). A janela atual é <b>tempo de construção</b> — a métrica que manda é retenção W2, não receita.</div>
     </section>
 
     <!-- BLOCO 3: GIT -->
     <section class="card span2">
       <h2><span class="ic">📦</span> Atividade de git — últimos 7 dias</h2>
-      <div class="git-row"><span class="hash">01bc113</span><span class="git-msg">docs: reconcilia AGENDA pós-entrega + regra de migrations no <b>/entregar</b> <span class="muted">· 13/07</span></span></div>
-      <div class="git-row"><span class="hash">9182b91</span><span class="git-msg">docs: memória — auditoria integral, gate pro, longo prazo, smoke test <span class="muted">· 13/07</span></span></div>
-      <div class="git-row"><span class="hash">0b81181</span><span class="git-msg">feat(ops): guarda de schema no boot <b>(cod-0050)</b> <span class="muted">· 13/07</span></span></div>
-      <div class="git-row"><span class="hash">0dc9159</span><span class="git-msg">feat(agente): leva 2a — inflação, raio-x, economia, onde-cortar <b>(cod-0040)</b> <span class="muted">· 13/07</span></span></div>
-      <div class="git-row"><span class="hash">86dbb64</span><span class="git-msg">feat(alerta-pro): I/O de acompanhamentos e categorias supérfluas <b>(cod-0031)</b> <span class="muted">· 13/07</span></span></div>
-      <div class="git-row"><span class="hash">473ea18</span><span class="git-msg">test(formatter): cobertura das mensagens não-financeiras <b>(cod-0022)</b> <span class="muted">· 13/07</span></span></div>
-      <div class="git-row"><span class="hash">7082535</span><span class="git-msg">refactor(copy): erro nao_supermercado honesto + lembrete d10 <b>(cod-0021, cod-0024)</b> <span class="muted">· 13/07</span></span></div>
-      <div class="git-row"><span class="hash">0404e99</span><span class="git-msg">docs: checkpoint N2 + reconciliação AGENDA×git; Free×Pro do Alerta Pro <span class="muted">· 09/07</span></span></div>
-      <div class="git-row"><span class="hash">d4eaf51</span><span class="git-msg">feat(agente): conversa fluida completa <b>(cod-0013..0017)</b> + comparativo <b>(cod-0020)</b> <span class="muted">· 08/07</span></span></div>
-      <div class="note amber" style="margin-top:14px"><b>Nada commitado desde 13/07</b>, mas a rotina matinal seguiu produzindo: <code>cod-0051</code> (14/07) e <code>cod-0052</code> (15/07) entraram no working tree junto com <code>cod-0041/0042</code>. <span class="muted">São 8 arquivos alterados + 4 arquivos de teste novos esperando seu <code>git commit</code>. <code>origin/main</code> continua sincronizado com o último push.</span></div>
+      <div class="git-row"><span class="hash">882cf6e</span><span class="git-msg">docs(memória): enxuga AGENDA (histórico → snapshot) + reconcilia git; regra anti-inchaço; arquiva órfãos da raiz <span class="muted">· 17/07</span></span></div>
+      <div class="git-row"><span class="hash">e7f236d</span><span class="git-msg">feat(webhook): recebe documento (foto/PDF) e roteia pro pipeline de recibo <b>(cod-0061)</b> <span class="muted">· 17/07</span></span></div>
+      <div class="git-row"><span class="hash">9c098c5</span><span class="git-msg">docs: reconcilia AGENDA pós-entrega (cod-0041/0042/0051/0052) <span class="muted">· 15/07</span></span></div>
+      <div class="git-row"><span class="hash">73f8cce</span><span class="git-msg">docs: reconcilia AGENDA + PAINEL + entregar pós-4-tarefas <span class="muted">· 15/07</span></span></div>
+      <div class="git-row"><span class="hash">a40110f</span><span class="git-msg">test(webhook): dedup + validação de payload do webhook <b>(cod-0052)</b> <span class="muted">· 15/07</span></span></div>
+      <div class="git-row"><span class="hash">38689b9</span><span class="git-msg">test(gemini): cobertura de extração — reconciliar, validarSchema, parse, score <b>(cod-0051)</b> <span class="muted">· 15/07</span></span></div>
+      <div class="git-row"><span class="hash">c355d74</span><span class="git-msg">feat(agente): leva2b — comparativo + supérfluo + dúvida_bot como intents <b>(cod-0041 + cod-0042)</b> <span class="muted">· 15/07</span></span></div>
+      <div class="note" style="margin-top:14px"><b>5 tarefas entregues na semana</b> (cod-0041/0042, 0051, 0052 em 15/07 · cod-0061 em 17/07) + 2 commits de memória/reconciliação. <span class="muted"><code>origin/main</code> sincronizado (0 à frente / 0 atrás). Working tree com <b>código modificado</b> em <code>src/</code> (impl da cod-0034, sem commit) + memória (<code>AGENDA.md</code>, <code>RELATORIO_MATINAL.md</code>) e docs novos não-rastreados.</span></div>
     </section>
 
     <!-- BLOCO 4: HIGIENE DE CONVERSAS -->
     <section class="card span2">
       <h2><span class="ic">🧹</span> Higiene de conversas & memória</h2>
       <p style="font-size:13.5px;margin:0 0 12px">
-        <b>Memória (CLAUDE.md) consolidada até: 13/07/2026.</b> As sessões da máquina de 14/07 (cod-0051) e 15/07 (cod-0052) ainda <b>não</b> viraram Decisão no CLAUDE.md — vivem só no <code>RELATORIO_MATINAL.md</code> e na AGENDA (working tree).
+        <b>Memória (CLAUDE.md) consolidada até: 15/07/2026.</b> O trabalho de 17–19/07 (cod-0061 commitado, cod-0034 implementada, auditoria externa 17/07, contexto do Projeto Claude 19/07) vive na AGENDA, no git e nos docs — ainda não virou Decisão no CLAUDE.md.
       </p>
       <ul class="list">
-        <li><span class="tag t-green">seguro excluir</span><div class="li-body">Conversas <b>até 13/07</b> cujo tema já aparece nas Decisões do <code>CLAUDE.md</code> — o valor já virou memória.</div></li>
-        <li><span class="tag t-amber">confira antes</span><div class="li-body">Conversas de <b>14/07 e 15/07</b>: confirme que a decisão foi registrada no <code>CLAUDE.md</code> antes de excluir. Se não foi, consolide primeiro.</div></li>
-        <li><span class="tag t-p3">fixe só isto</span><div class="li-body">A sessão atual (discussão de planos + este painel). Ao commitar as 4 tarefas em revisão, atualizar o CLAUDE.md fecha o ciclo.</div></li>
+        <li><span class="tag t-green">seguro excluir</span><div class="li-body">Conversas <b>até 15/07</b> cujo tema já aparece nas Decisões do <code>CLAUDE.md</code> — o valor já virou memória. Regra prática: se está no CLAUDE.md, o chat pode ser <b>excluído</b>, não só arquivado.</div></li>
+        <li><span class="tag t-amber">confira antes</span><div class="li-body">Conversas <b>posteriores a 15/07</b>: confirme que a decisão foi registrada no <code>CLAUDE.md</code> (ou no doc de sessão) antes de excluir. Se não foi, consolide primeiro.</div></li>
+        <li><span class="tag t-p3">fixe só isto</span><div class="li-body">Só a conversa da tarefa em andamento — a próxima da fila é a <b>cod-0062</b> (PIX). O resto desafixa.</div></li>
       </ul>
-      <div class="note blue" style="margin-top:14px"><b>Sugestão para esta sessão:</b> commitar as 4 tarefas em revisão fecha a leva de testes+intents e limpa o working tree — aí a única decisão aberta na fila é a <b>cod-0065</b> (recibo Canadá) e as pendências financeiras/humanas de sempre.</div>
+      <div class="note blue" style="margin-top:14px"><b>Sugestão para esta semana:</b> entregar a cod-0034 (<code>/entregar</code>) limpa o working tree; com os 2–3 comprovantes PIX na mão, a cod-0062 roda com você presente e a Frente 1 avança de verdade.</div>
     </section>
 
   </div>
 
   <footer>
-    Gerado a partir de <code>AGENDA.md</code>, do log do git, do <code>RELATORIO_MATINAL.md</code> e do <code>CLAUDE.md</code> · 15/07/2026.<br>
+    Gerado a partir de <code>AGENDA.md</code>, do log do git e do <code>CLAUDE.md</code> · 20/07/2026 · reescrito toda segunda.<br>
     Painel só-leitura — não toca em código nem financeiro.
   </footer>
 
