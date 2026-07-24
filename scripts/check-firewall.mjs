@@ -41,6 +41,7 @@ const PROTECTED_PATHS = [
   /^Dockerfile$/i,
   /^Procfile$/i,
   /^package(-lock)?\.json$/i,       // dependências = risco de supply-chain
+  /^src\/hotmart\.js$/i,            // webhook de pagamento futuro (nasce protegido)
 ];
 
 // ── 2) Padrões financeiros (sobre cada linha ADICIONADA do diff) ────────────
@@ -61,6 +62,12 @@ const MONEY_PATTERNS = [
   /montarMensagemPlanos/i,
   /cancelarAssinatura/i,
   /salvarAssinaturaPreapproval/i,
+  /temFeaturesProAtivas|concederFeaturesPro|marcarProAtivo/i,
+  /\behPro\b/,
+  /COMPARATIVO_MAX_PRO/,
+  /hotmart/i,
+  /ADMIN_SECRET|X-Admin-Secret/i,
+  /['"`]\/planos\b/,               // roteamento do comando (montarMensagemPlanos já era pego)
 ];
 
 // O scan de CONTEÚDO só vale pra arquivo de código — docs (.md), páginas (.html)
@@ -105,6 +112,9 @@ function selftest() {
     [() => scanLine("const precoTotal = preco * qtd; // gasto do item").length > 0, false],
     [() => scanLine("return _round2(ref.total)").length > 0, false],
     [() => scanLine("msg += `R$ ${valor}`; // relatorio de gasto").length > 0, false],
+    [() => scanLine("if (temFeaturesProAtivas(u)) {").length > 0, true],
+    [() => scanLine("const s = process.env.ADMIN_SECRET").length > 0, true],
+    [() => scanLine("// webhook hotmart").length > 0, true],
   ];
   let ok = 0;
   cases.forEach(([fn, exp], i) => {
@@ -144,10 +154,10 @@ function main() {
       // + arquivos novos). É o que você roda ANTES do commit, depois que o Claude
       // local mexeu nos arquivos.
       escopo = "mudanças não commitadas (working tree)";
-      const tracked = sh("git diff --name-only HEAD").split("\n").filter(Boolean);
+      const tracked = sh("git diff --name-only --no-renames HEAD").split("\n").filter(Boolean);
       const untracked = sh("git ls-files --others --exclude-standard").split("\n").filter(Boolean);
       changed = [...new Set([...tracked, ...untracked])];
-      patch = execSync("git diff --unified=0 HEAD", { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      patch = execSync("git diff --unified=0 --no-renames HEAD", { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
       // arquivos novos não aparecem em `git diff`: trata cada linha como adicionada
       for (const f of untracked) {
         try {
@@ -162,8 +172,8 @@ function main() {
         process.exit(1);
       }
       escopo = `${base}...HEAD`;
-      changed = sh(`git diff --name-only ${base}...HEAD`).split("\n").filter(Boolean);
-      patch = execSync(`git diff --unified=0 ${base}...HEAD`, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      changed = sh(`git diff --name-only --no-renames ${base}...HEAD`).split("\n").filter(Boolean);
+      patch = execSync(`git diff --unified=0 --no-renames ${base}...HEAD`, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     }
   } catch (e) {
     console.error(`FIREWALL: erro ao calcular o diff. Falhando por segurança.\n${e.message}`);
