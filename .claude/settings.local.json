@@ -4,7 +4,17 @@
       "PowerShell(Get-ChildItem -Recurse \"C:\\\\Economizei\" | Where-Object { !$_.PSIsContainer } | Select-Object -ExpandProperty FullName)",
       "Bash(npm install *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git apply *)",
+      "Bash(git add *)",
+      "Bash(git reset *)",
+      "Bash(npm run *)",
+      "Bash(echo \"EXIT CODE: $?\")",
+      "Bash(cp __TRACKED_VAR__/index.final.js src/index.js)",
+      "Bash(cp __TRACKED_VAR__/formatter.final.js src/formatter.js)",
+      "Bash(rm src/mercadopago.js)",
+      "Bash(node --check src/index.js)",
+      "Bash(node --check src/formatter.js)"
     ]
   }
 }

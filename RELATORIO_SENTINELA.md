@@ -1,26 +1,29 @@
-# 🛰️ Relatório da Sentinela Semanal — 2026-07-19 (domingo)
+# 🛰️ Relatório da Sentinela Semanal — Economizei
 
-**Veredito geral: 🟡** — nada financeiro tocado e testes 100% verdes, mas há **trabalho não registrado no working tree** (cod-0032 implementada hoje sem relatório/AGENDA) e os 3 🔴 conhecidos seguem abertos.
+**Data:** 2026-07-26 (dom) · **Veredito geral: 🟡 saudável, com ações humanas quentes**
+
+Repositório limpo (firewall verde, testes reais verdes, memória batendo com o git). O amarelo é só por ações humanas pendentes — nenhuma delas é problema da máquina.
 
 ## Achados por check
 
-- **AGENDA×git:** ✅ reconciliada até `882cf6e` (cod-0061 `e7f236d` e entregas de 07-13/07-16 todas no `origin/main`). ⚠️ **MAS o working tree tem 2 pacotes e a AGENDA só registra 1:** cod-0034 (07-18, registrada em "Em revisão") **+ cod-0032 implementada HOJE 07-19 ~12h** (`formatter.js` + `index.js` + `monthlySummary.js` + `test/superfluo-bloco.test.js`, 13 testes) — **sem RELATORIO_MATINAL novo e sem entrada na AGENDA**. Provável run da rotina matinal de domingo que não escreveu o relatório. Código está bom (testes verdes), mas a memória ficou stale.
-- **Working tree parado >7 dias:** ✅ nenhum (mudanças mais antigas são de 07-18).
-- **Untracked:** `Economizei app/Auditoria_Externa_2026-07-17.md` + `Prompt_Auditoria_Completa_2026-07-17.md` (docs, commitar quando conveniente). PAINEL.html e RELATORIO_MATINAL.md já trackeados — OK.
-- **Firewall:** ✅ selftest 16/16 OK · `--working` verde (12 arquivos alterados, zero token financeiro). Lembrete: o patch das 8 lacunas + `--no-renames` (Auditoria 07-10 §1.4) ainda NÃO foi aplicado — o selftest atual valida o firewall antigo.
-- **Testes (cópia limpa /tmp, sharp stubado — SIGBUS/binário win32 é ambiental):** ✅ **393/393 verdes** (inclui os 14 da cod-0034 e os 13 da cod-0032). Gate final continua sendo `npm run check` na sua máquina (regra 11).
-- **Anti-A9 (migrations):** ✅ verde. cod-0034/0032 só LEEM tabelas/colunas cujas migrations já rodaram (07-08/07-09: `acompanhamentos`, `usuarios.categorias_superfluas`, agente). Nenhum `.sql` novo pendente pro próximo deploy. Pendência que permanece: query de verificação de schema (§3.3) nunca rodada.
-- **Copy×features:** 🔴 ambas as pendências seguem abertas — `formatter.js` promete "alerta inteligente" em `/planos` e na indicação (linhas ~316/372/883/895) com a feature ainda não entregue; `/assinar` ainda cria preapproval no Mercado Pago (`index.js` ~509+, webhook `/webhook/mercadopago` ativo). Não corrigi (zona financeira/humana).
-- **Contexto do Projeto:** o de 07-15 ficou defasado (fila e estado mudaram) → **gerei `Economizei app/Projeto_Claude_CONTEXTO_2026-07-19.md`**. **Troque o arquivo no Projeto do Claude: remova o de 07-15, suba o de 07-19.**
+1. **AGENDA×git — 🟢** `origin/main` = HEAD = `1d27d43`. cod-0053/0032/0034 estão corretamente em "Concluído" e pushados (`6cadcb8`..`b923805`). **cod-0033 está corretamente em "Em revisão"** e casa com o working tree (implementado 07-24, sem commit). Sem memória stale.
+2. **Firewall — 🟢** selftest 19/19 OK; `--working` sobre 10 arquivos alterados = **nenhuma mudança financeira/proibida**. O cod-0033 declara "SEM gate Pro" e o firewall confirma.
+3. **Testes (cópia limpa /tmp) — 🟢** 338 testes, **331 passam**. As **7 falhas são todas SIGBUS/sharp** (ambiental do sandbox — passam no Windows): classificacao-corpus, erro-copy, gemini-canonico, gemini-extracao, webhook-auth, webhook-dedup, webhook-documento. O teste novo `acompanhamentos-comandos.test.js` (cod-0033) **passou**.
+4. **Anti-A9 (migrations) — 🟢** cod-0033/0034 **não criam schema novo** (`buscarItensDoMes` lê `compras`/`itens_compra`; `acompanhamentos` e `usuarios.categorias_superfluas` já vêm de cod-0031/0032). `schemaGuard.js` cobre as 12 checagens críticas, incluindo `acompanhamentos` e `categorias_superfluas`. Nada a rodar antes do próximo deploy.
+5. **Copy×features — 🟠 (2 itens conhecidos, ainda abertos, zona humana)**
+   - `src/formatter.js` (linhas 968/983/995/1004): copy de indicação **ainda promete "alerta inteligente"** — feature preditiva = cod-0035, **não construída**. Over-promise segue no ar.
+   - `/assinar` (`src/index.js` ~555 + preapproval ~1044): **ainda gera checkout Mercado Pago**, abandonado juridicamente. Precisa migrar pro trilho Stripe/Hotmart. Não corrigido (zona financeira/humana).
+6. **Contexto do Projeto — 🟡 → resolvido** O `Projeto_Claude_CONTEXTO_2026-07-19.md` ficou defasado (pagamentos ainda no modelo antigo Hotmart+Wise, sem os "dois trilhos"; cod-0032/0034 listados como pendentes mas já pushados; cod-0053 ausente; patch do firewall listado como aberto mas já aplicado). **Gerei o novo `Projeto_Claude_CONTEXTO_2026-07-26.md`.**
 
-## 🙋 Ações do Gabriel (por urgência)
+## 🧍 Ações do Gabriel (por urgência)
 
-1. **Investigar a run de hoje + registrar a cod-0032:** o código dela está no working tree sem relatório/AGENDA. Revise o diff (formatter/index/monthlySummary + teste) e, no `/entregar`, trate como pacote separado da cod-0034. Não esqueça: gate Pro do supérfluo = suas ~3 linhas na revisão (`Gate_Pro_Desdobramento_2026-07-10.md`).
-2. **Revisar/commitar cod-0034** (atenção ao `buscarItensDoMes` novo em `supabase.js` — desvio de escopo declarado) → `/entregar`.
-3. **🔴 Aplicar o patch do firewall** (Auditoria 07-10 §1.4 — snippet pronto; rodar `--selftest` depois).
-4. **🔴 Decidir o `/assinar`** (ainda MP — irregular) e **a copy do "alerta inteligente"** (promessa sem entrega; cod-0032/0033/0035 estão fechando o gap — dá pra encurtar a promessa até lá).
-5. **Trocar o arquivo no Projeto do Claude:** remover `Projeto_Claude_CONTEXTO_2026-07-15.md`, subir o `_2026-07-19.md`.
-6. Commitar os 2 docs de auditoria de 07-17 (untracked) · rodar a query de schema §3.3 (5 min) · fornecer os 2–3 comprovantes PIX (destrava cod-0062).
+1. **Commitar o cod-0033** via `/entregar` (working tree parado desde 07-24: `src/index.js`, `src/formatter.js`, `src/insights.js` + `test/acompanhamentos-comandos.test.js`). Check verde, firewall verde, sem migration/env.
+2. **cod-0053 — segurança do webhook:** setar `ZAPI_WEBHOOK_TOKEN` no Railway **e** reconfigurar a URL no Z-API pra `/webhook/<token>` — **NESSA ORDEM**. Sem a env, o webhook segue em modo aberto (aceita payload forjado).
+3. **Trocar o arquivo no Projeto do Claude:** remova o `Projeto_Claude_CONTEXTO_2026-07-19.md` e suba o **`Projeto_Claude_CONTEXTO_2026-07-26.md`**.
+4. **`/assinar` → Mercado Pago 🔴** — reescrever pro Stripe/Hotmart (dois trilhos). Pendência de longa data.
+5. **Copy de indicação/`/planos` 🔴** — remover a promessa de "alerta inteligente" ou entregar o cod-0035 antes.
+6. **Decisão de produto:** gate Pro do bloco de supérfluo (baseline pra todos ou só Pro?).
 
 ---
-*Sentinela só lê, testa e reporta — nada foi commitado, nenhum código de produto foi editado.*
+
+**Resumo (3 linhas):** O repositório está saudável — firewall 19/19, 331 testes reais verdes (as 7 falhas são só sharp/SIGBUS do sandbox), e a AGENDA bate com o git (cod-0033 legitimamente em revisão, nada de memória stale). As ações quentes são humanas: commitar o cod-0033 e ligar o `ZAPI_WEBHOOK_TOKEN` no Railway (nessa ordem com o Z-API). Regenerei o CONTEXTO do Projeto do Claude (o de 07-19 estava defasado nos pagamentos e nas entregas de 07-24) — troque o arquivo antigo pelo `Projeto_Claude_CONTEXTO_2026-07-26.md`.

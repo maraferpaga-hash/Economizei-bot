@@ -1,58 +1,76 @@
-# ☀️ Relatório Matinal — 2026-07-23
+# ☀️ Relatório Matinal — Máquina Local do Economizei
 
-**Tarefa pega para implementação:** **nenhuma** — nenhuma tarefa `pronta` é elegível para run autônoma hoje.
-**Mudanças de código feitas por esta rotina:** **nenhuma** (não implementei, não commitei, não mexi na AGENDA).
-**`npm run check`:** não rodado (nada implementado). Ver aviso sobre o estado da working tree abaixo.
-
-> 🔁 **2ª manhã seguida bloqueada pelo mesmo motivo.** O relatório de ontem (07-22) chegou à mesma conclusão. Desde então **nada mudou**: `origin/main` continua em `882cf6e` e a working tree segue com o mesmo emaranhado sem commit. A rotina matinal **fica travada até você limpar/entregar a working tree** (ver "O que precisa de você"). Enquanto isso não acontecer, cada run vai só reproduzir este aviso.
+**Data:** 2026-07-27 (segunda-feira)
+**Execução:** rotina automática (Cowork Scheduled) — **SEM commit** · **nenhuma tarefa implementada hoje** (motivo abaixo)
+**⚠️ 3º dia seguido de fila bloqueada** — e agora o working tree carrega **duas** levas de trabalho seu não-commitado (cod-0033 de 07-24 **+** a sessão financeira de 07-26).
 
 ---
 
-## Por que não peguei nenhuma tarefa
+## 🎯 Resultado: **nenhuma tarefa pega** — a fila só tem tarefas bloqueadas por você
 
-Avaliei as 3 tarefas em `## 🌙 Fila pronta`, de cima pra baixo. As três estão bloqueadas para uma run autônoma:
+Percorri a "🌙 Fila pronta" de cima pra baixo. As **duas** tarefas com `status: pronta` são grandes, mexem no **coração** (prompt do Gemini / classificação) e **dependem de material que só você fornece**. Nenhuma é elegível pra run autônoma. Seguindo o protocolo (tarefa grande/ambígua/bloqueada → **não implementar**, relatar o plano e parar), não escrevi código.
 
-**1. cod-0062 — ler comprovante de PIX (topo da fila).**
-Marcada de propósito como **não-pra-run-autônoma** (nota da própria tarefa de 07-18 + estado da fila de 07-20): mexe no prompt do Gemini (o "coração" da classificação), o firewall acusa o token "pix" por design (commit consciente), e falta o **pré-req humano: 2–3 comprovantes PIX reais** pro mini-corpus. Sem eles a extração não tem como ser validada. → **Rodar com você presente.**
-
-**2. cod-0033 — comandos do Alerta Pro (`/acompanhar` etc.).**
-Arquivos-alvo são `src/index.js` e `src/formatter.js` — **ambos já modificados na working tree** (cod-0032; e o `index.js` também pela auth do webhook, ver abaixo). A própria tarefa avisa: *"⚠️ rodar DEPOIS do `/entregar`"*. Implementar agora empilharia um terceiro pacote num diff já emaranhado e quebraria a regra "1 tarefa = 1 pacote de `/entregar`". → **Elegível assim que a working tree for commitada e limpa.**
-
-**3. cod-0065 — modo recibo Canadá.**
-Precisa de **2–3 recibos reais de Vancouver** (pré-req humano) + a sessão de decisão de canal (Plaid/app). Bloqueada. → Humano.
-
-Conclusão: seguir o protocolo (implementar 1 tarefa pequena) causaria mais dano que ajuda hoje. Segui a regra "não invente trabalho" e produzi este relatório.
-
----
-
-## ⚠️ A working tree acumulou mais do que a AGENDA registrava (inalterada desde 07-22)
-
-O estado da AGENDA (07-20) fala em **2 pacotes** em revisão (cod-0032 e cod-0034). O `git status` de hoje mostra **mais que isso** empilhado, sem commit, no mesmo working tree (`origin/main` ainda em `882cf6e`):
-
-| Arquivo(s) | Origem provável | Zona |
+| Ordem | Tarefa | Por que a máquina não pega |
 |---|---|---|
-| `src/agent/intents.js`, `src/supabase.js`, `test/agent-gasto-por-termo.test.js`, `test/agent-intents.test.js` | **cod-0034** (intent `gasto_por_termo`) | código, ok |
-| `src/formatter.js`, `src/index.js`, `src/monthlySummary.js`, `test/superfluo-bloco.test.js` | **cod-0032** (bloco de supérfluo) | código, ok |
-| `src/index.js` (`autenticarWebhook`) + `test/webhook-auth.test.js` (novo, 07-21) | **cod-0053** — auth do `/webhook` (achado N1 da Auditoria Externa 07-17: aceitava payload forjado). Rollout sem downtime: passa enquanto `ZAPI_WEBHOOK_TOKEN` não estiver setada; 401 depois de setada | segurança / env |
-| `scripts/check-firewall.mjs` (+14/−4) | **Patch do firewall §1.4** (Auditoria Integral 07-10): novos tokens financeiros + `--no-renames` anti-bypass + path `src/hotmart.js` | 🔒 **ZONA PROIBIDA — só você** |
-| `CLAUDE.md`, `AGENDA.md`, `PAINEL.html`, `RELATORIO_SENTINELA.md`, docs novos em `Economizei app/` (07-17→07-21) | memória / sentinela / sessões | docs |
+| 1ª | **cod-0062** — ler comprovante de PIX | A própria AGENDA marca "**NÃO é pra run autônoma**" (nota 07-18): mexe no prompt do Gemini (coração), o firewall acusa o token "pix" **de propósito** (commit consciente = seu), e falta o **pré-req humano: 2–3 comprovantes PIX reais** pro mini-corpus. Rodar **com você presente**. |
+| 2ª | **cod-0065** — modo recibo Canadá (Vancouver) | Mesma família: reescreve o PROMPT + `coerceNumber` (coração) e **exige 2–3 recibos canadenses reais** pro mini-corpus de regressão. Risco fino: `coerceNumber` ler `"1,299.90"` (CA) sem quebrar `"1.299,90"` pt-BR — troca no parser numérico que corrompe total em silêncio se errar. Também espera a **sessão de canal (Plaid/app)**. |
 
-Pontos de atenção:
-
-- **`scripts/check-firewall.mjs` está modificado** — arquivo da zona proibida (a própria trava). A máquina **não tocou** nele; a modificação é sua (patch da auditoria). Precisa de **commit consciente e separado**; rode o `--selftest` depois. Enquanto ele estiver modificado, um `npm run check` sobre a working tree pode acusar "arquivo protegido modificado" — isso é **esperado**, não bug.
-- **`src/index.js` está com duas coisas empilhadas** (cod-0032 + auth do webhook cod-0053). Ao commitar, vale separar em pacotes distintos pra revisão ficar legível.
-- **A cod-0053 (auth do webhook) não está na "Fila pronta" nem em "Em revisão" da AGENDA** — apareceu no working tree (achado da Auditoria Externa 07-17) mas a AGENDA não a registra. Ao reconciliar, crie o bloco dela em "Em revisão" pra memória não ficar stale.
-- Vários pacotes num só working tree = revisão mais difícil e risco de commit misturado.
+> Não inventei trabalho fora da fila (regra da rotina). Não fatiei um pedaço pequeno de nenhuma delas — mexeria no coração sem os recibos que validam. E, principalmente hoje, **não empilhei nada novo em cima de um working tree já cheio de trabalho seu não-commitado** (ver abaixo).
 
 ---
 
-## 🙋 O que precisa de você (Gabriel)
+## ⏸️ Trava real da esteira: agora há **DUAS levas sem commit** empilhadas no working tree
 
-1. **Limpar/entregar a working tree — é o desbloqueador nº 1** (já é o 2º dia parado por causa disto). Sugestão de pacotes separados via `/entregar`: (a) cod-0034, (b) cod-0032, (c) auth do webhook cod-0053, (d) o patch do firewall `check-firewall.mjs` como commit consciente à parte (rodar `--selftest`), (e) docs/memória. Enquanto isso não acontecer, a **cod-0033** (próxima candidata autônoma) fica travada, porque toca os mesmos arquivos.
-2. **Reconciliar a AGENDA** ao commitar: registrar a **cod-0053** (auth do webhook) que está no tree mas não na memória; atualizar a linha "Estado (2026-07-20)" que ainda fala só em 2 pacotes.
-3. **Destravar a cod-0062:** fornecer os **2–3 comprovantes PIX reais** e rodá-la com você presente (firewall acusa "pix" por design → commit consciente).
-4. **cod-0065:** continua esperando os **2–3 recibos reais de Vancouver** + a sessão de canal.
+Diferente de ontem, o `git status` de hoje mostra que o tree carrega **duas frentes** de trabalho não-commitado:
 
-Nenhuma mudança foi feita por esta rotina. A AGENDA **não foi alterada** (nenhuma tarefa movida pra "Em revisão", porque nada foi implementado).
+**Leva A — cod-0033 (07-24), ainda em "🔧 Em revisão":** comandos `/acompanhar` `/parar` `/acompanhamentos` `/superfluo`.
+- `src/insights.js`, `src/formatter.js`, `src/index.js` (parte da cod-0033)
+- `test/acompanhamentos-comandos.test.js` (novo, cod-0033)
 
-*Skills aplicadas na avaliação: economizei-automation-triage, economizei-code-decisions, economizei-financial-firewall, economizei-memory-system (+ transversais default). Nada foi commitado.*
+**Leva B — sessão financeira (07-26), aguardando seu `/entregar`:** firewall → advisory + remoção do Mercado Pago (bate com o CLAUDE.md "Última atualização" de 07-26).
+- `scripts/check-firewall.mjs` (firewall vira advisory, sempre exit 0) — **zona sua**
+- `src/supabase.js`, `src/index.js`, `src/formatter.js` (remoção do MP)
+- Docs novos em `Economizei app/`: `Plano_Financeiro_Firewall_e_Remocao_MP_2026-07-26.md`, `Passo_a_Passo_Financeiro_2026-07-26.md`, `Pesquisa_Cupom_por_Recompensa_Modelo_2026-07-26.md`, `Microsoft_Clarity_Landing_Analytics_2026-07-26.md`, `Projeto_Claude_CONTEXTO_2026-07-26.md`, `Roteiro_Teste_Webhook_Auth_2026-07-24.md`
+
+Não-máquina no tree: `AGENDA.md`, `PAINEL.html`, `CODE_GUIDE.md`, `CLAUDE.md`, `RELATORIO_SENTINELA.md`, `.claude/settings.local.json`.
+
+> As duas levas compartilham arquivos (`src/index.js`, `src/formatter.js`) — misturá-las com uma implementação nova minha tornaria sua revisão bem mais difícil de fatiar por hunk. **Enquanto A e B não forem commitadas ou descartadas, a esteira está entupida.** Nada que eu produza deve entrar antes disso.
+
+---
+
+## 🧪 `npm run check`
+
+Não rodei — **não houve mudança minha pra checar** hoje, e o tree está no meio da sessão financeira de 07-26 (não é meu lugar mexer / rodar em cima disso). O gate confiável continua sendo a sua máquina Windows no `/entregar` (regra 11). Estado de teste conhecido da cod-0033 (do histórico): 86/86 nos arquivos sem `sharp`; SIGBUS são ambientais do sandbox Linux.
+
+---
+
+## 🙋 O que precisa de você (em ordem)
+
+1. **Fechar a Leva B (sessão financeira 07-26) via `/entregar`** — é o item mais urgente porque toca `check-firewall.mjs` e `supabase.js`, zona sua. Passos que o próprio plano já lista (`Economizei app/Plano_Financeiro_Firewall_e_Remocao_MP_2026-07-26.md`): revisar → `git rm src/mercadopago.js` (o sandbox não teve permissão) → `/entregar` → **depois do deploy**, DROP das colunas/tabela MP no Supabase (ordem código→deploy→banco).
+2. **Fechar a Leva A (cod-0033)** — se ainda não entrou junto: revisar → `npm run check` no Windows → commitar (`feat(alerta-pro): comandos /acompanhar /parar /acompanhamentos /superfluo (cod-0033)`) **ou** `git checkout .`. Decisão fina aberta: o `/limite <termo> <valor>` **não** foi feito (colide com o `/limite` atual + pertence à cod-0035) — decidir comando novo (ex. `/teto cerveja 100`) ou juntar à cod-0035.
+3. **Destravar a cod-0062:** fornecer os **2–3 comprovantes PIX reais** (print/PDF) pro mini-corpus e rodá-la **com você presente** (firewall acusa "pix" por design → commit consciente). Antes: **verificar o CHECK em `compras.tipo`** (query de 1 min no SQL Editor — se for TEXT livre, `'pix'` já funciona sem migration).
+4. **Reabastecer a fila com algo autônomo, se quiser que a rotina matinal volte a produzir** — hoje (3º dia) ela só tem tarefas suas. Candidatos pequenos e sem dependência humana pra subir pra "Fila pronta" (não fiz — priorização é sua):
+   - Testes puros de cobertura (ex. `insights.js` / `monthlySummary.js`, sem tocar `sharp`).
+   - Refinos de mensagem não-financeira no `formatter.js`.
+   - A **limpeza das funções MP órfãs** (linha 290 da AGENDA) virou "tarefa de máquina" no modo advisory — **mas o firewall/ZONA PROIBIDA desta rotina matinal ainda lista pagamento como intocável**, então a rotina automática *não* pega. Se quiser que a máquina faça, é um passo seu: rebaixar a ZONA PROIBIDA da rotina OU deixar pro `/tarefa` manual com você presente.
+5. **(Contexto, não urgente)** Auditoria Integral 07-10 ainda com 🔴 abertos: §3.3 (query de schema/RPC no Supabase), §4.2 (copy da indicação), §4.3 (`/assinar` ainda gera checkout MP — a Leva B começa a resolver isso ao aposentar o MP).
+
+---
+
+## 📝 Plano da cod-0062 (pronto pra quando rodarmos juntos)
+
+Pra a sessão presencial não começar do zero, o desenho já definido (`Economizei app/Desenho_Ingestao_Multi_Documento_2026-07-15.md`) prevê:
+
+- **`src/gemini.js`** — adicionar campo `tipo_documento` ao schema de saída + ramo PIX no PROMPT (classifica cupom × PIX × outros); no `validarSchema`, quando `tipo_documento='pix'`, aceitar `valor`/`data`/`contraparte` com `itens=[]`. **Rodar o corpus de regressão de cupom antes de subir** (coração intacto).
+- **`src/supabase.js`** — `salvarCompra` aceitar `tipo='pix'` (contraparte→`loja`, `itens=[]`); **trocar o guard de `registrarPrecosMercado` pra `=== 'mercado'`** (hoje PIX/qualquer não-mercado poluiria `precos_mercado`). PIX **não** entra em `calcularMedia`.
+- **`src/formatter.js`** — `montarConfirmacaoPix` (valor no topo, sem gíria, confirma antes de gravar).
+- **`test/`** — mini-corpus PIX (2–3 comprovantes reais seus) + testes de schema/roteamento; corpus de cupom segue verde.
+- **Firewall:** vai acusar "pix" por design → commit consciente seu.
+
+---
+
+## 📌 Estado da AGENDA
+- **Não alterei a AGENDA.md hoje** (nenhuma tarefa implementada → nada movido). O `AGENDA.md` modificado no tree é a movimentação de 07-24 (cod-0033), ainda não commitada.
+- Fila pronta: **cod-0062** (com você) → **cod-0065** (com você) — ambas bloqueadas por recibos reais.
+- Em revisão: **cod-0033** (Leva A) + a **sessão financeira 07-26** (Leva B) aguardando seu `/entregar`.
+- `origin/main` sincronizado até `1d27d43`; nenhum commit novo desde 07-24.

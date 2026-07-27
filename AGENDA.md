@@ -22,19 +22,23 @@
 
 ---
 
-## 🚫 Zona proibida — FINANCEIRO (a máquina NUNCA toca)
+## ⚠️ Zona sensível — FINANCEIRO (modo ADVISORY desde 2026-07-26)
 
-> Isto não é só instrução: é **trava automática**. `scripts/check-firewall.mjs`
-> roda no CI e **reprova o PR** se o diff mexer em qualquer item abaixo. Com
-> branch protection na `main`, um PR reprovado fica **não-mergeável**.
+> **MUDANÇA DE REGRA (decisão do Gabriel, 2026-07-26):** durante a construção dos
+> dois trilhos de pagamento (Stripe direto + Hotmart/afiliados), o firewall
+> **deixou de BLOQUEAR e passou a só AVISAR**. `scripts/check-firewall.mjs` ainda
+> LISTA o que toca dinheiro (checklist de atenção), mas **sempre retorna exit 0** —
+> não reprova mais o `npm run check`. A máquina (inclusive a rotina das 8h) **PODE**
+> escrever código financeiro. O gate real agora é a **revisão humana no `/entregar`**:
+> o Gabriel commita TUDO (regra 3 da seção 11 do CLAUDE.md — essa NÃO mudou).
 
-A máquina **não pode** criar, editar ou apagar:
+A lista abaixo continua útil como **atenção extra na revisão** (não como muro):
 
-- `src/mercadopago.js` (módulo de pagamento) — arquivo proibido.
-- Qualquer linha sobre **pagamento/cobrança**: assinatura, preapproval, Mercado Pago, `is_pro`, `/assinar`, `/pix`, `/cancelar`, checkout, paywall, preço de plano, `montarMensagemPlanos`, `features_pro_ate`, `ativar-pro`.
-- `supabase/` (migrations/SQL — schema e tabelas de dinheiro), `.env*` (segredos), `.github/` (os próprios guarda-rails), `package.json`/`package-lock.json` (dependências), `scripts/check-firewall.mjs` (a trava), `Dockerfile`/`Procfile` (deploy).
+- `src/mercadopago.js` — ⛔ **REMOVIDO 2026-07-26** (MP aposentado; falta o `git rm` do Gabriel — ver "Ações do Gabriel").
+- Linhas sobre **pagamento/cobrança**: `is_pro`, `/pix`, checkout, preço de plano, `montarMensagemPlanos`, `features_pro_ate`, `ativar-pro`, Stripe, Hotmart, afiliado.
+- `supabase/` (migrations/SQL — schema e tabelas de dinheiro), `.env*` (segredos), `.github/`, `package.json`/`package-lock.json`, `scripts/check-firewall.mjs`, `Dockerfile`/`Procfile`.
 
-Se uma tarefa precisar de algo disso, ela vira **pendência humana** (vai pro painel "Ações do Gabriel"), nunca trabalho da máquina.
+> Deploy, migrations no Supabase e commit/push **continuam sendo do Gabriel** — a máquina escreve, ele revisa e sobe.
 
 ---
 
@@ -132,7 +136,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 *(a máquina executa de cima pra baixo, uma por execução — rotina automática às 8:02 AM Vancouver, ou manual via `/tarefa`)*
 
 
-> **📍 Estado da fila (2026-07-24, pós-`/entregar`).** Sequência viva §4 (06-27): fechar a promessa do pago antes de escalar; a **classificação é o coração** (CODE_GUIDE §0). **cod-0062 segue no topo mas NÃO é pra run autônoma** (avaliação de 07-17/07-18 mantida: prompt do Gemini = coração; firewall acusa "pix" de propósito; falta o pré-req humano dos 2–3 comprovantes reais) — rodar **com você presente**. **cod-0032/cod-0034/cod-0053 entregues** (`6cadcb8`..`b923805`). Fila abaixo: **cod-0062** → **cod-0033** (Alerta Pro Free — `depende-de: cod-0031` ✅ `86dbb64`; `index.js`/`formatter.js` já commitados, sem mais conflito) → **cod-0065** (recibo Canadá — espera 2–3 recibos reais + a sessão de canal/Plaid). **A ordem dos blocos abaixo = a prioridade** (o `/tarefa` pega o 1º `status: pronta`). Desenhos: `Desenho_Ingestao_Multi_Documento_2026-07-15.md` · `Desenho_Alerta_Inteligente_Pro_2026-06-27.md` · `Ideias_Assistente_Financeiro_Conversacional_2026-07-09.md`.
+> **📍 Estado da fila (2026-07-24, pós rotina matinal).** Sequência viva §4 (06-27): fechar a promessa do pago antes de escalar; a **classificação é o coração** (CODE_GUIDE §0). **cod-0062 segue no topo mas NÃO é pra run autônoma** (avaliação de 07-17/07-18 mantida: prompt do Gemini = coração; firewall acusa "pix" de propósito; falta o pré-req humano dos 2–3 comprovantes reais) — rodar **com você presente**. **cod-0033 implementado pela rotina matinal 2026-07-24 → está em "🔧 Em revisão"** (aguarda você revisar/commitar; `/limite`-teto ficou de fora por colisão com o `/limite` atual + é cod-0035 — decisão de UX sua). **cod-0032/cod-0034/cod-0053 já entregues** (`6cadcb8`..`b923805`). Fila abaixo: **cod-0062** (com você) → **cod-0065** (recibo Canadá — espera 2–3 recibos reais + a sessão de canal/Plaid). **A ordem dos blocos abaixo = a prioridade** (o `/tarefa` pega o 1º `status: pronta`). Desenhos: `Desenho_Ingestao_Multi_Documento_2026-07-15.md` · `Desenho_Alerta_Inteligente_Pro_2026-06-27.md` · `Ideias_Assistente_Financeiro_Conversacional_2026-07-09.md`.
 
 ### [P2] Frente 1 — ler comprovante de PIX (foto/PDF)
 - id: cod-0062
@@ -148,19 +152,6 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - fora-de-escopo: insight/query dedicado de PIX; fatura; gate Pro; i18n; persistir moeda
 - depende-de: cod-0061 (✅ `e7f236d`); **pré-req humano: 2–3 comprovantes PIX reais do Gabriel pro mini-corpus** (sem eles, código pronto mas validação incompleta — como o cod-0065)
 - nota (2026-07-18): a rotina matinal NÃO pegou esta de propósito — grande demais pra run autônoma (prompt do Gemini = coração + firewall acusa "pix" por design + falta o mini-corpus). Rodar com você presente.
-- status: pronta
-
-### [P3] Alerta Pro — comandos `/acompanhar` `/limite` `/acompanhamentos` `/parar` `/superfluo`
-- id: cod-0033
-- tipo: feature-codigo
-- skills: economizei-code-decisions, economizei-tdd, economizei-copywriter, copy-review, economizei-product-principles, economizei-financial-firewall
-- objetivo: comandos pra configurar acompanhamentos (categoria/palavra-chave) e categorias supérfluas, lendo/gravando via as funções do cod-0031. Mensagens curtas, sem gíria. `/acompanhamentos` e `/parar` ficam SEM gate (quem caiu do Pro precisa ver/parar o que configurou — decisão 07-10).
-- arquivos-alvo: `src/index.js`, `src/formatter.js`, `test/`
-- criterios-de-aceite:
-  - `/acompanhar cerveja` cria acompanhamento; `/parar` desativa (soft-delete cod-0031); `/acompanhamentos` lista; `/superfluo doces` ajusta baseline; confirmações curtas e honestas
-  - node --test verde; firewall verde (o gate Pro dos que precisam é ~3 linhas humanas na revisão)
-- fora-de-escopo: alerta proativo de limite (é cod-0035); intent NL (é cod-0034); gate Pro humano
-- depende-de: cod-0031 (✅ `86dbb64`), cod-0033 usa a I/O dele; `index.js`/`formatter.js` já commitados (cod-0032 entregue `d2cc3c4`, 2026-07-24) — sem conflito
 - status: pronta
 
 ### [P2] Modo recibo Canadá (Vancouver) — entender e armazenar qualquer recibo
@@ -184,6 +175,21 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 ## 🔧 Em revisão
 *(a máquina move pra cá ao abrir um PR — esperando o Gabriel revisar/commitar)*
+
+### [P3] Alerta Pro — comandos `/acompanhar` `/acompanhamentos` `/parar` `/superfluo` (cod-0033)
+- id: cod-0033
+- tipo: feature-codigo
+- skills usadas: economizei-code-decisions, economizei-tdd, economizei-copywriter, copy-review, economizei-product-principles, economizei-financial-firewall
+- o que foi feito (rotina matinal 2026-07-24, SEM commit): 4 comandos finos sobre a I/O do cod-0031 e a lógica pura do cod-0030/0033.
+  - `src/insights.js`: `interpretarAcompanhamento(arg)` (decide categoria×termo pelas 10 CATEGORIAS_VALIDAS; guarda ≥3 chars = espelho do matching; recusa vazio/curto) + `interpretarSuperfluo(arg, atuais)` (toggle / on|off / listar; rejeita categoria inválida) + const `CATEGORIAS_VALIDAS`. Puras, exportadas.
+  - `src/formatter.js`: `montarAcompanharConfirmado/Erro/Parado`, `montarListaAcompanhamentos` (mostra R$ do mês por alvo; distingue "sem itens" de "não consegui somar" — nunca R$ 0 como fato), `montarSuperfluoConfirmado/Config/Invalido`. Sem gíria (teste cobre).
+  - `src/index.js`: roteamento (`/acompanhamentos`+alias `/meusalertas` via ehComando; `/acompanhar` `/parar` `/superfluo` por `palavras[0]`) + 4 handlers (`criarAcompanhamento`, `pararAcompanhamento`, `mostrarAcompanhamentos` enriquece via `buscarItensDoMes`+`buscarGastoPorAlvo`, `configurarSuperfluo`). Imports novos de supabase/insights/formatter.
+  - `test/acompanhamentos-comandos.test.js`: 20 testes (parsing + matching do alvo gerado + copy + anti-gíria). **20/20 verde.**
+- ⚠️ `/limite <termo> <valor>` NÃO foi implementado (desvio consciente): colide com o `/limite` atual (status de cupons, `index.js`) e é a config do alerta proativo (cod-0035, fora-de-escopo). Disambiguar é decisão de UX humana. **Sugestão:** deixar `/limite` como está e criar o teto junto do cod-0035, ou renomear (ex. `/teto cerveja 100`).
+- checagens (sandbox): firewall `--working` ✓ · check-pages ✓ · suíte 331/338 (os 7 vermelhos são SIGBUS ambiental do `sharp` no Linux — arquivos que importam gemini/index; passam no Windows, rule 11). Os 5 test files que exercem o código novo/alterado sem `sharp`: 86/86 ✓.
+- fora-de-escopo (mantido): alerta proativo de limite (cod-0035); intent NL (cod-0034 ✅); **gate Pro = humano (~3 linhas, firewall)**.
+- depende-de: cod-0031 (✅ `86dbb64`)
+- status: em-revisao (2026-07-24, rotina matinal)
 
 > **✅ RECONCILIADO em 2026-07-24 (comando `/entregar`):** as 3 tarefas que estavam aqui foram commitadas e pushadas em 4 commits (`origin/main` sincronizado, working tree limpo, 402/402 testes verdes, `npm run check` verde antes de cada commit): **cod-0053** (`6cadcb8`), **cod-0032** (`d2cc3c4`), **cod-0034** (`d3e0169`) e docs/memória (`b923805`). `src/index.js` (compartilhado por cod-0053 e cod-0032) foi fatiado por hunk via patch, não `git add -p` interativo. Push final precisou de `--no-verify` **consciente, autorizado pelo Gabriel** — o pre-push comparou contra o `27fcc16` (patch do firewall) ainda não pushado, que se autoacusa por design (a trava não se edita sozinha). Detalhes de cada tarefa preservados em "✅ Concluído" abaixo. Seção esvaziada.
 
@@ -270,12 +276,23 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - pag-0003: guia SEO local "Economizar em Fernandópolis e região".
 - pag-0004: variação A/B da headline do hero (`landing/index-b.html`).
 - Página "Economizei vs. planilha de Excel" (o concorrente real, segundo a pesquisa).
+- **pag-0005 · Microsoft Clarity na landing (analytics de comportamento — heatmap + gravação de sessão, grátis)** — instrumenta a landing pra ver POR QUE o visitante não vira usuário (headline A/B, entendimento do "só foto", alcance do CTA). Não-financeiro (snippet no `<head>` + banner de consentimento LGPD); deploy = Gabriel. Faz mais sentido com tráfego (Meta Ads = out/2026), mas custo ~zero pra instalar cedo. ⚠️ retenção de só 30 dias; Clarity é da **Microsoft** (não Google). Decisões humanas abertas: instalar já ou esperar ads · banner de consentimento já ou depois · rodar GA4 junto. Pesquisa + plano completo: `Economizei app/Microsoft_Clarity_Landing_Analytics_2026-07-26.md`.
 
 ---
 
 ## 🙋 Ações do Gabriel (só humano resolve — a máquina não consegue)
 
 > Esta seção é o seu painel. Guia: `Economizei app/Automacao_Maquina_Noturna.md`.
+
+**🆕 Financeiro simplificado (2026-07-26 — decisão do Gabriel; plano: `Economizei app/Plano_Financeiro_Firewall_e_Remocao_MP_2026-07-26.md`):**
+- [x] ~~Firewall → advisory~~ — ✅ feito no working tree (`check-firewall.mjs` sempre exit 0; selftest 19/19). Falta seu `/entregar`.
+- [x] ~~Remover código do Mercado Pago~~ — ✅ feito no working tree (`index.js`/`supabase.js`/`formatter.js`; 331/331 testes de lógica verdes, `node --check` OK). Falta: **(1) você rodar `git rm src/mercadopago.js`** (bash do sandbox não teve permissão); **(2) `/entregar`**; **(3) DEPOIS do deploy**, o DROP das colunas/tabela MP no Supabase (ordem código→deploy→banco; ver o plano).
+- [ ] **Limpeza fast-follow (agora é tarefa de máquina — firewall advisory):** apagar as funções MP órfãs que ficaram como código morto em `src/supabase.js` (`setPendentePlano`, `limparPendentePlano`, `salvarAssinaturaPreapproval`, `atualizarStatusAssinatura`, `buscarPorPreapprovalId`, `registrarEventoAssinatura`, `buscarDadosAssinatura`) e em `src/formatter.js` (`montarMensagemPedirEmail`, `montarMensagemLinkAssinatura`, `montarMensagemAssinaturaAtivada`, `montarMensagemAssinaturaCancelada`, `montarMensagemEmailInvalido`, `montarMensagemErroAssinatura`, `montarMensagemPagamentoFalhou`, `montarMensagemJaAssinante`) + seus `module.exports`. Inócuas (ninguém chama), mas sujam.
+
+**🩺 Saúde do banco (achados 2026-07-26 nos logs/SQL — desdobrar mais pra frente; NÃO é o foco do chat financeiro):**
+- [ ] **RLS bloqueando a dedup.** `mensagens_processadas` está com RLS sem policy de insert → `registrarMensagemProcessada` falha em toda mensagem (log `supabase_erro ... new row violates row-level security policy`). Dedup fail-open (cupom ainda processa), mas sem proteção contra reprocessar a mesma foto. Fix: policy de insert (ou alinhar a service key). Zona `supabase/` = humano.
+- [ ] **`lembretes_enviados` não existe em produção.** O schema guard (cod-0050) pegou. Migration de reengajamento nunca rodada → lembretes D3/D10 sem onde registrar. Rodar o `CREATE TABLE` correspondente.
+- [ ] **(curiosidade)** tabelas em inglês no banco (`price_history`, `products_normalized`, `purchase_items`, `purchases`, `stores`) não são do código do Economizei — provável resíduo de outro experimento. Confirmar e, se lixo, limpar.
 
 **🆕 Pendente AGORA (2026-07-24, pós-`/entregar`):**
 - [x] ~~cod-0053 (autenticação do webhook) — commitar~~ — ✅ commitado/pushado (`6cadcb8`). **Falta o rollout humano, NESSA ORDEM:** deploy do código → reconfigurar a URL do webhook no Z-API pra `/webhook/<token>` → só então gerar (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) e setar `ZAPI_WEBHOOK_TOKEN` no Railway (vira fail-closed).
@@ -292,7 +309,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - [ ] **[🔴 §3.3] Rodar a query de verificação de schema** no SQL Editor (5min) — confirma as migrations antigas nunca verificadas E se a RPC `incrementar_compras_mes` existe em produção (se não existir, todo cupom usa fallback racy em silêncio).
 - [ ] **[🔴 §4.2 decisão] Copy da indicação promete "alerta inteligente" que não existe** — e a recompensa hoje não entrega nada (comparativo sem gate = Free vê o mesmo). Decidir: encurtar promessa + aplicar Gate Pro, ou segurar divulgação do `/convidar`.
 - [ ] **[🔴 §4.3 financeiro] Fluxo `/assinar` ainda gera checkout Mercado Pago** — MP abandonado juridicamente em 06-24; se alguém assinar hoje, entra dinheiro por via irregular. Mínimo sugerido: `/assinar` → instruções PIX até Hotmart/Wise (out/2026).
-- [ ] **[🟡 §2.3] Logar o fallback do incremento** em `salvarCompra` (1 linha; pode ir no mesmo commit consciente do patch do firewall).
+- [x] ~~**[🟡 §2.3] Logar o fallback do incremento**~~ — ✅ feito 2026-07-24 (`log('incremento_fallback', {fn, phone: maskPhone, erro})` no `if (erroUpdate)` de `salvarCompra`, sentinela do lost-update racy; commit consciente). Deixa em aberto só a §3.3 (verificar a RPC no Supabase) — se a sentinela disparar, é lá que se resolve.
 - [ ] **[🟡 §8.3 opcional] RPC `incrementar_perguntas_mes`** — SQL pronto no doc; depois a troca no código é tarefa de máquina.
 
 **🔍 Auditorias futuras (dependem de dados que só você acessa — material de preparação pronto no doc §7):**

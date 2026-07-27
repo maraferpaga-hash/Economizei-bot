@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel Economizei — apanhado semanal</title>
+<title>Painel Economizei — apanhado do projeto</title>
 <style>
   :root{
     --bg:#f4f6f4; --card:#ffffff; --ink:#14241a; --muted:#5c6b60;
@@ -27,7 +27,7 @@
     padding:12px 16px;min-width:150px;flex:1 1 150px}
   .chip .n{font-size:22px;font-weight:700;letter-spacing:-.5px}
   .chip .l{font-size:12px;color:var(--muted);margin-top:2px}
-  .chip.ok .n{color:var(--green)} .chip.warn .n{color:var(--amber)} .chip.info .n{color:var(--blue)}
+  .chip.ok .n{color:var(--green)} .chip.warn .n{color:var(--amber)} .chip.info .n{color:var(--blue)} .chip.bad .n{color:var(--red)}
 
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   @media(max-width:760px){.grid{grid-template-columns:1fr}}
@@ -35,6 +35,7 @@
   .card h2{font-size:15px;margin:0 0 14px;display:flex;align-items:center;gap:8px;letter-spacing:-.2px}
   .card h2 .ic{font-size:17px}
   .card.span2{grid-column:1 / -1}
+  .card.alert{border-color:#f2c9c9;background:#fff9f9}
 
   ul.list{list-style:none;margin:0;padding:0}
   ul.list li{padding:9px 0;border-top:1px solid var(--line);font-size:13.5px;display:flex;gap:10px;align-items:flex-start}
@@ -45,11 +46,14 @@
   .t-red{background:var(--red-soft);color:var(--red)}
   .t-amber{background:var(--amber-soft);color:var(--amber)}
   .t-green{background:var(--green-soft);color:var(--green)}
+  .rank{font-weight:700;font-size:13px;color:var(--red);min-width:16px;margin-top:1px}
   .li-body{flex:1}
   .li-body .id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--muted)}
   .li-body b{font-weight:600}
+  .li-body .where{display:inline-block;font-size:10.5px;font-weight:700;color:var(--slate);background:#eef1f4;border-radius:5px;padding:1px 6px;margin-top:3px}
   .done{color:var(--muted)}
   .done .id{color:var(--green)}
+  s{color:var(--muted)}
 
   .git-row{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;align-items:baseline}
   .git-row:first-child{border-top:none}
@@ -59,6 +63,7 @@
   .note{background:var(--green-soft);border:1px solid #cde0d5;border-radius:12px;padding:14px 16px;font-size:13px;margin-top:2px}
   .note.amber{background:var(--amber-soft);border-color:#f2ddb4}
   .note.blue{background:var(--blue-soft);border-color:#cfe0fb}
+  .note.red{background:var(--red-soft);border-color:#f2c9c9}
   .note b{font-weight:700}
   .muted{color:var(--muted)}
   footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;line-height:1.7}
@@ -71,82 +76,75 @@
   <header class="top">
     <h1><span class="dot">●</span> Painel Economizei</h1>
   </header>
-  <p class="sub">Apanhado do projeto · gerado em <b>segunda, 20 de julho de 2026</b> · atualiza toda segunda de manhã.</p>
+  <p class="sub">Apanhado do projeto · <b>segunda, 27 de julho de 2026</b> · atualiza toda segunda de manhã.</p>
 
   <!-- CHIPS DE STATUS -->
   <div class="chips">
-    <div class="chip info"><div class="n">4</div><div class="l">tarefas prontas na fila</div></div>
-    <div class="chip warn"><div class="n">1</div><div class="l">aguardando sua revisão (cod-0034)</div></div>
-    <div class="chip ok"><div class="n">7</div><div class="l">commits na semana (15 e 17/07)</div></div>
-    <div class="chip warn"><div class="n">4</div><div class="l">pendências suas 🔴</div></div>
-    <div class="chip ok"><div class="n">✓</div><div class="l">main = origin · tree sujo</div></div>
+    <div class="chip info"><div class="n">2</div><div class="l">tarefas prontas na fila</div></div>
+    <div class="chip warn"><div class="n">1</div><div class="l">aguardando revisão (cod-0033)</div></div>
+    <div class="chip ok"><div class="n">6</div><div class="l">commits na semana (todos 24/07)</div></div>
+    <div class="chip bad"><div class="n">3</div><div class="l">pendências 🔴 abertas</div></div>
+    <div class="chip ok"><div class="n">✓</div><div class="l">main = origin/main</div></div>
   </div>
 
   <div class="grid">
 
-    <!-- BLOCO 1: AGENDA -->
-    <section class="card">
+    <!-- ESTADO DA AGENDA -->
+    <section class="card span2">
       <h2><span class="ic">🗂️</span> Estado da AGENDA</h2>
-      <p class="muted" style="font-size:12.5px;margin:-6px 0 12px">Fila em ordem de prioridade (a 1ª é a próxima). 1 tarefa em revisão: <b>cod-0034</b> (intent <code>gasto_por_termo</code>, rotina matinal de 18/07) — working tree tem código dela esperando seu commit.</p>
+      <p class="muted" style="font-size:12.5px;margin:-6px 0 12px">Fila pronta, próxima no topo (a ordem = prioridade; o <code>/tarefa</code> pega a 1ª <code>status: pronta</code>).</p>
       <ul class="list">
-        <li><span class="tag t-p2">próxima · P2</span><div class="li-body"><b>Frente 1 — ler comprovante de PIX (foto/PDF)</b><br><span class="id">cod-0062 · desbloqueada pela cod-0061, mas espera 2–3 comprovantes reais seus · rodar com você presente</span></div></li>
-        <li><span class="tag t-p2">fila · P2</span><div class="li-body"><b>Alerta Pro — bloco de gasto supérfluo no <code>/gastos</code> e resumo mensal</b><br><span class="id">cod-0032 · depende do cod-0031 (✅ commitado)</span></div></li>
-        <li><span class="tag t-p3">fila · P3</span><div class="li-body"><b>Alerta Pro — comandos <code>/acompanhar</code> <code>/limite</code> <code>/acompanhamentos</code> <code>/parar</code> <code>/superfluo</code></b><br><span class="id">cod-0033</span></div></li>
-        <li><span class="tag t-p2">fila · P2</span><div class="li-body"><b>Modo recibo Canadá (Vancouver) — entender qualquer recibo</b><br><span class="id">cod-0065 · espera 2–3 recibos reais + sessão de canal/Plaid</span></div></li>
-        <li><span class="tag t-amber">revisão</span><div class="li-body"><b>Agente — intent <code>gasto_por_termo</code> ("quanto gastei em cerveja?")</b><br><span class="id">cod-0034 · em revisão desde 18/07 · atenção: <code>buscarItensDoMes</code> nova em <code>supabase.js</code> (desvio consciente de escopo)</span></div></li>
+        <li><span class="tag t-p2">topo · P2</span><div class="li-body"><b>Frente 1 — ler comprovante de PIX (foto/PDF)</b><br><span class="id">cod-0062 · <b>espera você</b>: não é run autônoma (prompt do Gemini = coração; firewall acusa "pix" de propósito). Pré-req humano: 2–3 comprovantes PIX reais + verificar o CHECK em <code>compras.tipo</code>. Rodar com você presente.</span></div></li>
+        <li><span class="tag t-p2">fila · P2</span><div class="li-body"><b>Modo recibo Canadá (Vancouver)</b> — entender qualquer recibo<br><span class="id">cod-0065 · espera 2–3 recibos reais + a sessão de canal/Plaid (Frente 2)</span></div></li>
       </ul>
-      <div class="note amber" style="margin-top:14px"><b>Working tree:</b> código modificado (<code>src/agent/intents.js</code>, <code>src/supabase.js</code>, <code>src/index.js</code>, <code>formatter.js</code>, <code>monthlySummary.js</code> + 3 arquivos de teste) — é a impl da cod-0034 esperando <code>npm run check</code> na sua máquina + <code>/entregar</code>. Sem migration nova, sem env nova. Também há docs não-rastreados (auditoria externa 17/07, contexto do Projeto Claude 19/07, <code>RELATORIO_SENTINELA.md</code>).</div>
+      <div class="note blue" style="margin-top:14px"><b>Em revisão:</b> <b>cod-0033</b> (comandos do Alerta Pro — <code>/acompanhar</code> <code>/acompanhamentos</code> <code>/parar</code> <code>/superfluo</code>, 20/20 testes) aguarda você revisar e commitar; <code>/limite</code>-teto ficou de fora de propósito (colisão com o <code>/limite</code> atual — é decisão de UX sua).<br><span class="muted" style="display:block;margin-top:8px"><b>Working tree:</b> agora tem <b>código modificado</b> (não só memória) — o trabalho do financeiro da sessão 07-26 (firewall → modo <b>advisory</b> + remoção do Mercado Pago em <code>index.js</code>/<code>supabase.js</code>/<code>formatter.js</code>) está no working tree <b>aguardando <code>/entregar</code></b>. Não commitado ainda.</span></div>
     </section>
 
-    <!-- BLOCO 2: PENDÊNCIAS DO GABRIEL -->
-    <section class="card">
-      <h2><span class="ic">🙋</span> Suas pendências</h2>
-      <p class="muted" style="font-size:12.5px;margin:-6px 0 12px">Só você resolve — a máquina é barrada de propósito (firewall / financeiro).</p>
+    <!-- SUAS PENDÊNCIAS -->
+    <section class="card span2">
+      <h2><span class="ic">🙋</span> Suas pendências <span class="muted" style="font-weight:400;font-size:12px">— só você resolve (a máquina é barrada de propósito)</span></h2>
       <ul class="list">
-        <li><span class="tag t-red">🔴</span><div class="li-body"><b>Aplicar o patch do firewall</b> — 8 tokens novos + <code>--no-renames</code> + <code>src/hotmart.js</code> na denylist<br><span class="id">Auditoria §1.4 · snippet pronto no doc</span></div></li>
-        <li><span class="tag t-red">🔴</span><div class="li-body"><b>Rodar query de verificação de schema</b> no SQL Editor (5 min) — confirma a RPC <code>incrementar_compras_mes</code><br><span class="id">Auditoria §3.3</span></div></li>
-        <li><span class="tag t-red">🔴</span><div class="li-body"><b>Copy da indicação promete alerta que não existe</b> — encurtar + gate Pro, ou segurar o <code>/convidar</code><br><span class="id">Auditoria §4.2 · decisão</span></div></li>
-        <li><span class="tag t-red">🔴</span><div class="li-body"><b>Fluxo <code>/assinar</code> ainda gera checkout Mercado Pago</b> — trocar por instruções PIX até Hotmart/Wise (out/2026)<br><span class="id">Auditoria §4.3 · financeiro</span></div></li>
-        <li><span class="tag t-amber">agora</span><div class="li-body"><b>Revisar/commitar a cod-0034</b> (working tree) — <code>npm run check</code> → <code>/entregar</code>; atenção ao <code>buscarItensDoMes</code> <span class="id">RELATORIO_MATINAL.md</span></div></li>
-        <li><span class="tag t-amber">agora</span><div class="li-body"><b>Destravar a cod-0062:</b> fornecer 2–3 comprovantes PIX reais + verificar CHECK em <code>compras.tipo</code> + confirmar payload de documento da Z-API</div></li>
-        <li><span class="tag t-amber">🟡</span><div class="li-body">Logar o fallback do incremento em <code>salvarCompra</code> · RPC <code>incrementar_perguntas_mes</code> (opcional) <span class="id">§2.3 / §8.3</span></div></li>
-        <li><span class="tag t-p3">aud</span><div class="li-body">Auditorias com dados seus: aud-01 cupons reais · aud-02 custo Gemini · aud-03 LGPD logs · aud-04 custo infra <span class="id">§7 do doc</span></div></li>
-        <li><span class="tag t-p3">CA</span><div class="li-body">cod-0065: 2–3 recibos de Vancouver · consentimento CASL · BC PIPA/PIPEDA · provedor WhatsApp p/ número CA</div></li>
+        <li><span class="rank">1</span><div class="li-body"><b><code>/assinar</code> ainda gera checkout no Mercado Pago</b> — MP foi abandonado juridicamente. Se alguém assinar hoje, entra dinheiro por via irregular. Mínimo: trocar por instruções de PIX até Hotmart/Wise (out/2026). Zona financeira = você.<br><span class="where">src/index.js · humano</span> <span class="id">Auditoria §4.3 🔴</span></div></li>
+        <li><span class="rank">2</span><div class="li-body"><b>Copy da indicação promete "alerta inteligente" que não existe</b> + gate Pro não aplicado → quem "ganha 7 dias de Pro" recebe o mesmo que todo mundo. Decidir: encurtar a promessa + ligar o gate, ou segurar o <code>/convidar</code>.<br><span class="where">src/formatter.js · decisão</span> <span class="id">Auditoria §4.2 🔴</span></div></li>
+        <li><span class="rank">3</span><div class="li-body"><b>Rodar a query de verificação de schema</b> (5 min) — confirma se a RPC <code>incrementar_compras_mes</code> existe em produção. Se não, todo cupom cai no fallback racy em silêncio.<br><span class="where">Supabase → SQL Editor</span> <span class="id">Auditoria §3.3 🔴</span></div></li>
+        <li><span class="tag t-amber">🩺 banco</span><div class="li-body"><b>RLS bloqueando a dedup</b> — <code>mensagens_processadas</code> está sem policy de insert → <code>registrarMensagemProcessada</code> falha em toda mensagem. Dedup fail-open (cupom ainda processa), mas sem proteção contra reprocessar a mesma foto. Fix: policy de insert. <code>supabase/</code> = você.</div></li>
+        <li><span class="tag t-amber">🩺 banco</span><div class="li-body"><b><code>lembretes_enviados</code> não existe em produção</b> — o schema guard pegou. Migration de reengajamento nunca rodou → lembretes D3/D10 sem onde registrar. Rodar o <code>CREATE TABLE</code>.</div></li>
+        <li><span class="tag t-p3">banco</span><div class="li-body"><b>Tabelas em inglês no banco</b> (<code>price_history</code>, <code>purchases</code>, <code>stores</code>…) — provável resíduo de outro experimento. Confirmar e, se lixo, limpar. (curiosidade)</div></li>
+        <li><span class="tag t-p3">MP</span><div class="li-body"><b>Fast-follow da remoção do Mercado Pago</b> — <code>git rm src/mercadopago.js</code> (o sandbox não teve permissão) e apagar as funções MP órfãs (código morto) em <code>supabase.js</code>/<code>formatter.js</code>. Depois do deploy: DROP das colunas MP no Supabase (ordem código→deploy→banco).</div></li>
+        <li><span class="tag t-p3">aud</span><div class="li-body"><b>Auditorias com dados só seus:</b> aud-01 cupons reais (a mais valiosa — destrava o Alerta Pro com confiança) · aud-02 custo Gemini · aud-03 LGPD logs Railway · aud-04 custo infra. Também §8.3 (RPC <code>incrementar_perguntas_mes</code>, 🟡, SQL pronto).</div></li>
+        <li><span class="tag t-p3">CA</span><div class="li-body"><b>cod-0065 (Canadá):</b> 2–3 recibos de Vancouver · consentimento CASL · BC PIPA/PIPEDA · provedor de WhatsApp p/ número CA · (opcional) migration <code>compras.moeda</code>.</div></li>
       </ul>
       <div class="note amber" style="margin-top:14px"><b>Em pausa até out/2026:</b> empresa BC e tudo que depende dela (Meta Ads, Hotmart, Wise, afiliados — bloqueadores #1..#5). A janela atual é <b>tempo de construção</b> — a métrica que manda é retenção W2, não receita.</div>
     </section>
 
-    <!-- BLOCO 3: GIT -->
+    <!-- GIT -->
     <section class="card span2">
-      <h2><span class="ic">📦</span> Atividade de git — últimos 7 dias</h2>
-      <div class="git-row"><span class="hash">882cf6e</span><span class="git-msg">docs(memória): enxuga AGENDA (histórico → snapshot) + reconcilia git; regra anti-inchaço; arquiva órfãos da raiz <span class="muted">· 17/07</span></span></div>
-      <div class="git-row"><span class="hash">e7f236d</span><span class="git-msg">feat(webhook): recebe documento (foto/PDF) e roteia pro pipeline de recibo <b>(cod-0061)</b> <span class="muted">· 17/07</span></span></div>
-      <div class="git-row"><span class="hash">9c098c5</span><span class="git-msg">docs: reconcilia AGENDA pós-entrega (cod-0041/0042/0051/0052) <span class="muted">· 15/07</span></span></div>
-      <div class="git-row"><span class="hash">73f8cce</span><span class="git-msg">docs: reconcilia AGENDA + PAINEL + entregar pós-4-tarefas <span class="muted">· 15/07</span></span></div>
-      <div class="git-row"><span class="hash">a40110f</span><span class="git-msg">test(webhook): dedup + validação de payload do webhook <b>(cod-0052)</b> <span class="muted">· 15/07</span></span></div>
-      <div class="git-row"><span class="hash">38689b9</span><span class="git-msg">test(gemini): cobertura de extração — reconciliar, validarSchema, parse, score <b>(cod-0051)</b> <span class="muted">· 15/07</span></span></div>
-      <div class="git-row"><span class="hash">c355d74</span><span class="git-msg">feat(agente): leva2b — comparativo + supérfluo + dúvida_bot como intents <b>(cod-0041 + cod-0042)</b> <span class="muted">· 15/07</span></span></div>
-      <div class="note" style="margin-top:14px"><b>5 tarefas entregues na semana</b> (cod-0041/0042, 0051, 0052 em 15/07 · cod-0061 em 17/07) + 2 commits de memória/reconciliação. <span class="muted"><code>origin/main</code> sincronizado (0 à frente / 0 atrás). Working tree com <b>código modificado</b> em <code>src/</code> (impl da cod-0034, sem commit) + memória (<code>AGENDA.md</code>, <code>RELATORIO_MATINAL.md</code>) e docs novos não-rastreados.</span></div>
+      <h2><span class="ic">📦</span> Atividade de git — últimos 7 dias (20→27/07)</h2>
+      <div class="git-row"><span class="hash">1d27d43</span><span class="git-msg">docs: reconcilia AGENDA pós-entrega (cod-0053/0032/0034 → Concluído) <span class="muted">· 24/07</span></span></div>
+      <div class="git-row"><span class="hash">b923805</span><span class="git-msg">docs: sessão 07-17→07-24 — pagamentos dois trilhos, auditorias, sentinela <span class="muted">· 24/07</span></span></div>
+      <div class="git-row"><span class="hash">d3e0169</span><span class="git-msg">feat(agente): intent <code>gasto_por_termo</code> — "quanto gastei em X" <b>(cod-0034)</b> <span class="muted">· 24/07</span></span></div>
+      <div class="git-row"><span class="hash">d2cc3c4</span><span class="git-msg">feat(alerta-pro): bloco de gasto supérfluo no <code>/gastos</code> e resumo mensal <b>(cod-0032)</b> <span class="muted">· 24/07</span></span></div>
+      <div class="git-row"><span class="hash">6cadcb8</span><span class="git-msg">feat(seg): autentica webhook do Z-API via token no path/header <b>(cod-0053)</b> <span class="muted">· 24/07</span></span></div>
+      <div class="git-row"><span class="hash">27fcc16</span><span class="git-msg">chore(seg): aplica patch do firewall — tokens + <code>--no-renames</code> <span class="muted">· 24/07</span></span></div>
+      <div class="note" style="margin-top:14px"><b>6 commits na semana, todos de 24/07</b> (a leva do <code>/entregar</code>): 3 tarefas entregues (cod-0053/0032/0034) + patch do firewall + 2 de memória. <span class="muted"><code>origin/main</code> = <code>main</code> (0 à frente / 0 atrás), HEAD em <code>1d27d43</code>. Desde então, a sessão 07-26 deixou <b>código modificado no working tree</b> (firewall advisory + remoção do Mercado Pago) — ainda por commitar via <code>/entregar</code>.</span></div>
     </section>
 
-    <!-- BLOCO 4: HIGIENE DE CONVERSAS -->
+    <!-- HIGIENE DE CONVERSAS -->
     <section class="card span2">
-      <h2><span class="ic">🧹</span> Higiene de conversas & memória</h2>
-      <p style="font-size:13.5px;margin:0 0 12px">
-        <b>Memória (CLAUDE.md) consolidada até: 15/07/2026.</b> O trabalho de 17–19/07 (cod-0061 commitado, cod-0034 implementada, auditoria externa 17/07, contexto do Projeto Claude 19/07) vive na AGENDA, no git e nos docs — ainda não virou Decisão no CLAUDE.md.
-      </p>
+      <h2><span class="ic">🧹</span> Higiene de conversas</h2>
+      <p style="font-size:13.5px;margin:0 0 10px"><b>Memória consolidada até:</b> 2026-07-26 (data da "Última atualização" no <code>CLAUDE.md</code>).</p>
       <ul class="list">
-        <li><span class="tag t-green">seguro excluir</span><div class="li-body">Conversas <b>até 15/07</b> cujo tema já aparece nas Decisões do <code>CLAUDE.md</code> — o valor já virou memória. Regra prática: se está no CLAUDE.md, o chat pode ser <b>excluído</b>, não só arquivado.</div></li>
-        <li><span class="tag t-amber">confira antes</span><div class="li-body">Conversas <b>posteriores a 15/07</b>: confirme que a decisão foi registrada no <code>CLAUDE.md</code> (ou no doc de sessão) antes de excluir. Se não foi, consolide primeiro.</div></li>
-        <li><span class="tag t-p3">fixe só isto</span><div class="li-body">Só a conversa da tarefa em andamento — a próxima da fila é a <b>cod-0062</b> (PIX). O resto desafixa.</div></li>
+        <li><span class="tag t-green">ok excluir</span><div class="li-body">É seguro <b>excluir</b> conversas até <b>2026-07-26</b> que já estejam refletidas nas Decisões (seção 8 do <code>CLAUDE.md</code>) — o financeiro advisory + remoção do MP já está registrado lá.</div></li>
+        <li><span class="tag t-amber">conferir</span><div class="li-body">Conferir antes as conversas <b>posteriores a 2026-07-26</b> — podem ter contexto ainda não consolidado na memória.</div></li>
+        <li><span class="tag t-p2">fixar</span><div class="li-body">Fixar só a conversa da <b>tarefa em andamento</b> — a próxima da fila é a <b>cod-0062</b> (ingestão de comprovante de PIX).</div></li>
       </ul>
-      <div class="note blue" style="margin-top:14px"><b>Sugestão para esta semana:</b> entregar a cod-0034 (<code>/entregar</code>) limpa o working tree; com os 2–3 comprovantes PIX na mão, a cod-0062 roda com você presente e a Frente 1 avança de verdade.</div>
+      <div class="note" style="margin-top:14px"><b>Regra prática:</b> se está no <code>CLAUDE.md</code>, o chat pode ser <b>excluído</b> (não só arquivado) — a memória institucional é a fonte de verdade.</div>
     </section>
 
   </div>
 
   <footer>
-    Gerado a partir de <code>AGENDA.md</code>, do log do git e do <code>CLAUDE.md</code> · 20/07/2026 · reescrito toda segunda.<br>
+    Gerado a partir de <code>AGENDA.md</code>, do log do git e do <code>CLAUDE.md</code> · 27/07/2026 · reescrito toda segunda de manhã.<br>
     Painel só-leitura — não toca em código nem financeiro.
   </footer>
 
