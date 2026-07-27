@@ -1,24 +1,23 @@
 #!/usr/bin/env node
 /**
- * check-firewall.mjs — FIREWALL FINANCEIRO da máquina noturna.
+ * check-firewall.mjs — AVISO FINANCEIRO (modo ADVISORY desde 2026-07-26).
  *
- * Esta é a trava que blinda o dinheiro. Roda no CI em TODO Pull Request e
- * REPROVA o PR se as mudanças tocarem qualquer coisa de pagamento/cobrança.
- * Com branch protection ligado na `main`, um PR que mexa no financeiro fica
- * NÃO-MERGEÁVEL — nem o da máquina, nem o seu por engano.
+ * ⚠️ MUDANÇA DE PAPEL (decisão do Gabriel, 2026-07-26): durante a construção
+ * dos dois trilhos de pagamento (direto + afiliados), esta trava deixou de
+ * BLOQUEAR e passou a só AVISAR. Ela ainda LISTA o que tocou dinheiro (útil como
+ * checklist de atenção), mas SEMPRE retorna exit 0 — nunca reprova o
+ * `npm run check`. O gate real do financeiro agora é a revisão humana no
+ * `/entregar` (o Gabriel commita tudo — regra 3 da seção 11 do CLAUDE.md).
  *
- * Como a blindagem funciona (duas camadas):
- *   1. DENYLIST DE CAMINHOS — se um arquivo proibido foi alterado, falha.
- *      (ex.: src/mercadopago.js, supabase/, .env, .github/, package.json,
- *       o próprio firewall — pra ninguém desarmar a trava)
- *   2. SCAN DE CONTEÚDO — nas linhas ADICIONADAS do diff, procura padrões
+ * Como o aviso funciona (duas camadas de detecção — só pra LISTAR, não barrar):
+ *   1. DENYLIST DE CAMINHOS — aponta se um arquivo sensível foi alterado.
+ *      (ex.: src/mercadopago.js, supabase/, .env, .github/, package.json...)
+ *   2. SCAN DE CONTEÚDO — nas linhas ADICIONADAS do diff, aponta padrões
  *      financeiros (mercadopago, is_pro, assinatura, preapproval, MP_, pix,
- *      checkout, paywall, ativar-pro, montarMensagemPlanos...). Assim, edição
- *      financeira ESCONDIDA dentro de um arquivo "misto" (index.js, supabase.js,
- *      formatter.js) também é pega.
+ *      checkout, paywall, ativar-pro, montarMensagemPlanos...) mesmo escondidos
+ *      dentro de um arquivo "misto" (index.js, supabase.js, formatter.js).
  *
- * É PROPOSITALMENTE rígido: um flag significa "humano precisa olhar", não
- * necessariamente "o código está errado". Você (admin) decide no merge.
+ * Um flag significa "vale um olhar seu antes de commitar", não "está errado".
  *
  * Uso:
  *   node scripts/check-firewall.mjs              # compara contra a base (CI) ou origin/main
@@ -168,16 +167,16 @@ function main() {
     } else {
       const base = resolveBase();
       if (!base) {
-        console.error("FIREWALL: não consegui determinar a base de comparação (git). Falhando por segurança.");
-        process.exit(1);
+        console.warn("⚠️  AVISO FINANCEIRO: não consegui determinar a base de comparação (git). Modo advisory — seguindo sem bloquear.");
+        process.exit(0);
       }
       escopo = `${base}...HEAD`;
       changed = sh(`git diff --name-only --no-renames ${base}...HEAD`).split("\n").filter(Boolean);
       patch = execSync(`git diff --unified=0 --no-renames ${base}...HEAD`, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     }
   } catch (e) {
-    console.error(`FIREWALL: erro ao calcular o diff. Falhando por segurança.\n${e.message}`);
-    process.exit(1);
+    console.warn(`⚠️  AVISO FINANCEIRO: erro ao calcular o diff. Modo advisory — seguindo sem bloquear.\n${e.message}`);
+    process.exit(0);
   }
 
   const pathViolations = changed.filter(isProtectedPath);
@@ -205,18 +204,18 @@ function main() {
     process.exit(0);
   }
 
-  console.error("✗ FIREWALL BLOQUEOU — mudança em zona financeira/protegida:\n");
+  console.warn("⚠️  AVISO DO FIREWALL — este diff toca a zona financeira/sensível. NÃO bloqueia; é um lembrete pra você revisar com atenção antes de commitar:\n");
   for (const f of pathViolations) {
-    console.error(`  [arquivo proibido] ${f}`);
+    console.warn(`  [arquivo sensível] ${f}`);
   }
   for (const v of contentViolations) {
-    console.error(`  [conteúdo financeiro] ${v.file}: "${v.text}"  (padrão: ${v.hits.join(", ")})`);
+    console.warn(`  [conteúdo financeiro] ${v.file}: "${v.text}"  (padrão: ${v.hits.join(", ")})`);
   }
-  console.error(
-    "\nA automação NÃO pode mexer em pagamento/cobrança. Se foi o Claude, reverta essa " +
-    "parte antes de commitar. Se foi você de propósito, prossiga com cuidado e revise."
+  console.warn(
+    "\nModo ADVISORY (decisão 2026-07-26): durante a construção dos dois trilhos, o firewall " +
+    "avisa mas não reprova. O gate real é a sua revisão no /entregar — você commita tudo."
   );
-  process.exit(1);
+  process.exit(0);
 }
 
 main();

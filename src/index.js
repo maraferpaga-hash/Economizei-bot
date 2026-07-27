@@ -31,13 +31,6 @@ const {
   converterIndicacao,
   marcarProAtivo,
   buscarStatusIndicacoes,
-  setPendentePlano,
-  limparPendentePlano,
-  salvarAssinaturaPreapproval,
-  atualizarStatusAssinatura,
-  buscarPorPreapprovalId,
-  registrarEventoAssinatura,
-  buscarDadosAssinatura,
   registrarMensagemProcessada,
   // salvarWaitlist — DEPRECATED em 2026-05-22 (waitlist removida); função
   // mantida em supabase.js para reativação futura se necessário.
@@ -78,25 +71,8 @@ const {
   montarAvisoIndicacaoAtivada,
   montarAvisoIndicacaoConvertida,
   montarMensagemPix,
-  montarMensagemPedirEmail,
-  montarMensagemLinkAssinatura,
-  montarMensagemAssinaturaAtivada,
-  montarMensagemAssinaturaCancelada,
-  montarMensagemEmailInvalido,
-  montarMensagemErroAssinatura,
-  montarMensagemPagamentoFalhou,
-  montarMensagemJaAssinante,
   nomeDoMes,
 } = require('./formatter');
-const {
-  PLANOS,
-  normalizarPlano,
-  criarAssinatura,
-  consultarAssinatura,
-  consultarPagamentoRecorrente,
-  cancelarAssinatura,
-  validarAssinaturaWebhook,
-} = require('./mercadopago');
 const { gerarUrlGraficoCategorias } = require('./charts');
 const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar, compararPrecosMercado, buscarGastoSuperfluo, buscarGastoPorAlvo, interpretarAcompanhamento, interpretarSuperfluo } = require('./insights');
 const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
@@ -343,18 +319,6 @@ app.post(['/webhook', '/webhook/:token'], (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// POST /webhook/mercadopago — eventos de assinatura do Mercado Pago
-// O MP espera 200/201 em até 22s, senão reenvia. Respondemos na hora e
-// processamos de forma assíncrona. A autenticidade é garantida de duas
-// formas: (1) validação HMAC do x-signature e (2) reconsulta do recurso
-// na API do MP com nosso access token antes de ligar is_pro.
-// ---------------------------------------------------------------
-app.post('/webhook/mercadopago', (req, res) => {
-  res.sendStatus(200);
-  processarWebhookMP(req).catch((err) => log('mp_webhook_erro', { erro: err.message }));
-});
-
-// ---------------------------------------------------------------
 // GET /health
 // ---------------------------------------------------------------
 app.get('/health', (req, res) => {
@@ -516,28 +480,6 @@ async function processarTexto(phone, texto) {
   const palavras = msg.replace(/[.,!?;:]/g, '').split(/\s+/);
   const ehComando = (...cmds) => cmds.some((c) => palavras.includes(c) || msg === c);
 
-  // --- Fluxo de assinatura: aguardando o e-mail do usuário ---------------
-  // Se o usuário escolheu um plano via /assinar e ainda não mandou o e-mail,
-  // a próxima mensagem (que não seja um comando) é interpretada como o e-mail.
-  if (usuario.assinatura_pendente_plano) {
-    if (ehComando('/cancelar', 'cancelar', '/sair', 'sair', '/parar', 'parar')) {
-      await limparPendentePlano(phone);
-      await enviarMensagem(phone, 'Tudo bem, cancelei o processo de assinatura. Quando quiser ver os planos de novo: */planos*. 👍');
-      return;
-    }
-    // Comando explícito (começa com "/") abandona o fluxo de e-mail e segue normal
-    if (!msg.startsWith('/')) {
-      const email = extrairEmail(texto);
-      if (!email) {
-        await enviarMensagem(phone, montarMensagemEmailInvalido());
-        return;
-      }
-      await finalizarAssinatura(phone, usuario.assinatura_pendente_plano, email);
-      return;
-    }
-    await limparPendentePlano(phone); // usou outro comando: limpa a pendência e continua
-  }
-
   if (msg.includes('quantos cupons') || msg.includes('meu plano') || msg.includes('meu limite')) {
     const status = await buscarStatusUsuario(phone);
     await enviarMensagem(phone, montarMensagemStatusLimite(status));
@@ -550,18 +492,6 @@ async function processarTexto(phone, texto) {
     return;
   }
 
-  // "/assinar <plano>" inicia a assinatura no cartão. Sem plano válido, cai
-  // no menu de planos. Precisa vir ANTES do bloco /planos (que também casa /assinar).
-  if (palavras[0] === '/assinar' || palavras[0] === 'assinar') {
-    const plano = normalizarPlano(palavras.slice(1).join(' '));
-    if (!plano) {
-      await enviarMensagem(phone, montarMensagemPlanos());
-      return;
-    }
-    await iniciarAssinatura(phone, usuario, plano);
-    return;
-  }
-
   if (ehComando('/planos', 'planos', '/plano', 'plano', '/pro', 'pro', '/upgrade', 'upgrade', '/preco', 'preço', 'preco')) {
     await enviarMensagem(phone, montarMensagemPlanos());
     return;
@@ -569,11 +499,6 @@ async function processarTexto(phone, texto) {
 
   if (ehComando('/pix', 'pix')) {
     await enviarMensagem(phone, montarMensagemPix());
-    return;
-  }
-
-  if (ehComando('/cancelar', 'cancelar', '/cancelar-assinatura', 'cancelar-assinatura')) {
-    await cancelarAssinaturaUsuario(phone);
     return;
   }
 
@@ -1016,193 +941,11 @@ async function processarAtivacaoIndicacao(phone) {
 }
 
 // ---------------------------------------------------------------
-// Assinaturas (Mercado Pago) — fluxo de comandos
+// [REMOVIDO 2026-07-26] Assinaturas via Mercado Pago — código aposentado.
+// O MP foi abandonado na saída fiscal; a cobrança volta pelos dois trilhos
+// (Stripe direto + Hotmart/afiliados) quando a empresa BC abrir (out/2026),
+// convergindo no /admin/ativar-pro (que continua ativo). /pix segue de pé.
 // ---------------------------------------------------------------
-
-// Extrai um e-mail válido de um texto livre, ou null.
-function extrairEmail(texto) {
-  const m = (texto || '').match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
-  return m ? m[0].trim().toLowerCase() : null;
-}
-
-// Passo 1: usuário escolheu um plano. Se já for Pro, avisa; senão pede o e-mail.
-async function iniciarAssinatura(phone, usuario, plano) {
-  try {
-    if (usuario.is_pro) {
-      const label = PLANOS[usuario.plano]?.label || 'Pro';
-      await enviarMensagem(phone, montarMensagemJaAssinante(label));
-      return;
-    }
-    await setPendentePlano(phone, plano);
-    await enviarMensagem(phone, montarMensagemPedirEmail(PLANOS[plano].label));
-  } catch (err) {
-    log('assinatura_iniciar_erro', { phone: maskPhone(phone), erro: err.message });
-    await enviarMensagem(phone, montarMensagemErroAssinatura());
-  }
-}
-
-// Passo 2: usuário mandou o e-mail. Cria o preapproval no MP e envia o link.
-async function finalizarAssinatura(phone, plano, email) {
-  try {
-    const r = await criarAssinatura({ phone, email, plano });
-    if (!r.ok) {
-      await limparPendentePlano(phone);
-      log('assinatura_criar_falhou', { phone: maskPhone(phone), erro: r.error });
-      await enviarMensagem(phone, montarMensagemErroAssinatura());
-      return;
-    }
-    // salvarAssinaturaPreapproval grava o preapproval e limpa o pendente_plano
-    await salvarAssinaturaPreapproval(phone, {
-      preapprovalId: r.preapprovalId,
-      plano,
-      email,
-      status: r.status || 'pending',
-    });
-    const valorTexto = PLANOS[plano].valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-    await enviarMensagem(phone, montarMensagemLinkAssinatura(PLANOS[plano].label, valorTexto, r.initPoint));
-    log('assinatura_link_enviado', { phone: maskPhone(phone), plano });
-  } catch (err) {
-    log('assinatura_finalizar_erro', { phone: maskPhone(phone), erro: err.message });
-    await limparPendentePlano(phone).catch(() => {});
-    await enviarMensagem(phone, montarMensagemErroAssinatura());
-  }
-}
-
-// Comando /cancelar (quando não há fluxo de e-mail pendente): cancela a assinatura.
-async function cancelarAssinaturaUsuario(phone) {
-  try {
-    const dados = await buscarDadosAssinatura(phone);
-    if (!dados?.mp_preapproval_id || dados.assinatura_status === 'cancelled') {
-      await enviarMensagem(phone, 'Você não tem uma assinatura ativa por cartão no momento. Para ver os planos: */planos*.');
-      return;
-    }
-    const r = await cancelarAssinatura(dados.mp_preapproval_id);
-    if (!r.ok) {
-      await enviarMensagem(phone, 'Não consegui cancelar agora. Tenta de novo em instantes, por favor. 🙏');
-      return;
-    }
-    await atualizarStatusAssinatura(phone, 'cancelled');
-    await enviarMensagem(phone, montarMensagemAssinaturaCancelada());
-    log('assinatura_cancelada_usuario', { phone: maskPhone(phone) });
-  } catch (err) {
-    log('assinatura_cancelar_erro', { phone: maskPhone(phone), erro: err.message });
-    await enviarMensagem(phone, 'Não consegui cancelar agora. Tenta de novo em instantes, por favor. 🙏');
-  }
-}
-
-// ---------------------------------------------------------------
-// Assinaturas (Mercado Pago) — processamento do webhook
-// ---------------------------------------------------------------
-async function processarWebhookMP(req) {
-  const tipo   = req.body?.type || req.query.type || req.query.topic || null;
-  const dataId = req.body?.data?.id || req.query['data.id'] || req.query.id || null;
-  const acao   = req.body?.action || null;
-  // id único da notificação (idempotência). Cada entrega tem um id; transições
-  // de status do mesmo preapproval vêm com ids diferentes → todas processadas.
-  const notifId = req.body?.id ? String(req.body.id) : (dataId ? `${dataId}-${Date.now()}` : null);
-
-  if (!tipo || !dataId) {
-    log('mp_webhook_payload_incompleto', { tipo, tem_data_id: !!dataId });
-    return;
-  }
-
-  // Validação de assinatura (defesa em profundidade). Se houver secret e não
-  // bater, rejeita. Sem secret, segue — a verdade é reconfirmada no GET do MP.
-  const val = validarAssinaturaWebhook({
-    xSignature: req.header('x-signature'),
-    xRequestId: req.header('x-request-id'),
-    dataId,
-  });
-  if (process.env.MP_WEBHOOK_SECRET && !val.validado) {
-    log('mp_webhook_rejeitado', { tipo, motivo: val.motivo });
-    return;
-  }
-
-  // Idempotência via índice único (topico, recurso_id=notifId).
-  const ev = await registrarEventoAssinatura({
-    preapprovalId: tipo === 'subscription_preapproval' ? String(dataId) : null,
-    topico: String(tipo),
-    recursoId: notifId,
-    acao,
-    payload: req.body || null,
-  });
-  if (ev.duplicado) {
-    log('mp_webhook_duplicado', { tipo, notif_id: notifId });
-    return;
-  }
-
-  if (tipo === 'subscription_preapproval') {
-    await conciliarPreapproval(String(dataId));
-  } else if (tipo === 'subscription_authorized_payment') {
-    await conciliarPagamentoRecorrente(String(dataId));
-  } else {
-    log('mp_webhook_tipo_ignorado', { tipo });
-  }
-}
-
-// Concilia o estado de uma assinatura: lê o status real no MP e atualiza is_pro.
-async function conciliarPreapproval(preapprovalId) {
-  const info = await consultarAssinatura(preapprovalId);
-  if (!info.ok) {
-    log('mp_conciliar_preapproval_falha', { preapproval_id: preapprovalId });
-    return;
-  }
-  const phone = String(info.externalReference || '').replace(/^\+/, '');
-  if (!/^\d{10,15}$/.test(phone)) {
-    log('mp_conciliar_sem_phone', { preapproval_id: preapprovalId });
-    return;
-  }
-
-  const { statusAnterior } = await atualizarStatusAssinatura(phone, info.status, { preapprovalId });
-
-  // Notifica só na TRANSIÇÃO para authorized (evita mensagem repetida)
-  if (info.status === 'authorized' && statusAnterior !== 'authorized') {
-    const dados = await buscarDadosAssinatura(phone);
-    const label = PLANOS[dados?.plano]?.label || 'Pro';
-    await enviarMensagem(phone, montarMensagemAssinaturaAtivada(label))
-      .catch((err) => log('mp_aviso_ativada_erro', { erro: err.message }));
-
-    // Marco de conversão de indicação: assinante pagante converte a indicação
-    const conv = await converterIndicacao(phone).catch(() => null);
-    if (conv?.converteu) {
-      enviarMensagem(conv.indicadorPhone, montarAvisoIndicacaoConvertida(conv.dias))
-        .catch((err) => log('mp_indicacao_conversao_erro', { erro: err.message }));
-    }
-  }
-
-  // Notifica cancelamento vindo do lado do MP (ex: usuário cancelou na conta MP)
-  if (info.status === 'cancelled' && statusAnterior !== 'cancelled') {
-    await enviarMensagem(phone, montarMensagemAssinaturaCancelada())
-      .catch((err) => log('mp_aviso_cancelada_erro', { erro: err.message }));
-  }
-}
-
-// Concilia uma cobrança recorrente (renovação): avisa o usuário se recusada.
-async function conciliarPagamentoRecorrente(authorizedPaymentId) {
-  const pg = await consultarPagamentoRecorrente(authorizedPaymentId);
-  if (!pg.ok || !pg.preapprovalId) {
-    log('mp_conciliar_pagamento_falha', { id: authorizedPaymentId });
-    return;
-  }
-  const usuario = await buscarPorPreapprovalId(pg.preapprovalId);
-  if (!usuario?.phone_number) {
-    log('mp_pagamento_sem_usuario', { preapproval_id: pg.preapprovalId });
-    return;
-  }
-
-  if (pg.statusPagamento === 'rejected') {
-    log('mp_renovacao_recusada', { phone: maskPhone(usuario.phone_number) });
-    await enviarMensagem(usuario.phone_number, montarMensagemPagamentoFalhou())
-      .catch((err) => log('mp_aviso_falha_erro', { erro: err.message }));
-  } else if (pg.statusPagamento === 'approved') {
-    log('mp_renovacao_aprovada', { phone: maskPhone(usuario.phone_number) });
-    // Reativa is_pro se por algum motivo a assinatura tinha sido pausada
-    if (!usuario.is_pro) {
-      await atualizarStatusAssinatura(usuario.phone_number, 'authorized', { preapprovalId: pg.preapprovalId });
-    }
-  }
-}
-
 // ---------------------------------------------------------------
 // Mostra gráfico de gastos por categoria do mês atual
 // ---------------------------------------------------------------

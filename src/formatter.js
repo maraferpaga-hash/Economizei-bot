@@ -420,12 +420,7 @@ function montarMensagemPlanos() {
     `✓ Comparação de gastos por membro\n\n` +
     `*👨‍👩‍👧‍👦 Família+ — R$22/mês* (até 5 pessoas)\n` +
     `Igual ao Família, com 2 vagas adicionais.\n\n` +
-    `*💳 Assinar no cartão (cobrança automática):*\n` +
-    `Você cadastra o cartão uma vez e a renovação é automática todo mês — sem precisar pagar de novo. Para começar, mande:\n` +
-    `• */assinar individual*\n` +
-    `• */assinar familia*\n` +
-    `• */assinar familia+*\n\n` +
-    `*📱 Prefere PIX?* Mande */pix* e eu te passo a chave.\n\n` +
+    `*📱 Como assinar:* por enquanto a assinatura é via *PIX* — mande */pix* e eu te passo a chave e o passo a passo.\n\n` +
     `*Pode continuar usando o Grátis* — ele resolve o básico bem. 👍`
   );
 }

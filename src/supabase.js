@@ -21,7 +21,7 @@ async function upsertUsuario(phoneNumber) {
 
     const { data, error } = await supabase
       .from('usuarios')
-      .select('phone_number, compras_mes_atual, is_pro, beta_fundador, onboarding_step, features_pro_ate, plano, assinatura_status, assinatura_pendente_plano, mp_preapproval_id')
+      .select('phone_number, compras_mes_atual, is_pro, beta_fundador, onboarding_step, features_pro_ate')
       .eq('phone_number', phoneNumber)
       .single();
 
