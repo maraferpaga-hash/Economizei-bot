@@ -19,6 +19,11 @@ const {
   buscarTotaisMensais,
   buscarObservacoesComparativo,
   buscarCategoriasSuperfluas,
+  setCategoriasSuperfluas,
+  buscarItensDoMes,
+  buscarAcompanhamentos,
+  salvarAcompanhamento,
+  desativarAcompanhamento,
   setOptOutPrecos,
   gerarCodigoIndicacao,
   registrarIndicacaoPendente,
@@ -51,6 +56,13 @@ const {
   montarOnboarding3,
   montarOnboarding4,
   montarMensagemGastos,
+  montarAcompanharConfirmado,
+  montarAcompanharErro,
+  montarAcompanharParado,
+  montarListaAcompanhamentos,
+  montarSuperfluoConfirmado,
+  montarSuperfluoConfig,
+  montarSuperfluoInvalido,
   montarMensagemInflacao,
   montarMensagemEconomia,
   montarMensagemCortar,
@@ -86,7 +98,7 @@ const {
   validarAssinaturaWebhook,
 } = require('./mercadopago');
 const { gerarUrlGraficoCategorias } = require('./charts');
-const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar, compararPrecosMercado, buscarGastoSuperfluo } = require('./insights');
+const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar, compararPrecosMercado, buscarGastoSuperfluo, buscarGastoPorAlvo, interpretarAcompanhamento, interpretarSuperfluo } = require('./insights');
 const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
 const { interpretarApagar } = require('./apagar');
 const { responderPergunta } = require('./agent');
@@ -590,6 +602,33 @@ async function processarTexto(phone, texto) {
     return;
   }
 
+  // Alerta Pro — acompanhamentos personalizáveis (cod-0033). Comandos finos
+  // sobre a I/O do cod-0031 e a lógica pura do cod-0030/0033. SEM gate Pro aqui:
+  // ligar/desligar o Pro é passo humano (firewall). /acompanhamentos e /parar
+  // ficam sempre acessíveis (decisão 07-10: quem caiu do plano pago precisa ver
+  // e parar o que configurou). Comandos com argumento casam por palavras[0]
+  // (não por ehComando, que casaria a palavra em qualquer posição da mensagem).
+  if (ehComando('/acompanhamentos', 'acompanhamentos', '/meusalertas', 'meusalertas')) {
+    await mostrarAcompanhamentos(phone);
+    return;
+  }
+
+  if (palavras[0] === '/acompanhar' || palavras[0] === 'acompanhar') {
+    await criarAcompanhamento(phone, palavras.slice(1).join(' '));
+    return;
+  }
+
+  if (palavras[0] === '/parar' || palavras[0] === 'parar') {
+    await pararAcompanhamento(phone, palavras.slice(1).join(' '));
+    return;
+  }
+
+  if (palavras[0] === '/superfluo' || palavras[0] === 'superfluo'
+      || palavras[0] === '/supérfluo' || palavras[0] === 'supérfluo') {
+    await configurarSuperfluo(phone, palavras.slice(1).join(' '));
+    return;
+  }
+
   if (ehComando('/convidar', 'convidar', '/indicar', 'indicar', '/convite', 'convite')) {
     await mostrarConvite(phone);
     return;
@@ -823,6 +862,102 @@ async function mostrarComparativo(phone) {
   } catch (err) {
     log('comparativo_erro', { phone: maskPhone(phone), erro: err.message });
     await enviarMensagem(phone, 'Não consegui montar o comparativo agora. Tenta de novo em instantes? 🙏');
+  }
+}
+
+// ---------------------------------------------------------------
+// Alerta Pro — acompanhamentos personalizáveis (cod-0033).
+// Handlers finos: parsing puro (insights.js) + I/O (supabase.js cod-0031) +
+// copy (formatter.js). SEM gate Pro — passo humano (firewall). O /limite
+// (teto por termo) é a config do alerta proativo (cod-0035) e colide com o
+// /limite atual (status de cupons): fica de fora até a decisão humana.
+// ---------------------------------------------------------------
+async function criarAcompanhamento(phone, argumento) {
+  const alvo = interpretarAcompanhamento(argumento);
+  if (!alvo.ok) {
+    await enviarMensagem(phone, montarAcompanharErro(alvo.motivo));
+    return;
+  }
+  try {
+    const salvo = await salvarAcompanhamento(phone, {
+      tipo_alvo: alvo.tipo_alvo,
+      alvo: alvo.alvo,
+      rotulo: alvo.rotulo,
+    });
+    if (!salvo) {
+      await enviarMensagem(phone, montarAcompanharErro('falha'));
+      return;
+    }
+    await enviarMensagem(phone, montarAcompanharConfirmado(alvo));
+  } catch (err) {
+    log('acompanhar_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, montarAcompanharErro('falha'));
+  }
+}
+
+async function pararAcompanhamento(phone, argumento) {
+  const alvo = interpretarAcompanhamento(argumento);
+  if (!alvo.ok) {
+    // Sem argumento vira instrução; termo curto reaproveita o texto de erro.
+    const motivo = alvo.motivo === 'vazio' ? 'parar_sem_alvo' : alvo.motivo;
+    await enviarMensagem(phone, montarAcompanharErro(motivo));
+    return;
+  }
+  try {
+    const ok = await desativarAcompanhamento(phone, alvo.alvo);
+    await enviarMensagem(phone, montarAcompanharParado(alvo.rotulo, ok));
+  } catch (err) {
+    log('parar_acompanhamento_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, montarAcompanharParado(alvo.rotulo, false));
+  }
+}
+
+async function mostrarAcompanhamentos(phone) {
+  try {
+    const lista = await buscarAcompanhamentos(phone);
+    if (!lista || lista.length === 0) {
+      await enviarMensagem(phone, montarListaAcompanhamentos([]));
+      return;
+    }
+
+    // Enriquece cada acompanhamento com o gasto do mês (buscarGastoPorAlvo sobre
+    // os itens do mês). buscarItensDoMes: null = leitura falhou (não fingir R$ 0),
+    // [] = mês sem compras. A soma nasce do dado real, nunca chutada.
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const itens = await buscarItensDoMes(phone, mesAtual);
+    const leituraFalhou = itens === null;
+
+    const enriquecida = lista.map((a) => {
+      const rotulo = a.rotulo || a.alvo;
+      if (leituraFalhou) return { rotulo, total: 0, temDados: false };
+      const { total } = buscarGastoPorAlvo(itens, { tipo: a.tipo_alvo, valor: a.alvo });
+      return { rotulo, total, temDados: true };
+    });
+
+    await enviarMensagem(phone, montarListaAcompanhamentos(enriquecida, mesAtual));
+  } catch (err) {
+    log('acompanhamentos_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, 'Não consegui buscar seus acompanhamentos agora. Tenta de novo em instantes? 🙏');
+  }
+}
+
+async function configurarSuperfluo(phone, argumento) {
+  try {
+    const atuais = await buscarCategoriasSuperfluas(phone);
+    const r = interpretarSuperfluo(argumento, atuais);
+    if (!r.ok) {
+      await enviarMensagem(phone, montarSuperfluoInvalido(r.categoria));
+      return;
+    }
+    if (r.acao === 'listar') {
+      await enviarMensagem(phone, montarSuperfluoConfig(r.categorias));
+      return;
+    }
+    const ok = await setCategoriasSuperfluas(phone, r.categorias);
+    await enviarMensagem(phone, montarSuperfluoConfirmado(r, r.categorias, ok));
+  } catch (err) {
+    log('superfluo_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, 'Não consegui ajustar suas categorias de supérfluo agora. Tenta de novo em instantes? 🙏');
   }
 }
 

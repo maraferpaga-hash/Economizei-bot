@@ -18,6 +18,15 @@
 // só o que é claramente supérfluo entra.
 const CATEGORIAS_SUPERFLUAS = ['doces', 'bebidas'];
 
+// As 10 categorias de item válidas — espelho de gemini.js (CATEGORIAS_VALIDAS).
+// Mantido aqui pra a lógica pura de acompanhamento (cod-0033) decidir se um alvo
+// é uma categoria ou uma palavra-chave livre SEM acoplar ao módulo de
+// classificação. Se a lista mudar em gemini.js, atualizar aqui também.
+const CATEGORIAS_VALIDAS = [
+  'carnes', 'hortifruti', 'laticinios', 'padaria', 'bebidas',
+  'limpeza', 'mercearia', 'congelados', 'doces', 'outros',
+];
+
 // Fatias que não são gasto de categoria real — não viram conclusão nem corte.
 const CATEGORIAS_NAO_ACIONAVEIS = ['nao_identificado', 'nao_mercado'];
 
@@ -407,6 +416,81 @@ function buscarGastoSuperfluo(gastosPorCategoria, categoriasSuperfluas) {
 }
 
 // ---------------------------------------------------------------
+// Acompanhamentos personalizáveis (cod-0033) — parsing PURO dos comandos.
+// A I/O (salvar/ler/desativar) vive no supabase.js (cod-0031); aqui só a
+// interpretação do texto que o usuário digitou. Sem gate Pro (passo humano).
+// ---------------------------------------------------------------
+
+// Interpreta o argumento de "/acompanhar <termo|categoria>" num alvo pronto pra
+// gravar. Decide o tipo pelo próprio texto: casou uma das 10 categorias →
+// 'categoria'; senão → 'termo' (palavra-chave livre). A guarda de comprimento
+// (≥3 após normalizar) espelha o matching (_casaTermo): termo curto demais nunca
+// casaria item nenhum, então recusa na criação em vez de criar um vigia morto.
+//   ok    → { ok:true, tipo_alvo, alvo, rotulo }
+//   vazio → { ok:false, motivo:'vazio' }   (sem argumento)
+//   curto → { ok:false, motivo:'curto' }   (< 3 caracteres úteis)
+function interpretarAcompanhamento(argumento) {
+  const bruto = String(argumento == null ? '' : argumento).trim();
+  if (!bruto) return { ok: false, motivo: 'vazio' };
+
+  // Rótulo de exibição: minúsculas + espaços colapsados, acentos preservados.
+  const rotulo = bruto.toLowerCase().replace(/\s+/g, ' ').trim();
+  const alvoNorm = _norm(rotulo);
+  if (alvoNorm.replace(/[^a-z0-9]/g, '').length < 3) return { ok: false, motivo: 'curto' };
+
+  const tipo_alvo = CATEGORIAS_VALIDAS.includes(alvoNorm) ? 'categoria' : 'termo';
+  // Categoria grava normalizada (casa com item.categoria); termo grava como exibido.
+  const alvo = tipo_alvo === 'categoria' ? alvoNorm : rotulo;
+  return { ok: true, tipo_alvo, alvo, rotulo };
+}
+
+// Interpreta "/superfluo <categoria> [on|off]" contra a config atual do usuário.
+// Sem 2º termo → alterna (toggle). 'on/sim/incluir' liga; 'off/nao/remover/tirar'
+// desliga. Sem categoria → lista a config atual. Categoria fora das 10 válidas →
+// { ok:false }. Devolve o novo array pronto pra gravar (setCategoriasSuperfluas).
+//   listar → { ok:true, acao:'listar', categorias }
+//   ok     → { ok:true, acao:'add'|'remove', categoria, categorias }
+//   inválida → { ok:false, motivo:'categoria_invalida', categoria }
+function interpretarSuperfluo(argumento, categoriasAtuais) {
+  const atual = (Array.isArray(categoriasAtuais) ? categoriasAtuais : [])
+    .map((c) => _norm(c))
+    .filter(Boolean);
+  const partes = String(argumento == null ? '' : argumento)
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (partes.length === 0) {
+    return { ok: true, acao: 'listar', categorias: [...new Set(atual)] };
+  }
+
+  const categoria = _norm(partes[0]);
+  if (!CATEGORIAS_VALIDAS.includes(categoria)) {
+    return { ok: false, motivo: 'categoria_invalida', categoria: partes[0] };
+  }
+
+  const flag = _norm(partes[1] || '');
+  const set = new Set(atual);
+  let acao;
+  if (flag === 'on' || flag === 'sim' || flag === 'incluir') {
+    set.add(categoria);
+    acao = 'add';
+  } else if (flag === 'off' || flag === 'nao' || flag === 'remover' || flag === 'tirar') {
+    set.delete(categoria);
+    acao = 'remove';
+  } else if (set.has(categoria)) { // toggle: já estava → remove
+    set.delete(categoria);
+    acao = 'remove';
+  } else { // toggle: não estava → adiciona
+    set.add(categoria);
+    acao = 'add';
+  }
+
+  return { ok: true, acao, categoria, categorias: [...set] };
+}
+
+// ---------------------------------------------------------------
 // Comparativo entre mercados — LEITURA (cod-0020, feature paga nº1).
 //
 // Hoje a base anônima `precos_mercado` só RECEBE preços; nunca é lida. Aqui
@@ -545,7 +629,10 @@ module.exports = {
   casarItemComAlvo,
   buscarGastoPorAlvo,
   buscarGastoSuperfluo,
+  interpretarAcompanhamento,
+  interpretarSuperfluo,
   compararPrecosMercado,
   CATEGORIAS_SUPERFLUAS,
+  CATEGORIAS_VALIDAS,
   CATEGORIAS_NAO_ACIONAVEIS,
 };

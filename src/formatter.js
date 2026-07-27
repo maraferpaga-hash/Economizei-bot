@@ -88,6 +88,106 @@ function montarBlocoSuperfluo(analise) {
   );
 }
 
+// ---------------------------------------------------------------
+// Acompanhamentos personalizáveis (cod-0033) — mensagens dos comandos.
+// Tom WhatsApp, sem gíria, número primeiro. Confirmações curtas e honestas.
+// SEM gate Pro aqui: quem liga/desliga o Pro é passo humano (firewall).
+// ---------------------------------------------------------------
+
+function montarAcompanharConfirmado({ tipo_alvo, rotulo } = {}) {
+  const oQue = tipo_alvo === 'categoria'
+    ? `a categoria *${LABELS_CATEGORIA[rotulo] || rotulo}*`
+    : `*${rotulo}*`;
+  return (
+    `✅ Pronto! Vou acompanhar ${oQue} nas suas compras.\n\n` +
+    `Pra ver quanto já somou no mês: */acompanhamentos*. Pra parar: */parar ${rotulo}*.`
+  );
+}
+
+function montarAcompanharErro(motivo) {
+  if (motivo === 'curto') {
+    return 'Esse termo é curto demais pra acompanhar. Use um nome com pelo menos 3 letras, como */acompanhar cerveja*.';
+  }
+  if (motivo === 'parar_sem_alvo') {
+    return 'Me diga o que você quer parar de acompanhar. Ex.: */parar cerveja*. Pra ver a lista: */acompanhamentos*.';
+  }
+  if (motivo === 'falha') {
+    return 'Não consegui salvar seu acompanhamento agora. Tenta de novo em instantes? 🙏';
+  }
+  // 'vazio'
+  return 'O que você quer acompanhar? Ex.: */acompanhar cerveja* ou */acompanhar doces* (uma categoria).';
+}
+
+function montarAcompanharParado(rotulo, sucesso) {
+  if (!sucesso) {
+    return `Não consegui parar o acompanhamento de *${rotulo}* agora. Tenta de novo em instantes? 🙏`;
+  }
+  return `✅ Parei de acompanhar *${rotulo}*. Pra voltar depois: */acompanhar ${rotulo}*.`;
+}
+
+// lista = [{ rotulo, total, temDados }] — já enriquecida pelo index.js com o
+// gasto do mês de cada alvo (buscarGastoPorAlvo). temDados:false = leitura falhou
+// (nunca mostra R$ 0 como se fosse fato); total 0 = sem itens casados esse mês.
+function montarListaAcompanhamentos(lista, mesRef) {
+  if (!Array.isArray(lista) || lista.length === 0) {
+    return (
+      '🔎 Você ainda não está acompanhando nada.\n\n' +
+      'Escolha um item ou categoria pra vigiar: */acompanhar cerveja*, */acompanhar ração*, */acompanhar doces*.'
+    );
+  }
+
+  const titulo = mesRef ? ` — ${nomeDoMes(mesRef)}` : '';
+  const linhas = lista.map((a) => {
+    if (!a.temDados) return `• ${a.rotulo} — não consegui somar agora`;
+    if (!(a.total > 0)) return `• ${a.rotulo} — ainda sem itens esse mês`;
+    return `• ${a.rotulo} — *R$ ${brl(a.total)}*`;
+  });
+
+  return (
+    `🔎 *Seus acompanhamentos${titulo}*\n\n` +
+    `${linhas.join('\n')}\n\n` +
+    `Pra parar de acompanhar um: */parar <nome>*.`
+  );
+}
+
+// Baseline (doces+bebidas) quando a lista chega vazia — espelha o default do
+// cod-0031 (setCategoriasSuperfluas grava null → buscarCategoriasSuperfluas
+// devolve o baseline), pra a mensagem nunca dizer "nenhuma".
+function _listaCategoriasSuperfluas(categorias) {
+  const arr = (Array.isArray(categorias) && categorias.length > 0)
+    ? categorias
+    : ['doces', 'bebidas'];
+  return arr.map((c) => LABELS_CATEGORIA[c] || c).join(', ');
+}
+
+function montarSuperfluoConfirmado(resultado, categorias, sucesso) {
+  if (!sucesso) {
+    return 'Não consegui ajustar suas categorias de supérfluo agora. Tenta de novo em instantes? 🙏';
+  }
+  const { acao, categoria } = resultado || {};
+  const label = LABELS_CATEGORIA[categoria] || categoria;
+  const verbo = acao === 'remove' ? 'não conta mais' : 'passa a contar';
+  return (
+    `✅ *${label}* ${verbo} como supérfluo.\n\n` +
+    `Categorias de supérfluo agora: ${_listaCategoriasSuperfluas(categorias)}.`
+  );
+}
+
+function montarSuperfluoConfig(categorias) {
+  return (
+    `🍬 Suas categorias de supérfluo: *${_listaCategoriasSuperfluas(categorias)}*.\n\n` +
+    `Pra incluir ou tirar uma: */superfluo doces* (alterna) ou */superfluo bebidas off*.`
+  );
+}
+
+function montarSuperfluoInvalido(categoria) {
+  const validas = 'carnes, hortifruti, laticínios, padaria, bebidas, limpeza, mercearia, congelados, doces, outros';
+  const oQue = categoria
+    ? `*${categoria}* não é uma categoria que eu conheço.`
+    : 'Preciso de uma categoria válida.';
+  return `${oQue}\n\nCategorias válidas: ${validas}. Ex.: */superfluo doces*.`;
+}
+
 function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia = null, superfluo = null) {
   const { totalGasto, qtdCompras, ticketMedio, topLojas = [], topItens = [] } = dadosAtual;
 
@@ -1000,6 +1100,13 @@ module.exports = {
   montarResumoMensal,
   montarMensagemGastos,
   montarBlocoSuperfluo,
+  montarAcompanharConfirmado,
+  montarAcompanharErro,
+  montarAcompanharParado,
+  montarListaAcompanhamentos,
+  montarSuperfluoConfirmado,
+  montarSuperfluoConfig,
+  montarSuperfluoInvalido,
   montarMensagemInflacao,
   montarMensagemEconomia,
   montarMensagemCortar,
