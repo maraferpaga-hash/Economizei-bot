@@ -88,8 +88,11 @@ test('salvarAcompanhamento: upsert pela UNIQUE (phone_number,tipo_alvo,alvo), at
   assert.equal(opts.onConflict, 'phone_number,tipo_alvo,alvo');
   assert.equal(linha.ativo, true, 'salvar (re)ativa o alvo');
   assert.equal(linha.rotulo, 'doces', 'rótulo default = o próprio alvo');
-  assert.equal(linha.limite_mensal, null);
-  assert.equal(linha.superfluo, false);
+  // cod-0035: sem valor explícito, as colunas nem entram no payload — assim o
+  // upsert de um /acompanhar não apaga o teto/supérfluo já configurados.
+  // Em linha nova o resultado é o mesmo (DEFAULTs do schema: NULL e false).
+  assert.ok(!('limite_mensal' in linha), 'não sobrescreve o teto existente');
+  assert.ok(!('superfluo' in linha), 'não sobrescreve a marca de supérfluo');
 });
 
 test('salvarAcompanhamento: respeita rotulo/limite_mensal/superfluo explícitos', async () => {

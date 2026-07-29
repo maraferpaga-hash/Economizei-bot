@@ -23,6 +23,8 @@ const {
   buscarItensDoMes,
   buscarAcompanhamentos,
   salvarAcompanhamento,
+  definirLimiteAcompanhamento,
+  marcarAlertaLimiteEnviado,
   desativarAcompanhamento,
   setOptOutPrecos,
   gerarCodigoIndicacao,
@@ -56,6 +58,9 @@ const {
   montarSuperfluoConfirmado,
   montarSuperfluoConfig,
   montarSuperfluoInvalido,
+  montarTetoConfirmado,
+  montarTetoErro,
+  montarAlertaLimite,
   montarMensagemInflacao,
   montarMensagemEconomia,
   montarMensagemCortar,
@@ -74,7 +79,7 @@ const {
   nomeDoMes,
 } = require('./formatter');
 const { gerarUrlGraficoCategorias } = require('./charts');
-const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar, compararPrecosMercado, buscarGastoSuperfluo, buscarGastoPorAlvo, interpretarAcompanhamento, interpretarSuperfluo } = require('./insights');
+const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar, compararPrecosMercado, buscarGastoSuperfluo, buscarGastoPorAlvo, interpretarAcompanhamento, interpretarSuperfluo, interpretarTeto, verificarTetosEstourados } = require('./insights');
 const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
 const { interpretarApagar } = require('./apagar');
 const { responderPergunta } = require('./agent');
@@ -548,6 +553,14 @@ async function processarTexto(phone, texto) {
     return;
   }
 
+  // /teto <alvo> <valor> — configura o alerta proativo de limite (cod-0035).
+  // Nome escolhido pra NÃO colidir com o /limite atual (status de cupons), que
+  // segue significando "quantos cupons ainda tenho".
+  if (palavras[0] === '/teto' || palavras[0] === 'teto') {
+    await definirTeto(phone, palavras.slice(1).join(' '));
+    return;
+  }
+
   if (palavras[0] === '/superfluo' || palavras[0] === 'superfluo'
       || palavras[0] === '/supérfluo' || palavras[0] === 'supérfluo') {
     await configurarSuperfluo(phone, palavras.slice(1).join(' '));
@@ -721,6 +734,10 @@ async function processarReciboRecebido(phone, baixar) {
 
     log('cupom_registrado', { phone: maskPhone(phone), loja: dados.loja, total: dados.total });
 
+    // Alerta proativo de teto (cod-0035): esta compra pode ter feito um alvo
+    // acompanhado cruzar o limite do mês. Self-contained — nunca derruba o fluxo.
+    await verificarAlertasDeLimite(phone);
+
     // Marco de ativação de indicação: se este usuário veio por indicação e ainda
     // estava pendente, este 1º cupom libera a recompensa pros dois lados.
     // Self-contained (nunca lança) — não pode derrubar o fluxo do cupom já salvo.
@@ -793,9 +810,9 @@ async function mostrarComparativo(phone) {
 // ---------------------------------------------------------------
 // Alerta Pro — acompanhamentos personalizáveis (cod-0033).
 // Handlers finos: parsing puro (insights.js) + I/O (supabase.js cod-0031) +
-// copy (formatter.js). SEM gate Pro — passo humano (firewall). O /limite
-// (teto por termo) é a config do alerta proativo (cod-0035) e colide com o
-// /limite atual (status de cupons): fica de fora até a decisão humana.
+// copy (formatter.js). SEM gate Pro — passo humano (firewall).
+// A config do alerta proativo (cod-0035) virou o comando */teto* — nome novo
+// pra não colidir com o /limite atual, que segue sendo o status de cupons.
 // ---------------------------------------------------------------
 async function criarAcompanhamento(phone, argumento) {
   const alvo = interpretarAcompanhamento(argumento);
@@ -834,6 +851,64 @@ async function pararAcompanhamento(phone, argumento) {
   } catch (err) {
     log('parar_acompanhamento_erro', { phone: maskPhone(phone), erro: err.message });
     await enviarMensagem(phone, montarAcompanharParado(alvo.rotulo, false));
+  }
+}
+
+// /teto <termo|categoria> <valor> — define o teto mensal do alvo (cod-0035).
+// Se o alvo ainda não era acompanhado, o /teto também passa a acompanhá-lo
+// (zero atrito: um comando só em vez de dois).
+async function definirTeto(phone, argumento) {
+  const alvo = interpretarTeto(argumento);
+  if (!alvo.ok) {
+    await enviarMensagem(phone, montarTetoErro(alvo.motivo, alvo.valor));
+    return;
+  }
+  try {
+    const salvo = await definirLimiteAcompanhamento(phone, {
+      tipo_alvo: alvo.tipo_alvo,
+      alvo: alvo.alvo,
+      rotulo: alvo.rotulo,
+      limite_mensal: alvo.limite,
+    });
+    if (!salvo) {
+      await enviarMensagem(phone, montarTetoErro('falha'));
+      return;
+    }
+    await enviarMensagem(phone, montarTetoConfirmado(alvo));
+  } catch (err) {
+    log('teto_erro', { phone: maskPhone(phone), erro: err.message });
+    await enviarMensagem(phone, montarTetoErro('falha'));
+  }
+}
+
+// Alerta proativo de limite (cod-0035) — roda depois de cada cupom salvo.
+// Self-contained: NUNCA lança (o cupom já foi salvo e respondido; um erro aqui
+// não pode virar "erro ao processar imagem" pro usuário).
+//
+// Ordem enviar → marcar de propósito: se a marcação falhar, o pior caso é
+// repetir o aviso na próxima compra; se marcasse antes e o envio falhasse, o
+// usuário ficaria sem o aviso no mês inteiro — silêncio é o pior dos dois.
+async function verificarAlertasDeLimite(phone) {
+  try {
+    const acompanhamentos = await buscarAcompanhamentos(phone);
+    if (!acompanhamentos.some((a) => Number(a.limite_mensal) > 0)) return;
+
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const itens = await buscarItensDoMes(phone, mesAtual);
+    if (itens === null) return; // leitura falhou: não alerta com número chutado
+
+    const alertas = verificarTetosEstourados(acompanhamentos, itens, mesAtual);
+    if (alertas.length === 0) return;
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await enviarMensagem(phone, montarAlertaLimite(alertas));
+    log('alerta_limite_enviado', { phone: maskPhone(phone), alvos: alertas.length });
+
+    for (const a of alertas) {
+      await marcarAlertaLimiteEnviado(phone, a.id, mesAtual);
+    }
+  } catch (err) {
+    log('alerta_limite_erro', { phone: maskPhone(phone), erro: err.message });
   }
 }
 

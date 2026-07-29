@@ -1665,8 +1665,8 @@ async function salvarAcompanhamento(phoneNumber, alvoDados, cliente = supabase) 
     tipo_alvo,
     alvo,
     rotulo = null,
-    limite_mensal = null,
-    superfluo = false,
+    limite_mensal,   // undefined = "não mexer" (ver comentário no payload)
+    superfluo,       // undefined = "não mexer"
   } = alvoDados || {};
 
   try {
@@ -1677,10 +1677,17 @@ async function salvarAcompanhamento(phoneNumber, alvoDados, cliente = supabase) 
       tipo_alvo,
       alvo,
       rotulo:        rotulo || alvo, // rótulo de exibição (default = o próprio alvo)
-      limite_mensal,
-      superfluo,
       ativo:         true,
     };
+
+    // limite_mensal/superfluo só entram no payload quando o chamador os informa.
+    // Motivo (cod-0035): o upsert só atualiza as colunas presentes — mandar
+    // `limite_mensal: null` por default fazia um `/acompanhar cerveja` APAGAR em
+    // silêncio o teto que a pessoa tinha definido com `/teto cerveja 100`.
+    // Em linha NOVA o resultado é idêntico ao anterior (DEFAULTs do schema:
+    // limite_mensal NULL, superfluo false).
+    if (limite_mensal !== undefined) linha.limite_mensal = limite_mensal;
+    if (superfluo !== undefined) linha.superfluo = superfluo;
 
     const { data, error } = await cliente
       .from('acompanhamentos')
@@ -1693,6 +1700,65 @@ async function salvarAcompanhamento(phoneNumber, alvoDados, cliente = supabase) 
   } catch (err) {
     log('supabase_erro', { fn: 'salvarAcompanhamento', erro: err.message });
     return null;
+  }
+}
+
+// Define o teto mensal (R$) de um alvo — comando /teto (cod-0035).
+// UPDATE primeiro, INSERT só se o alvo ainda não existe: assim mudar o teto NÃO
+// mexe em `superfluo`/`rotulo` já configurados. Zera `alertado_em` de propósito —
+// teto novo é uma decisão nova, e a pessoa merece ser avisada de novo neste mês
+// se o gasto já estiver acima do valor recém-definido.
+// Retorna a linha gravada, ou null em erro/validação (nunca lança).
+async function definirLimiteAcompanhamento(phoneNumber, alvoDados, cliente = supabase) {
+  const { tipo_alvo, alvo, rotulo = null, limite_mensal } = alvoDados || {};
+
+  try {
+    if (!tipo_alvo || !alvo) throw new Error('teto sem tipo_alvo/alvo');
+    const limite = Number(limite_mensal);
+    if (!Number.isFinite(limite) || limite <= 0) throw new Error('teto sem valor válido');
+
+    const { data, error } = await cliente
+      .from('acompanhamentos')
+      .update({ limite_mensal: limite, alertado_em: null, ativo: true })
+      .eq('phone_number', phoneNumber)
+      .eq('tipo_alvo', tipo_alvo)
+      .eq('alvo', alvo)
+      .select();
+
+    if (error) throw error;
+    if (Array.isArray(data) && data.length > 0) return data[0];
+
+    // Alvo ainda não acompanhado: /teto também passa a acompanhar (zero atrito).
+    return await salvarAcompanhamento(
+      phoneNumber,
+      { tipo_alvo, alvo, rotulo, limite_mensal: limite },
+      cliente
+    );
+  } catch (err) {
+    log('supabase_erro', { fn: 'definirLimiteAcompanhamento', erro: err.message });
+    return null;
+  }
+}
+
+// Marca que o alerta de teto daquele alvo já foi enviado no mês `mesRef`
+// ('YYYY-MM') — é o que torna o alerta idempotente (1×/alvo/mês).
+// Retorna true/false; erro só loga (o alerta já foi entregue ao usuário).
+async function marcarAlertaLimiteEnviado(phoneNumber, id, mesRef, cliente = supabase) {
+  try {
+    if (id == null) throw new Error('marcar alerta sem id');
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(mesRef))) throw new Error('mesRef inválido');
+
+    const { error } = await cliente
+      .from('acompanhamentos')
+      .update({ alertado_em: `${mesRef}-01` })
+      .eq('phone_number', phoneNumber)
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    log('supabase_erro', { fn: 'marcarAlertaLimiteEnviado', erro: err.message });
+    return false;
   }
 }
 
@@ -1804,6 +1870,8 @@ module.exports = {
   purgarPerguntasLog,
   buscarAcompanhamentos,
   salvarAcompanhamento,
+  definirLimiteAcompanhamento,
+  marcarAlertaLimiteEnviado,
   desativarAcompanhamento,
   setCategoriasSuperfluas,
   buscarCategoriasSuperfluas,

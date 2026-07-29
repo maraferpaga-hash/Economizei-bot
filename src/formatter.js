@@ -188,6 +188,78 @@ function montarSuperfluoInvalido(categoria) {
   return `${oQue}\n\nCategorias válidas: ${validas}. Ex.: */superfluo doces*.`;
 }
 
+// ---------------------------------------------------------------
+// Alerta proativo de limite (cod-0035) — /teto e o aviso automático.
+// Número primeiro, sem moralizar: o bot informa o fato e o que dá pra fazer,
+// nunca julga a compra. Máx. 1 aviso por alvo por mês (garantido no index.js).
+// ---------------------------------------------------------------
+
+function _rotuloExibicao(tipo_alvo, rotulo) {
+  return tipo_alvo === 'categoria' ? (LABELS_CATEGORIA[rotulo] || rotulo) : rotulo;
+}
+
+function montarTetoConfirmado({ tipo_alvo, rotulo, limite } = {}) {
+  const oQue = _rotuloExibicao(tipo_alvo, rotulo);
+  return (
+    `✅ Teto de *R$ ${brl(limite)}* definido para *${oQue}*.\n\n` +
+    `Quando o gasto do mês chegar lá, eu aviso — uma vez por mês, sem encher.\n` +
+    `Pra ver quanto já somou: */acompanhamentos*. Pra mudar: */teto ${rotulo} <valor>*.`
+  );
+}
+
+function montarTetoErro(motivo, extra) {
+  if (motivo === 'sem_valor') {
+    return 'Falta o valor do teto. Ex.: */teto cerveja 100* — aviso quando o gasto do mês em cerveja chegar a R$ 100,00.';
+  }
+  if (motivo === 'sem_alvo') {
+    return 'Pra qual item ou categoria é esse teto? Ex.: */teto cerveja 100* ou */teto doces 150*.';
+  }
+  if (motivo === 'valor_invalido') {
+    const oQue = extra ? `*${extra}* não é um valor que eu consiga entender.` : 'Não entendi o valor.';
+    return `${oQue}\n\nUse um valor em reais entre R$ 1,00 e R$ 1.000.000,00. Ex.: */teto cerveja 100* ou */teto doces 75,50*.`;
+  }
+  if (motivo === 'curto') {
+    return 'Esse termo é curto demais. Use um nome com pelo menos 3 letras. Ex.: */teto cerveja 100*.';
+  }
+  if (motivo === 'falha') {
+    return 'Não consegui salvar seu teto agora. Tenta de novo em instantes? 🙏';
+  }
+  // 'vazio'
+  return 'Pra que item ou categoria você quer definir um teto? Ex.: */teto cerveja 100* ou */teto doces 150*.';
+}
+
+// alertas = [{ rotulo, tipo_alvo, total, limite, pct }] — vindo de
+// verificarTetosEstourados (insights.js). Lista vazia/inválida → '' (o chamador
+// não envia nada). Um alvo = mensagem focada; vários = uma mensagem só, pra não
+// disparar três avisos seguidos no WhatsApp.
+function montarAlertaLimite(alertas) {
+  const lista = Array.isArray(alertas) ? alertas.filter(Boolean) : [];
+  if (lista.length === 0) return '';
+
+  if (lista.length === 1) {
+    const a = lista[0];
+    const oQue = _rotuloExibicao(a.tipo_alvo, a.rotulo);
+    const situacao = a.total > a.limite
+      ? `passou o teto de R$ ${brl(a.limite)} que você definiu (${a.pct}% dele)`
+      : `bateu o teto de R$ ${brl(a.limite)} que você definiu`;
+    return (
+      `⚠️ *R$ ${brl(a.total)} em ${oQue} esse mês* — ${situacao}.\n\n` +
+      `Pra mudar o teto: */teto ${a.rotulo} <valor>*. Pra parar de acompanhar: */parar ${a.rotulo}*.`
+    );
+  }
+
+  const linhas = lista.map((a) => {
+    const oQue = _rotuloExibicao(a.tipo_alvo, a.rotulo);
+    return `• ${oQue} — *R$ ${brl(a.total)}* (teto R$ ${brl(a.limite)})`;
+  });
+
+  return (
+    `⚠️ *${lista.length} alvos chegaram no teto esse mês*\n\n` +
+    `${linhas.join('\n')}\n\n` +
+    `Pra mudar um teto: */teto <nome> <valor>*. Pra parar de acompanhar: */parar <nome>*.`
+  );
+}
+
 function montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia = null, superfluo = null) {
   const { totalGasto, qtdCompras, ticketMedio, topLojas = [], topItens = [] } = dadosAtual;
 
@@ -1102,6 +1174,9 @@ module.exports = {
   montarSuperfluoConfirmado,
   montarSuperfluoConfig,
   montarSuperfluoInvalido,
+  montarTetoConfirmado,
+  montarTetoErro,
+  montarAlertaLimite,
   montarMensagemInflacao,
   montarMensagemEconomia,
   montarMensagemCortar,

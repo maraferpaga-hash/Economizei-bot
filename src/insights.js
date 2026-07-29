@@ -491,6 +491,152 @@ function interpretarSuperfluo(argumento, categoriasAtuais) {
 }
 
 // ---------------------------------------------------------------
+// Alerta proativo de limite (cod-0035) — lógica PURA.
+// Fecha a cadeia do Alerta Inteligente Pro: o usuário define um teto mensal
+// para um alvo que já acompanha (/teto) e o bot avisa quando o gasto do mês
+// naquele alvo atinge esse teto. O número nasce SEMPRE aqui (buscarGastoPorAlvo
+// sobre os itens reais do mês), nunca no LLM.
+// ---------------------------------------------------------------
+
+// Teto mínimo/máximo aceitos — guardas de sanidade contra digitação errada
+// (R$ 0,50 nunca é um teto de verdade; R$ 1 milhão é dedo escorregado).
+const TETO_MIN = 1;
+const TETO_MAX = 1000000;
+
+// Converte o texto de um valor em reais para número. Aceita os formatos que a
+// pessoa realmente digita no WhatsApp: "100", "100,50", "R$ 100", "1.234,50",
+// "1234.50". Regra: se tem vírgula, ela é o separador decimal e o ponto é de
+// milhar; se só tem ponto, ele é decimal quando NÃO separa um grupo de 3
+// dígitos ("100.50" → 100.5) e de milhar quando separa ("1.234" → 1234).
+// Não interpretável → null (nunca chuta número).
+function _valorEmReais(texto) {
+  const bruto = String(texto == null ? '' : texto)
+    .toLowerCase()
+    .replace(/r\$/g, '')
+    .replace(/\s/g, '')
+    .trim();
+  if (!bruto || !/^[0-9.,]+$/.test(bruto)) return null;
+
+  let limpo;
+  if (bruto.includes(',')) {
+    limpo = bruto.replace(/\./g, '').replace(',', '.');
+  } else if (bruto.includes('.')) {
+    const depois = bruto.slice(bruto.lastIndexOf('.') + 1);
+    limpo = depois.length === 3 ? bruto.replace(/\./g, '') : bruto;
+  } else {
+    limpo = bruto;
+  }
+
+  const n = Number(limpo);
+  return Number.isFinite(n) ? n : null;
+}
+
+// Mês ('YYYY-MM') de um valor de data vindo do banco (string 'YYYY-MM-DD' ou
+// Date). Qualquer outra coisa → null (trata como "nunca alertado").
+function _mesDe(valor) {
+  if (!valor) return null;
+  if (valor instanceof Date) {
+    return Number.isNaN(valor.getTime()) ? null : valor.toISOString().slice(0, 7);
+  }
+  const s = String(valor);
+  return /^\d{4}-\d{2}/.test(s) ? s.slice(0, 7) : null;
+}
+
+function _ehMesValido(mesRef) {
+  return typeof mesRef === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(mesRef);
+}
+
+// Interpreta o argumento de "/teto <termo|categoria> <valor>".
+// Reusa interpretarAcompanhamento pro alvo (mesmas regras de categoria×termo e
+// a guarda de ≥3 caracteres) e lê o ÚLTIMO token como valor.
+//   ok       → { ok:true, tipo_alvo, alvo, rotulo, limite }
+//   vazio    → { ok:false, motivo:'vazio' }          (sem argumento nenhum)
+//   sem_valor→ { ok:false, motivo:'sem_valor' }      (só o alvo, sem número)
+//   sem_alvo → { ok:false, motivo:'sem_alvo' }       (só o número, sem alvo)
+//   invalido → { ok:false, motivo:'valor_invalido', valor }
+//   curto    → { ok:false, motivo:'curto' }          (alvo com <3 caracteres)
+function interpretarTeto(argumento) {
+  const partes = String(argumento == null ? '' : argumento)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  // Ruído de moeda que a pessoa digita solto e que NÃO é parte do alvo.
+  // Só no fim da frase de propósito: "arroz real 100" mantém "arroz real"
+  // como alvo (pode ser marca), mas "cerveja 100 reais" e "cerveja R$ 100"
+  // viram alvo "cerveja" + valor 100.
+  const SUFIXO_MOEDA = /^(reais?|conto|contos|pila|pilas)$/i;
+  const PREFIXO_MOEDA = /^(r\$?|rs)$/i;
+  while (partes.length > 0 && SUFIXO_MOEDA.test(partes[partes.length - 1])) partes.pop();
+
+  if (partes.length === 0) return { ok: false, motivo: 'vazio' };
+  if (partes.length === 1) {
+    // Um token só: distingue "esqueci o valor" de "esqueci o alvo", pra a
+    // mensagem de erro dizer exatamente o que falta.
+    return _valorEmReais(partes[0]) === null
+      ? { ok: false, motivo: 'sem_valor' }
+      : { ok: false, motivo: 'sem_alvo' };
+  }
+
+  const bruto = partes[partes.length - 1];
+  const limite = _valorEmReais(bruto);
+  if (limite === null || limite < TETO_MIN || limite > TETO_MAX) {
+    return { ok: false, motivo: 'valor_invalido', valor: bruto };
+  }
+
+  // "cerveja R$ 100" → o "R$" ficou órfão no fim do alvo; tira antes de gravar.
+  const tokensAlvo = partes.slice(0, -1);
+  while (tokensAlvo.length > 0 && PREFIXO_MOEDA.test(tokensAlvo[tokensAlvo.length - 1])) tokensAlvo.pop();
+
+  const alvo = interpretarAcompanhamento(tokensAlvo.join(' '));
+  if (!alvo.ok) return alvo;
+
+  return { ...alvo, limite: _round2(limite) };
+}
+
+// verificarTetosEstourados(acompanhamentos, itensDoMes, mesRef) → alertas[]
+//   acompanhamentos: linhas de `acompanhamentos` (cod-0031), com limite_mensal
+//     e alertado_em (mês do último alerta — anti-spam).
+//   itensDoMes: itens do mês (buscarItensDoMes). null/não-array → [] alertas
+//     (leitura falhou = não inventa gasto zero nem alerta).
+//   mesRef: 'YYYY-MM' do mês avaliado. Inválido → [] (sem mês não há como
+//     garantir a idempotência mensal, então prefere o silêncio).
+//
+// Dispara quando o gasto ATINGE o teto (>=): quem definiu R$ 100 quer saber ao
+// chegar em R$ 100, não só ao passar. Idempotente: um alvo já alertado no mesmo
+// mês fica de fora. Ordem determinística (maior gasto primeiro).
+function verificarTetosEstourados(acompanhamentos, itensDoMes, mesRef) {
+  if (!_ehMesValido(mesRef)) return [];
+  if (!Array.isArray(itensDoMes)) return [];
+
+  const linhas = Array.isArray(acompanhamentos) ? acompanhamentos : [];
+  const alertas = [];
+
+  for (const a of linhas) {
+    if (!a || a.ativo === false) continue;
+
+    const limite = Number(a.limite_mensal);
+    if (!Number.isFinite(limite) || limite <= 0) continue;      // só acompanha, não alerta
+    if (_mesDe(a.alertado_em) === mesRef) continue;             // já avisou neste mês
+
+    const { total } = buscarGastoPorAlvo(itensDoMes, { tipo: a.tipo_alvo, valor: a.alvo });
+    if (!(total >= limite)) continue;
+
+    alertas.push({
+      id: a.id,
+      rotulo: a.rotulo || a.alvo,
+      tipo_alvo: a.tipo_alvo,
+      alvo: a.alvo,
+      total: _round2(total),
+      limite: _round2(limite),
+      pct: Math.round((total / limite) * 100),
+    });
+  }
+
+  return alertas.sort((x, y) => y.total - x.total);
+}
+
+// ---------------------------------------------------------------
 // Comparativo entre mercados — LEITURA (cod-0020, feature paga nº1).
 //
 // Hoje a base anônima `precos_mercado` só RECEBE preços; nunca é lida. Aqui
@@ -631,7 +777,11 @@ module.exports = {
   buscarGastoSuperfluo,
   interpretarAcompanhamento,
   interpretarSuperfluo,
+  interpretarTeto,
+  verificarTetosEstourados,
   compararPrecosMercado,
+  TETO_MIN,
+  TETO_MAX,
   CATEGORIAS_SUPERFLUAS,
   CATEGORIAS_VALIDAS,
   CATEGORIAS_NAO_ACIONAVEIS,
