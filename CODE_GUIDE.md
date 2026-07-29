@@ -97,7 +97,7 @@ C:\Economizei\
 ├── supabase/              # SQL migrations + monitoring queries
 ├── landing/               # Landing page (HTML/CSS/JS estático, deploy Vercel)
 ├── docs/                  # Documentação técnica adicional
-├── .claude/skills/        # 18 skills (16 economizei-* + 2 legadas)
+├── .claude/skills/        # 19 skills (17 economizei-* + 2 legadas)
 ├── Economizei app/        # Pesquisas, análises, roadmap, histórico
 ├── package.json
 ├── Dockerfile             # Container para Railway

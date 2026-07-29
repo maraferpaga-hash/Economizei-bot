@@ -61,7 +61,7 @@ Módulos em `src/`: `index.js` (webhook/roteador/comandos), `gemini.js` (extraç
 
 **Sistema de checkpoints:** gate por-tarefa (`npm run check`) → checkpoint integral (o primeiro entre: fim-de-cadeia / 5 tarefas commitadas / 3 semanas) → auditoria trimestral. O git é a fonte da verdade; AGENDA/CLAUDE ficam stale e precisam de reconciliação periódica.
 
-**Sistema de skills:** 18 skills em `.claude/skills/` (16 `economizei-*` + 2 legadas). Transversais sempre ligadas: product-principles, memory-system, automation-triage, token-economy, financial-firewall, dual-format, code-decisions. Toda tarefa da máquina carrega skill antes de codar (campo `skills:` designado no planejamento).
+**Sistema de skills:** 19 skills em `.claude/skills/` (17 `economizei-*` + 2 legadas). Transversais sempre ligadas: product-principles, memory-system, automation-triage, token-economy, financial-firewall, dual-format, code-decisions, **critical-partner** (senso crítico: para antes de executar quando o pedido tem atrito real; log em `Economizei app/CRITICA_LOG.md`). Toda tarefa da máquina carrega skill antes de codar (campo `skills:` designado no planejamento).
 
 ## 6. Estado atual (retrato de 2026-07-26)
 
@@ -104,7 +104,7 @@ Módulos em `src/`: `index.js` (webhook/roteador/comandos), `gemini.js` (extraç
 
 ## 9. Arquivos-fonte (quando a pasta estiver conectada)
 
-`CLAUDE.md` (memória estratégica, sempre 1º) · `AGENDA.md` (fila da máquina + painel "Ações do Gabriel") · `CODE_GUIDE.md` (memória técnica) · `PROJECT_INSTRUCTIONS.md` (boot do Cowork/Code) · `.claude/skills/README.md` (18 skills + 10 regras de ouro) · `Economizei app/` (desenhos, auditorias, pesquisas — cada um datado no nome).
+`CLAUDE.md` (memória estratégica, sempre 1º) · `AGENDA.md` (fila da máquina + painel "Ações do Gabriel") · `CODE_GUIDE.md` (memória técnica) · `PROJECT_INSTRUCTIONS.md` (boot do Cowork/Code) · `.claude/skills/README.md` (19 skills + 10 regras de ouro) · `Economizei app/CRITICA_LOG.md` (memória do senso crítico) · `Economizei app/` (desenhos, auditorias, pesquisas — cada um datado no nome).
 
 ---
 

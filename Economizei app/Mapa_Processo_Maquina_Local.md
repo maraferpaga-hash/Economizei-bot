@@ -6,6 +6,8 @@
 
 **Atualizado:** 2026-06-24
 
+> **⚠️ Atualização 2026-07-27 — Máquina 2.0 (prevalece sobre o que este mapa disser em contrário):** teto por run = **até 3 tarefas P, OU 1 M, OU 1 lote** (≤ ~500 linhas de diff); **Fila de lastro** (só testes/revisão/segurança) como fallback quando a fila principal está bloqueada; auto-revisão adversarial + métricas do piloto no RELATORIO (tarefas/run, linhas de diff, tempo de revisão); financeiro em modo **advisory** (avisa, não bloqueia — commit consciente do Gabriel); regra formal de **esteira entupida** (working tree com código não-commitado → a rotina não empilha, relata e para). Fonte da verdade: protocolo da `AGENDA.md` + `Analise_Maquina_Pesada_e_Lotes_2026-07-27.md`.
+
 ---
 
 ## 1. Quem faz o quê (atores)

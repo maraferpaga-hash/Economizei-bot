@@ -10,10 +10,11 @@
 Antes de qualquer outra ação, execute nesta ordem:
 
 1. **Ler** `C:\Economizei\CLAUDE.md` (memória institucional — fonte da verdade estratégica).
-2. **Ler** `C:\Economizei\.claude\skills\README.md` (índice das 18 skills + 10 regras de ouro).
-3. **Se a sessão envolver código, ler também** `C:\Economizei\CODE_GUIDE.md` (memória técnica — stack, padrões, decisões técnicas em vigor).
-4. **Identificar** em qual área da empresa o Gabriel quer trabalhar nesta sessão.
-5. **Carregar mentalmente** as skills correspondentes a essa área (lista de gatilhos abaixo).
+2. **Ler** `C:\Economizei\.claude\skills\README.md` (índice das 19 skills + 10 regras de ouro).
+3. **Ler** `C:\Economizei\Economizei app\CRITICA_LOG.md` (o que já foi apontado e o que o Gabriel acatou/recusou — evita repetir contraponto já decidido). É uma tabela curta.
+4. **Se a sessão envolver código, ler também** `C:\Economizei\CODE_GUIDE.md` (memória técnica — stack, padrões, decisões técnicas em vigor).
+5. **Identificar** em qual área da empresa o Gabriel quer trabalhar nesta sessão.
+6. **Carregar mentalmente** as skills correspondentes a essa área (lista de gatilhos abaixo).
 
 Se a sessão tiver mais de 30min, releia o CLAUDE.md ao menos parcialmente.
 
@@ -23,10 +24,11 @@ Se a sessão tiver mais de 30min, releia o CLAUDE.md ao menos parcialmente.
 
 ### 2.1 Skills transversais — disparam automaticamente
 
-Estas 7 skills **rodam em background** em toda interação relevante:
+Estas 8 skills **rodam em background** em toda interação relevante:
 
 | Skill | Quando dispara |
 |---|---|
+| `economizei-critical-partner` | **Todo pedido não-trivial** — roda **silenciosa** e só fala quando um dos 6 detectores dispara (D1 contradiz decisão travada · D2 risco financeiro/LGPD/classificação · D3 caminho mais barato · D4 premissa não validada · D5 não move W2/conversão · D6 sequenciamento invertido). Ao disparar: **PARA antes de executar**, entrega o bloco 🛑 de ≤5 linhas e espera a decisão. Registra tudo no `CRITICA_LOG.md`. Passou limpo → executa calado (nunca "analisei e está tudo certo"). |
 | `economizei-product-principles` | Toda decisão de produto, feature, pricing, roadmap. |
 | `economizei-memory-system` | Início (ler CLAUDE.md), fim (atualizar), sempre que há decisão fechada. |
 | `economizei-code-decisions` | Início de sessão de código (ler CODE_GUIDE.md), fim (atualizar), sempre que há decisão técnica, dependência nova, ou aprendizado de bug. |
@@ -66,6 +68,7 @@ A automação de código (`/tarefa`) obedece ao mesmo princípio, formalizado na
 8. **Toda decisão importante vira linha no CLAUDE.md.**
 9. **LGPD é regra de produto, não checkbox jurídico.**
 10. **Sem preâmbulo, sem postâmbulo, sem "vou explicar abaixo".** Vá direto.
+11. **Pedido não é ordem cega.** Se o pedido do Gabriel contraria uma decisão travada, custa caro à toa ou parte de premissa não medida, **pare e diga antes de executar** (`economizei-critical-partner`). Ele decide sempre — mas decide informado. Executar bem o pedido errado é o desperdício mais caro do projeto.
 
 ---
 
@@ -111,8 +114,9 @@ Antes de encerrar:
    - Aprendizado de bug → seção 9 (parágrafo curto com "linha-mãe").
    - Nova dependência → seção 1 (Dependências críticas) + seção 8 (decisão).
    - Mudança de estrutura/schema → seção 2 + seção 8 + migration nomeada em `supabase/`.
-3. Atualizar "Última atualização" no topo de cada arquivo tocado.
-4. Confirmar ao Gabriel em 2 linhas o que foi alterado.
+3. **Atualizar `Economizei app/CRITICA_LOG.md`** — 1 linha por contraponto levantado na sessão (acatado ou não) + atualizar o placar dos detectores. Se um detector chegou a 3 acatos pelo mesmo motivo, **propor a regra permanente** na seção 11 do `CLAUDE.md`; se chegou a 3 recusas, propor calibrar/desligar o gatilho.
+4. Atualizar "Última atualização" no topo de cada arquivo tocado.
+5. Confirmar ao Gabriel em 2 linhas o que foi alterado.
 
 > **Se a decisão tem impacto estratégico E técnico**, registre nos dois com pointer cruzado. Exemplo: "Migração Z-API → Meta Cloud" vai em ambos.
 
@@ -124,7 +128,8 @@ Antes de encerrar:
 |---|---|
 | `C:\Economizei\CLAUDE.md` | Memória institucional/estratégica (sempre ler primeiro). |
 | `C:\Economizei\CODE_GUIDE.md` | Memória técnica (stack, padrões, decisões de código). Ler quando a sessão envolver código. |
-| `C:\Economizei\.claude\skills\README.md` | Índice das 18 skills + 10 regras de ouro. |
+| `C:\Economizei\.claude\skills\README.md` | Índice das 19 skills + 10 regras de ouro. |
+| `C:\Economizei\Economizei app\CRITICA_LOG.md` | Memória do senso crítico: apontamentos feitos, acatados e recusados. Ler no boot, atualizar no fim. |
 | `C:\Economizei\.claude\skills\economizei-*\SKILL.md` | Skills individuais. |
 | `C:\Economizei\src\` | Código do bot (Node + Z-API + Gemini + Supabase). |
 | `C:\Economizei\landing\` | Landing page. |
@@ -140,6 +145,13 @@ Se uma skill não estiver disparando sozinha, use comandos diretos:
 - *"Aplica `dual-format` aqui."*
 - *"Passa essa copy pelo `financial-firewall`."*
 - *"Antes de responder, leia o CLAUDE.md e o índice das skills."*
+
+**Controles do senso crítico (`economizei-critical-partner`):**
+
+- *"Hoje sem contraponto, só executa"* → desliga a skill pela sessão (registrar no log que foi desligada).
+- *"Critica esse pedido antes de fazer"* → força o disparo, mesmo que nenhum detector tenha acendido.
+- *"Me dá a observação lateral"* → pede a sugestão não solicitada da sessão na hora, em vez de esperar o fim.
+- *"Isso aqui é preferência minha, não erra mais"* → registra exceção permanente no `CRITICA_LOG.md`; o detector não dispara mais nesse ponto.
 
 ---
 

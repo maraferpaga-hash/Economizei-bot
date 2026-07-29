@@ -44,6 +44,7 @@ O Economizei está nas **6 semanas de validação**: produto técnico já existe
 | 13 | `economizei-tdd` | Quando o bot for além do MVP (Mês 2+). |
 | 14 | `economizei-multi-agent-ops` | Quando começar a delegar tarefas paralelas a subagents (Mês 2+). |
 | 15 | `economizei-strategic-review` | Revisão geral por gatilho ("faz um SWOT", "audita o projeto", antes de decisão de direção). Entrega SWOT + matriz Eisenhower em dual-format. |
+| 16 | `economizei-critical-partner` | **Skill transversal (sempre ligada).** Senso crítico automático: roda silenciosa em todo pedido não-trivial e só fala quando um dos 6 detectores dispara. Ao disparar, **para antes de executar** e entrega o bloco 🛑 de ≤5 linhas. Registra tudo no `Economizei app/CRITICA_LOG.md` — é o que faz o sistema aprender com o tempo. |
 
 ## 📦 Skills legadas (mantidas, fora da numeração do kit)
 
@@ -54,7 +55,7 @@ Criadas na sessão 2026-05-19 e ainda presentes em `.claude/skills/`. Disparam p
 | `copy-review` | Auditoria de copy/landing (TL;DR + problemas mais críticos). Complementa `economizei-copywriter`. |
 | `roadmap-deps` | Quando um roadmap/planejamento é montado — mapeia dependências entre itens. |
 
-> **Contagem oficial:** **18 skills** em `.claude/skills/` = **16 `economizei-*`** (Core 1-9b + Secondary 10-15) + **2 legadas** (`copy-review`, `roadmap-deps`). Manter este número sincronizado com o `CLAUDE.md`, o `CODE_GUIDE.md` e o `PROJECT_INSTRUCTIONS.md`.
+> **Contagem oficial:** **19 skills** em `.claude/skills/` = **17 `economizei-*`** (Core 1-9b + Secondary 10-16) + **2 legadas** (`copy-review`, `roadmap-deps`). Manter este número sincronizado com o `CLAUDE.md`, o `CODE_GUIDE.md` e o `PROJECT_INSTRUCTIONS.md`.
 
 ---
 
@@ -66,6 +67,7 @@ Criadas na sessão 2026-05-19 e ainda presentes em `.claude/skills/`. Disparam p
 4. **Tempo do Gabriel é 1h/dia — separe robô de humano e calibre esforço.** Toda sugestão que exigir mais que 1h/dia é cortada *ou* triada por `automation-triage`. Toda resposta passa por `token-economy`: tier mínimo que resolve, sem HTML/widget/doc longo a não ser que peça ou agregue de verdade.
 5. **Frame brasileiro, não americano.** "Ser esperto / não dar mole / saber das coisas" > "disciplina / budget / mindfulness".
 6. **Validar antes de construir.** Se for feature nova, primeiro pergunta: "isso muda a métrica de retenção W2 ou conversão?" Se a resposta não é clara, não constrói.
+   > **Corolário (2026-07-27):** essa pergunta vale também **para o pedido do Gabriel**. Se o pedido não passa no filtro, o Claude **para e diz antes de executar** (`economizei-critical-partner`) — não executa em silêncio.
 7. **Default é a coisa mais simples que funciona.** Se há duas soluções com qualidade parecida, escolha a mais simples.
 8. **Toda decisão importante vira linha no CLAUDE.md.** Sem registro, a decisão volta a ser discutida em 2 semanas.
 9. **WhatsApp é o produto, não um canal.** Não sugira app, dashboard web, email, push, SMS antes de explorar o que dá pra fazer no Z-API.
@@ -101,7 +103,8 @@ No início de cada sessão, o Claude deve agir assim:
 6. **Gatilho automático de `dual-format`:** toda saída tier 4+ (plano, análise, debug com investigação, doc, auditoria) vem em DOIS formatos empilhados — Resumo executivo (🎯 decisão + 3-5 ações + "Hoje" ≤1h) primeiro, Relatório completo depois, separados por `---`. Gabriel decide pelo Resumo, desce ao Relatório só se precisar.
 4. **Antes de propor qualquer plano**, fazer 1–3 perguntas curtas se houver ambiguidade. Nunca presumir requisitos.
 5. **Caber em 1h.** Toda entrega da sessão precisa ter "o que cabe hoje" + "o que fica pra próxima sessão". O critério "cabe em 1h" depende da triagem — se a etapa for 🤖 ou 🤝, o tempo do Gabriel é só de setup/aprovação.
-6. **Encerrar a sessão atualizando CLAUDE.md** com decisões, aprendizados e marcações de roadmap.
+7. **Gatilho automático de `critical-partner`:** todo pedido não-trivial passa pelos 6 detectores (D1 decisão travada · D2 financeiro/LGPD/classificação · D3 caminho mais barato · D4 premissa não validada · D5 não move W2/conversão · D6 sequenciamento invertido). Disparou → **PARA**, entrega o bloco 🛑 e espera. Não disparou → executa **calado**. Máx. 1 interrupção por pedido e 1 observação lateral por sessão.
+8. **Encerrar a sessão atualizando CLAUDE.md** com decisões, aprendizados e marcações de roadmap — **e o `CRITICA_LOG.md`** com os apontamentos da sessão.
 
 > **Mantra do Claude no Economizei:** *"Resumo em cima, simples, validado, registrado — e sabendo quem faz."*
 > Antes de executar qualquer caminho: o que é robô, o que é Gabriel? E sempre: o Resumo decide; o Relatório justifica.

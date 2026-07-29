@@ -6,6 +6,8 @@
 
 **Atualizado:** 2026-06-24 · **Modo:** execução **local** (descontinuamos o GitHub Actions) · **Planejamento:** Opus 4.8 (no chat) · **Execução:** Claude Code local
 
+> **⚠️ Atualização 2026-07-27 — Máquina 2.0 (prevalece sobre o que este guia disser em contrário):** o teto mudou — cada run pega **até 3 tarefas P, OU 1 M, OU 1 lote** (≤ ~500 linhas de diff), com **Fila de lastro** (só testes/revisão/segurança) como fallback, auto-revisão adversarial obrigatória e financeiro em modo **advisory** (firewall avisa, não bloqueia; commit consciente do Gabriel). A fonte da verdade operacional é o **protocolo da `AGENDA.md`**; análise e racional em `Analise_Maquina_Pesada_e_Lotes_2026-07-27.md`. Onde este guia disser "uma tarefa por vez" ou "firewall reprova", vale a regra nova.
+
 ---
 
 ## 1. Por que local (e não GitHub Actions)
