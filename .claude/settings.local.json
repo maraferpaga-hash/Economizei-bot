@@ -14,7 +14,10 @@
       "Bash(cp __TRACKED_VAR__/formatter.final.js src/formatter.js)",
       "Bash(rm src/mercadopago.js)",
       "Bash(node --check src/index.js)",
-      "Bash(node --check src/formatter.js)"
+      "Bash(node --check src/formatter.js)",
+      "Bash(node scripts/check-firewall.mjs --working)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(ps -W)"
     ]
   }
 }
