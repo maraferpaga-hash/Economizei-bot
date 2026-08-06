@@ -1,11 +1,40 @@
-const cron = require('node-cron');
+const cronPadrao = require('node-cron');
 const { executarResumoMensal } = require('./monthlySummary');
 const { logarMetricasDiarias } = require('./metrics');
 const { executarDigestSemanal } = require('./weeklyDigest');
 const { verificarConexao, enviarMensagem } = require('./zapi');
-const { executarReengajamento } = require('./reengagement');
 const { purgarMensagensProcessadas, purgarPerguntasLog } = require('./supabase');
 const { log } = require('./logger');
+
+// ────────────────────────────────────────────────────────────────────────────
+// REENGAJAMENTO DESLIGADO (cod-0068 — decisão do Gabriel, 2026-08-05)
+//
+// "vamos deixar de lado a ideia do reengajamento por agora, quero somente a
+//  mensagem de final de mês indicando o quanto se gastou."
+//
+// O cron diário das 10h (`executarReengajamento`) foi removido daqui. O módulo
+// `src/reengagement.js` e as funções `lembreteFoiEnviado` /
+// `registrarLembreteEnviado` do supabase.js CONTINUAM no repositório — isto é
+// "por agora", não "pra sempre".
+//
+// Para reverter (2 linhas): reponha o require abaixo e o bloco cron.schedule
+// ('0 10 * * *') que dispara executarReengajamento; e devolva
+// 'lembretes_enviados' às CHECAGENS_CRITICAS do src/schemaGuard.js.
+//   const { executarReengajamento } = require('./reengagement');
+//
+// Contexto: a tabela `lembretes_enviados` nunca foi criada no Supabase, então
+// `lembreteFoiEnviado` lançava antes de qualquer envio — o job rodou meses sem
+// jamais entregar uma mensagem. Doc: "Plano_Desentupimento_e_Supabase_2026-08-05.md" §3 S1.
+// ────────────────────────────────────────────────────────────────────────────
+
+// Lista declarativa dos jobs agendados — fonte única do que é registrado E do
+// que aparece no log de boot (antes as duas coisas podiam divergir em silêncio).
+const JOBS_AGENDADOS = [
+  'resumo_mensal (9h dias 28-31)',
+  'metricas_diarias + purga_dedup (7h)',
+  'zapi_health (8h)',
+  'digest_semanal (9h sexta)',
+];
 
 function ehUltimoDiaDoMes(date = new Date()) {
   const amanha = new Date(date);
@@ -13,7 +42,13 @@ function ehUltimoDiaDoMes(date = new Date()) {
   return amanha.getMonth() !== date.getMonth();
 }
 
-function iniciar() {
+/**
+ * Registra os jobs agendados.
+ * @param {object} [deps]
+ * @param {object} [deps.cron]  lib de cron injetável (default node-cron) — testes
+ * @param {Function} [deps.logFn] logger injetável (default log estruturado)
+ */
+function iniciar({ cron = cronPadrao, logFn = log } = {}) {
   // Roda 9h dia 28-31; só dispara se for de fato o último dia do mês.
   // Timezone do servidor deve ser America/Sao_Paulo (ou ajustar a hora).
   cron.schedule('0 9 28-31 * *', async () => {
@@ -31,7 +66,7 @@ function iniciar() {
     }
   }, { timezone: 'America/Sao_Paulo' });
 
-  log('scheduler_registrado', { cron: '0 9 28-31 * *', timezone: 'America/Sao_Paulo' });
+  logFn('scheduler_registrado', { cron: '0 9 28-31 * *', timezone: 'America/Sao_Paulo' });
 
   // ------------------------------------------------------------------
   // Métricas diárias — toda manhã às 7h
@@ -99,24 +134,9 @@ function iniciar() {
     }
   }, { timezone: 'America/Sao_Paulo' });
 
-  // ------------------------------------------------------------------
-  // Reengajamento — todo dia às 10h (horário de Brasília)
-  // Lembretes proativos para usuários inativos (tom de amizade).
-  // Lógica completa em src/reengagement.js. Os segmentos por data
-  // (fim de mês dias 26-27) são filtrados dentro do próprio módulo.
-  // ------------------------------------------------------------------
-  cron.schedule('0 10 * * *', async () => {
-    log('reengajamento_disparando', { hora: new Date().toISOString() });
-    try {
-      await executarReengajamento();
-    } catch (err) {
-      log('reengajamento_erro', { erro: err.message });
-    }
-  }, { timezone: 'America/Sao_Paulo' });
+  // (o cron de reengajamento das 10h foi removido — ver nota no topo do arquivo)
 
-  log('scheduler_jobs_registrados', {
-    jobs: ['resumo_mensal (9h dias 28-31)', 'metricas_diarias + purga_dedup (7h)', 'zapi_health (8h)', 'digest_semanal (9h sexta)', 'reengajamento (10h)'],
-  });
+  logFn('scheduler_jobs_registrados', { jobs: JOBS_AGENDADOS });
 }
 
-module.exports = { iniciar, ehUltimoDiaDoMes };
+module.exports = { iniciar, ehUltimoDiaDoMes, JOBS_AGENDADOS };

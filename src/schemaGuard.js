@@ -30,8 +30,12 @@ const CHECAGENS_CRITICAS = [
   { tabela: 'perguntas_log' },                           // migration do Agente
   { tabela: 'mensagens_processadas' },                   // Lei 5 (idempotência)
   { tabela: 'resumos_mensais_enviados' },                // A4
-  { tabela: 'lembretes_enviados' },                      // reengajamento
   { tabela: 'acompanhamentos' },                         // Alerta Pro
+  // `lembretes_enviados` saiu da lista em 2026-08-05 (cod-0068): o reengajamento
+  // foi desligado, a tabela nunca existiu e o alarme gritava todo boot sem ação
+  // possível — alarme que grita sem motivo é alarme que se aprende a ignorar (e
+  // foi assim que o subsistema morto passou despercebido por semanas).
+  // Se o reengajamento voltar, devolver a linha AQUI junto com o cron.
 ];
 
 // Códigos que significam "não existe" (Postgres + PostgREST schema cache):
