@@ -27,7 +27,7 @@
 const { log } = require('../logger');
 const { REGISTRO } = require('./intents.js');
 const { validarClassificacao } = require('./guards.js');
-const { resolverPeriodo } = require('./periodo.js');
+const { resolverPeriodo, extrairPeriodoIsolado } = require('./periodo.js');
 
 const MODELO_PADRAO = process.env.AGENTE_MODELO || 'gemini-2.5-flash';
 const CONFIANCAS_VALIDAS = ['alta', 'media', 'baixa'];
@@ -165,10 +165,56 @@ function _sanitizarParams(def, params) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// classificar(pergunta, opts) → { intent, params?, confianca? }
+// Contexto de follow-up (cod-0043) — atalho DETERMINÍSTICO, antes do LLM.
+//
+// Se a pergunta é só um período ("e em junho?") e existe contexto vivo, herda a
+// intenção anterior trocando SÓ o período: "quanto gastei em cerveja?" seguido
+// de "e em junho?" mantém intent + termo e responde junho.
+//
+// Conservador por construção — devolve null (segue pro LLM, comportamento
+// atual) quando: não há contexto; o texto não é um período isolado; a intenção
+// anterior não existe mais no registro; ela não aceita período; ou a herança
+// não passa pela Camada 1 (guards). Zero LLM, zero número: só reclassifica.
+// ─────────────────────────────────────────────────────────────────────────────
+function _herdarDoContexto(pergunta, contexto, registro) {
+  if (!contexto || typeof contexto.intent !== 'string') return null;
+
+  const rotulo = extrairPeriodoIsolado(pergunta);
+  if (!rotulo) return null;
+
+  const def = registro.find((i) => i && i.id === contexto.intent);
+  if (!def) return null;
+
+  const regra = def.parametros && def.parametros.periodo;
+  if (!regra || regra.tipo !== 'periodo') return null; // intenção sem período
+
+  const params = { ..._copiarParamsHerdados(contexto.params), periodo: rotulo };
+  const veredito = validarClassificacao({ intent: contexto.intent, params }, registro);
+  if (!veredito.ok) return null;
+
+  log('agente_contexto_herdado', { intent: veredito.intent, periodo: rotulo });
+  return {
+    intent: veredito.intent,
+    params: veredito.params,
+    confianca: 'alta',
+    herdado: true,
+  };
+}
+
+// Params herdados entram como vieram, menos o período (que o follow-up troca).
+function _copiarParamsHerdados(params) {
+  if (!params || typeof params !== 'object') return {};
+  const out = { ...params };
+  delete out.periodo;
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// classificar(pergunta, opts) → { intent, params?, confianca?, herdado? }
 //   opts.registro     — registro de intenções (default: REGISTRO do intents.js)
 //   opts.chamarModelo — async (prompt, {modelo}) → string  (injetável nos testes)
 //   opts.modelo       — id do modelo Gemini (default: env AGENTE_MODELO ou flash)
+//   opts.contexto     — { intent, params } da última resposta (cod-0043)
 // ─────────────────────────────────────────────────────────────────────────────
 async function classificar(pergunta, opts = {}) {
   const registro = Array.isArray(opts.registro) ? opts.registro : REGISTRO;
@@ -180,6 +226,10 @@ async function classificar(pergunta, opts = {}) {
   if (pergunta == null || String(pergunta).trim() === '') {
     return { intent: 'fora_de_escopo' };
   }
+
+  // Follow-up com contexto vivo → resolve sem chamar o modelo.
+  const herdado = _herdarDoContexto(pergunta, opts.contexto, registro);
+  if (herdado) return herdado;
 
   const prompt = montarPromptClassificacao(registro, pergunta);
 

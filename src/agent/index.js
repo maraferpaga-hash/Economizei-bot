@@ -25,6 +25,7 @@
 const { log, maskPhone } = require('../logger');
 const { decidirCota } = require('./cota.js');
 const { REGISTRO } = require('./intents.js');
+const { lembrarContexto, recuperarContexto } = require('./contexto.js');
 const {
   montarForaDeEscopo,
   montarAvisoMeioLimitePerguntas,
@@ -44,6 +45,9 @@ function _resolverDeps(deps = {}) {
   if (!d.classificar) d.classificar = require('./classifier.js').classificar;
   if (!d.responder) d.responder = require('./render.js').responder;
   if (!d.registro) d.registro = REGISTRO;
+  // Memória curta de conversa (cod-0043) — em memória do processo, injetável.
+  if (!d.recuperarContexto) d.recuperarContexto = recuperarContexto;
+  if (!d.lembrarContexto) d.lembrarContexto = lembrarContexto;
   if (!d.modo) d.modo = process.env.AGENTE_MODO || 'llm';
   return d;
 }
@@ -56,6 +60,25 @@ function _logPergunta(d, entrada) {
     );
   } catch (e) {
     log('agente_log_erro', { erro: e && e.message ? e.message : String(e) });
+  }
+}
+
+// Contexto é conveniência, nunca risco: se a leitura falhar, a pergunta segue
+// o caminho normal (sem contexto) em vez de derrubar o atendimento.
+function _contextoVivo(d, phone) {
+  try {
+    return d.recuperarContexto(phone) || null;
+  } catch (e) {
+    log('agente_contexto_erro', { erro: e && e.message ? e.message : String(e) });
+    return null;
+  }
+}
+
+function _memorizarContexto(d, phone, intent, params) {
+  try {
+    d.lembrarContexto(phone, { intent, params: params || {} });
+  } catch (e) {
+    log('agente_contexto_erro', { erro: e && e.message ? e.message : String(e) });
   }
 }
 
@@ -77,7 +100,11 @@ async function responderPergunta(phone, texto, deps = {}) {
 
     // [2]+[3] CLASSIFICADOR — já valida pela Camada 1 e saneia pela Camada 2
     // (cod-0013). Devolve 'fora_de_escopo' em qualquer degradação.
-    const cls = await d.classificar(texto);
+    // O contexto vivo (cod-0043) só entra como PISTA de reclassificação: um
+    // follow-up de período herda a intenção anterior; sem contexto (ou fora do
+    // TTL), o classificador decide sozinho como sempre.
+    const contexto = _contextoVivo(d, phone);
+    const cls = await d.classificar(texto, { contexto });
     if (!cls || cls.intent === 'fora_de_escopo') {
       await d.enviarMensagem(phone, montarForaDeEscopo());
       _logPergunta(d, {
@@ -109,7 +136,13 @@ async function responderPergunta(phone, texto, deps = {}) {
     // Intent marcada com consomeCota:false (ex.: duvida_sobre_bot, cod-0042)
     // não incrementa nem dispara o aviso — mesma decisão do off-topic: ajuda
     // não é pergunta sobre os gastos.
+    // Memória curta (cod-0043): guarda a intenção respondida pro follow-up de
+    // período. Mesmo critério do off-topic — ajuda (`consomeCota:false`) não é
+    // pergunta sobre os gastos, então não vira contexto. Grava mesmo em
+    // estado-vazio: "e em junho?" depois de "não achei" continua fazendo sentido.
     if (def.consomeCota !== false) {
+      _memorizarContexto(d, phone, cls.intent, cls.params || {});
+
       const novas = await d.incrementarPerguntas(phone);
       const usadasAgora = novas != null ? novas : cota.usadas + 1;
       if (decidirCota(usadasAgora, cota.limite).cruzouMetade) {

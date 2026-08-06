@@ -1,6 +1,7 @@
-// src/agent/periodo.js — parser determinístico de período (cod-0010)
+// src/agent/periodo.js — parser determinístico de período (cod-0010, cod-0043)
 //
 // resolverPeriodo(rotulo, _hoje?) → 'YYYY-MM' | { invalido: true }
+// extrairPeriodoIsolado(texto)    → rótulo de período | null       (cod-0043)
 //
 // Rótulos aceitos (produzidos pelo classifier, vocabulário fechado):
 //   'mes_atual'   → mês corrente
@@ -83,4 +84,71 @@ function resolverPeriodo(rotulo, _hoje) {
   return { invalido: true };
 }
 
-module.exports = { resolverPeriodo };
+// ─────────────────────────────────────────────────────────────────────────────
+// extrairPeriodoIsolado(texto) → rótulo de período | null            (cod-0043)
+//
+// Reconhece a pergunta de follow-up que é SÓ um período ("e em junho?",
+// "e no mês passado?", "e 2026-05?"). É o gatilho determinístico da memória
+// curta de contexto: quem herda a intenção anterior é o classifier, aqui só
+// dizemos "este texto é um período solto e nada mais".
+//
+// PURA e CONSERVADORA de propósito: qualquer coisa que não seja exatamente um
+// período (com conectores de conversa na frente) devolve null — e o fluxo
+// normal segue pro classificador, comportamento atual intacto. Falso-negativo
+// é inofensivo (a pessoa repete a pergunta inteira); falso-positivo mandaria
+// uma pergunta off-topic pro executor de gastos.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Conectores de conversa que podem abrir um follow-up. NÃO inclui palavra que
+// carregue sentido de período (ex.: "agora") — essas viram rótulo, não lixo.
+const CONECTORES = new Set([
+  'e', 'mas', 'entao', 'ai', 'ja', 'em', 'no', 'na', 'de', 'do', 'da',
+  'que', 'tal', 'o', 'a', 'sobre', 'pra', 'para',
+]);
+
+// Sinônimos de conversa → rótulo do vocabulário fechado.
+const SINONIMOS = new Map([
+  ['mes passado', 'mes_passado'],
+  ['mes anterior', 'mes_passado'],
+  ['mes_passado', 'mes_passado'],
+  ['mes atual', 'mes_atual'],
+  ['mes corrente', 'mes_atual'],
+  ['este mes', 'mes_atual'],
+  ['esse mes', 'mes_atual'],
+  ['mes', 'mes_atual'],
+  ['mes_atual', 'mes_atual'],
+  ['agora', 'mes_atual'],
+]);
+
+function _semAcento(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function extrairPeriodoIsolado(texto) {
+  if (texto == null || typeof texto !== 'string') return null;
+
+  // Tira pontuação de conversa das pontas (mantém o hífen do 'AAAA-MM').
+  let s = texto.trim().toLowerCase();
+  s = s.replace(/^["'\u201c\u201d\u2018\u2019\s]+/, '').replace(/["'\u201c\u201d\u2018\u2019\s]+$/, '');
+  s = s.replace(/[?!.,;:\s]+$/, '');
+  if (s === '') return null;
+
+  // Descarta os conectores iniciais ("e em junho" → "junho").
+  const tokens = s.split(/\s+/);
+  let i = 0;
+  while (i < tokens.length && CONECTORES.has(_semAcento(tokens[i]))) i += 1;
+  const resto = tokens.slice(i).join(' ');
+  if (resto === '') return null;
+
+  // Sinônimo de conversa (comparado sem acento: "mês passado" → "mes passado").
+  const sinonimo = SINONIMOS.get(_semAcento(resto));
+  if (sinonimo) return sinonimo;
+
+  // Rótulo que o parser determinístico já entende ("junho", "2026-05").
+  const resolvido = resolverPeriodo(resto);
+  if (typeof resolvido === 'string') return resto;
+
+  return null;
+}
+
+module.exports = { resolverPeriodo, extrairPeriodoIsolado };
