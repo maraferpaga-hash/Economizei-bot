@@ -497,7 +497,12 @@ function montarMensagemPlanos() {
   );
 }
 
-// Instruções de pagamento via PIX (alternativa manual ao cartão).
+// Instruções de pagamento via PIX — hoje a ÚNICA forma de assinar.
+// O pagamento por cartão saiu do ar junto com o Mercado Pago (4f49ae7,
+// 2026-07-26), então nada aqui pode prometer cartão nem renovação automática.
+// ⚠️ E também não pode prometer LEMBRETE de renovação: não existe job de aviso
+// de vencimento no código hoje (o único cron proativo é o resumo de fim de mês
+// — ver src/scheduler.js). Se um dia existir, esta mensagem pode citá-lo.
 function montarMensagemPix() {
   return (
     `📱 *Pagar via PIX*\n\n` +
@@ -506,11 +511,21 @@ function montarMensagemPix() {
     `   💰 R$9,90 (Individual) / R$15 (Família) / R$22 (Família+)\n` +
     `2. Envie o comprovante aqui no chat\n` +
     `3. Em até 1h eu ativo seu plano\n\n` +
-    `_Dica: no cartão (*/planos*) a renovação é automática — você não precisa repetir o pagamento todo mês._`
+    `_A renovação é manual: para seguir no plano no mês seguinte, é só repetir o PIX._`
   );
 }
 
-// Pede o e-mail após o usuário escolher um plano para assinar no cartão.
+// ────────────────────────────────────────────────────────────────────────────
+// ⚠️ CÓDIGO MORTO — fluxo de assinatura por cartão via Mercado Pago.
+// O MP foi aposentado em 2026-07-26 (commit 4f49ae7) e NENHUMA das funções
+// abaixo é chamada por src/ desde então (confirmado por grep em 2026-08-05).
+// Elas descrevem cartão, checkout e cobrança automática — coisas que o produto
+// NÃO faz hoje. Ficam aqui porque a remoção é a cod-0066, que o Gabriel
+// pausou ("não quero que nada como apagar os dados do MP seja feito").
+// Regra até lá: NÃO religar nenhuma delas sem um meio de pagamento real por trás.
+// ────────────────────────────────────────────────────────────────────────────
+
+// [MORTA — MP] Pedia o e-mail após o usuário escolher um plano no cartão.
 function montarMensagemPedirEmail(planoLabel) {
   return (
     `Ótimo! Você escolheu o plano *${planoLabel}*. 💳\n\n` +
@@ -519,7 +534,7 @@ function montarMensagemPedirEmail(planoLabel) {
   );
 }
 
-// Envia o link de checkout do Mercado Pago.
+// [MORTA — MP] Enviava o link de checkout do Mercado Pago.
 function montarMensagemLinkAssinatura(planoLabel, valorTexto, initPoint) {
   return (
     `Pronto! Aqui está o link para assinar o plano *${planoLabel}* (R$ ${valorTexto}/mês): 👇\n\n` +
@@ -529,7 +544,7 @@ function montarMensagemLinkAssinatura(planoLabel, valorTexto, initPoint) {
   );
 }
 
-// Confirmação enviada quando a assinatura é aprovada (webhook authorized).
+// [MORTA — MP] Confirmava a assinatura aprovada (webhook authorized).
 function montarMensagemAssinaturaAtivada(planoLabel) {
   return (
     `🎉 *Plano ${planoLabel} ativado!*\n\n` +
@@ -542,7 +557,7 @@ function montarMensagemAssinaturaAtivada(planoLabel) {
   );
 }
 
-// Confirmação de cancelamento.
+// [MORTA — MP] Confirmava o cancelamento da assinatura no cartão.
 function montarMensagemAssinaturaCancelada() {
   return (
     `Sua assinatura foi *cancelada*. Não haverá novas cobranças. ✅\n\n` +
@@ -551,7 +566,7 @@ function montarMensagemAssinaturaCancelada() {
   );
 }
 
-// E-mail inválido durante o fluxo de assinatura.
+// [MORTA — MP] E-mail inválido durante o fluxo de assinatura no cartão.
 function montarMensagemEmailInvalido() {
   return (
     `Hmm, esse e-mail não parece válido. 🤔\n\n` +
@@ -560,7 +575,7 @@ function montarMensagemEmailInvalido() {
   );
 }
 
-// Falha ao gerar o link de assinatura (erro técnico no MP).
+// [MORTA — MP] Falha ao gerar o link de assinatura (erro técnico no MP).
 function montarMensagemErroAssinatura() {
   return (
     `Ops, não consegui gerar seu link de assinatura agora. 😕\n\n` +
@@ -568,7 +583,7 @@ function montarMensagemErroAssinatura() {
   );
 }
 
-// Cobrança recorrente recusada (cartão sem saldo/expirado etc.).
+// [MORTA — MP] Cobrança recorrente recusada (cartão sem saldo/expirado etc.).
 function montarMensagemPagamentoFalhou() {
   return (
     `⚠️ *Não consegui renovar sua assinatura*\n\n` +
@@ -577,7 +592,7 @@ function montarMensagemPagamentoFalhou() {
   );
 }
 
-// Usuário já é assinante ativo.
+// [MORTA — MP] Usuário já era assinante ativo no cartão.
 function montarMensagemJaAssinante(planoLabel) {
   return (
     `Você já tem o plano *${planoLabel}* ativo. 💚\n\n` +
