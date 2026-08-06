@@ -1,0 +1,117 @@
+{
+  "versao": 1,
+  "gerado_em": "2026-08-05",
+  "origem": "Comprovantes reais fornecidos pelo Gabriel (2 PDFs + 1 print de app)",
+  "privacidade": "PSEUDONIMIZADO. Nomes, CPF, CNPJ, chaves PIX, agência/conta e IDs foram trocados por valores fictícios que PRESERVAM o formato. Os arquivos originais NÃO são versionados (contêm dado pessoal de terceiros). Ver test/corpus/README.md.",
+  "observacoes": [
+    "PIX não tem item: 'itens' é sempre [] — não há nada a classificar, e é por isso que PIX não pode entrar em precos_mercado nem na média de gasto de mercado",
+    "a contraparte vai no campo 'loja' (nome fantasia se PJ, nome da pessoa se PF) — é o que o usuário reconhece",
+    "'id_transacao' é o EndToEndId (E + 8 ISPB + 12 AAAAMMDDHHMM + 11 alfanum = 32 chars): chave natural e determinística de DEDUPLICAÇÃO",
+    "NUNCA persistir: CPF, chave PIX, agência, conta. São lidos e descartados.",
+    "DIREÇÃO é obrigatória: PIX recebido é ENTRADA, não gasto. Somar um PIX recebido como gasto faz o número mentir."
+  ],
+  "casos": [
+    {
+      "id": "pix-01-bradesco-qr",
+      "formato": "PDF (comprovante com QR code)",
+      "descricao": "Comprovante de PIX pago a PESSOA JURÍDICA, layout de PDF com blocos rotulados.",
+      "armadilhas": [
+        "três blocos de pessoa no mesmo documento — recebedor, devedor e pagador. A contraparte é o RECEBEDOR; o devedor/pagador é o próprio usuário",
+        "o valor aparece 3x ('Valor', 'Valor', 'Valor do Pagamento') — todos iguais aqui, mas não se pode assumir isso",
+        "data e hora separadas do valor no layout",
+        "campo 'Situação: Efetivado' — se for diferente de efetivado/concluído, NÃO registrar como gasto"
+      ],
+      "esperado": {
+        "sucesso": true,
+        "tipo_documento": "pix",
+        "tipo": "pix",
+        "direcao": "enviado",
+        "situacao": "efetivado",
+        "moeda": "BRL",
+        "loja": "ACME PAY FUNDO DE INVESTIMENTO EM DIREITOS CREDITOR",
+        "cnpj": "11.222.333/0001-44",
+        "instituicao_contraparte": "BCO BRADESCO S.A.",
+        "data_compra": "2024-12-05",
+        "hora": "18:04:46",
+        "total": 396.74,
+        "id_transacao": "E00360305202412052104a0b1c2d3e4f",
+        "itens": []
+      }
+    },
+    {
+      "id": "pix-02-bb-sisbb",
+      "formato": "PDF (extrato texto monoespaçado do Banco do Brasil)",
+      "descricao": "Comprovante de PIX pago a PESSOA FÍSICA, layout de terminal (SISBB) em texto puro, sem acento.",
+      "armadilhas": [
+        "layout completamente diferente do pix-01: sem blocos, tudo em linhas 'RÓTULO: valor' num bloco de asteriscos",
+        "valor impresso como '15,00' SEM o 'R$' na frente",
+        "duas datas: cabeçalho '08/03/2023 - 23.37.40' e 'DATA: 08/03/2023 - 23:37:34' — usar a da transação",
+        "campo 'DESCRICAO' traz um NOME de pessoa (mensagem que o pagador escreveu) — não confundir com a contraparte, que está em 'PAGO PARA'",
+        "a CHAVE PIX aqui é um TELEFONE: dado pessoal sensível, ler e descartar",
+        "todo o rodapé (SAC, Ouvidoria, telefones 0800) é ruído — nada ali é gasto"
+      ],
+      "esperado": {
+        "sucesso": true,
+        "tipo_documento": "pix",
+        "tipo": "pix",
+        "direcao": "enviado",
+        "situacao": "efetivado",
+        "moeda": "BRL",
+        "loja": "Maria S Oliveira",
+        "cnpj": null,
+        "instituicao_contraparte": "BANCO PAN",
+        "data_compra": "2023-03-08",
+        "hora": "23:37:34",
+        "total": 15.00,
+        "descricao_livre": "Ana Pereira de Souza",
+        "id_transacao": "E00000000202303090236a1b2c3d4e5f",
+        "itens": []
+      }
+    },
+    {
+      "id": "pix-03-mercadopago-print",
+      "formato": "Print de tela do app (imagem)",
+      "descricao": "PIX enviado, visto na tela do app do Mercado Pago. O CASO MAIS DIFÍCIL do corpus.",
+      "armadilhas": [
+        "🔴 O VALOR NÃO ESTÁ ESCRITO. Só dá para deduzi-lo de 'Saldo antes e depois': R$1.680,67 → R$1.480,67 = R$200,00. Se o modelo não conseguir deduzir com segurança, DEVE falhar honestamente — nunca chutar um número.",
+        "a data é '4/ago' SEM ANO. O ano só aparece embutido no ID Pix (E...2026 0804 1856...). Sem ano confiável, perguntar/falhar, não assumir o ano corrente.",
+        "'Pix enviado' é o que define a direção — em um print de PIX recebido, o mesmo layout significaria ENTRADA",
+        "há DOIS identificadores: 'N.º da transação' (interno do app) e 'ID Pix' (EndToEndId). O de deduplicação é o ID Pix.",
+        "'Pendente de categoria' é a UI do Mercado Pago, não um dado do gasto"
+      ],
+      "aceita_falha_honesta": true,
+      "esperado": {
+        "sucesso": true,
+        "tipo_documento": "pix",
+        "tipo": "pix",
+        "direcao": "enviado",
+        "situacao": "efetivado",
+        "moeda": "BRL",
+        "loja": "Carlos Alberto Nogueira Filho",
+        "cnpj": null,
+        "instituicao_contraparte": "BANCO BRADESCO S.A.",
+        "data_compra": "2026-08-04",
+        "hora": "15:56",
+        "total": 200.00,
+        "total_derivado_de": "saldo_antes_menos_saldo_depois",
+        "id_transacao": "E10573521202608041856AbCdEfGhIjK",
+        "itens": []
+      }
+    },
+    {
+      "id": "neg-01-pdf-nao-financeiro",
+      "formato": "PDF de livro (texto corrido, dezenas de páginas)",
+      "descricao": "CASO NEGATIVO. PDF que não é documento financeiro (um livro). Chegou junto com o material — vira teste de recusa.",
+      "armadilhas": [
+        "PDF grande e legível: o pipeline consegue LER, mas não há nada a extrair",
+        "o risco real é o modelo 'achar' um número qualquer no texto e registrar um gasto fantasma",
+        "custo: um PDF longo é caro no Gemini — recusar cedo (por tamanho/páginas) antes de gastar chamada"
+      ],
+      "esperado": {
+        "sucesso": false,
+        "categoria_erro": "nao_e_cupom",
+        "motivo": "documento não é cupom, recibo nem comprovante de pagamento"
+      }
+    }
+  ]
+}

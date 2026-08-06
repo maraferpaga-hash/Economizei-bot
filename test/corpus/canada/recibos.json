@@ -1,0 +1,190 @@
+{
+  "versao": 1,
+  "gerado_em": "2026-08-05",
+  "origem": "Recibos reais do Gabriel — Vancouver/BC, jul/2026",
+  "observacoes": [
+    "moeda sempre CAD; idioma dos recibos: inglês",
+    "nome_canonico em INGLÊS nestes casos (decisão registrada na cod-0065); categoria continua no enum pt-BR de 10 valores",
+    "GST 5% federal + PST 7% BC aparecem SEPARADOS e incidem só sobre item não-alimento — comida básica é zero-rated no Canadá",
+    "linhas de DEPOSIT / RECYCLING FEE / ECO FEE não são produto, mas ENTRAM na soma do recibo: registrar como item categoria 'outros'",
+    "quando há resgate de pontos, 'total' = valor PAGO e 'total_bruto' = valor impresso (decisão do Gabriel, 2026-08-05). Quem reconcilia itens é o total_bruto."
+  ],
+  "casos": [
+    {
+      "id": "ca-01-nofrills-denman-2026-07-29",
+      "arquivo": "img/ca-01-nofrills-denman-2026-07-29.jpeg",
+      "descricao": "Supermercado No Frills (Denman St). Compra pequena, com energético tributado e pão em quantidade 2.",
+      "armadilhas": [
+        "DATA: o recibo imprime '26/07/29' = AAAA/MM/DD invertido (YY/MM/DD) = 2026-07-29. Ler como DD/MM/AA daria 2029. Confirmado pelos recibos ca-03 e ca-05 do MESMO dia, que imprimem a data por extenso.",
+        "só o energético (3.00) é tributado: GST 0.15 e PST 0.21 batem com 5% e 7% de 3.00 — alimento é zero-rated",
+        "DEPOSIT 0.10 é taxa de embalagem, não produto",
+        "nomes crípticos e abreviados: 'MNSTR ZERO ULTRA', 'PCBM PINTO BEAN'"
+      ],
+      "esperado": {
+        "sucesso": true,
+        "tipo": "mercado",
+        "moeda": "CAD",
+        "loja": "Brandon's No Frills",
+        "cnpj": null,
+        "data_compra": "2026-07-29",
+        "subtotal": 22.88,
+        "impostos": { "gst": 0.15, "pst": 0.21 },
+        "total": 23.24,
+        "itens": [
+          { "nome": "NN POP CORN", "nome_canonico": "popcorn no name", "categoria": "doces", "quantidade": 1, "preco_unitario": 3.00, "preco_total": 3.00 },
+          { "nome": "PCBM PINTO BEAN", "nome_canonico": "pinto beans pc blue menu", "categoria": "mercearia", "quantidade": 1, "preco_unitario": 3.79, "preco_total": 3.79 },
+          { "nome": "MNSTR ZERO ULTRA", "nome_canonico": "energy drink monster zero ultra", "categoria": "bebidas", "quantidade": 1, "preco_unitario": 3.00, "preco_total": 3.00 },
+          { "nome": "DEPOSIT", "nome_canonico": "container deposit fee", "categoria": "outros", "quantidade": 1, "preco_unitario": 0.10, "preco_total": 0.10 },
+          { "nome": "JANE POPCRN CKN", "nome_canonico": "popcorn chicken janes", "categoria": "congelados", "categorias_aceitaveis": ["congelados", "carnes"], "quantidade": 1, "preco_unitario": 6.99, "preco_total": 6.99 },
+          { "nome": "NN 12 GRN BREAD", "nome_canonico": "bread 12 grain no name", "categoria": "padaria", "quantidade": 2, "preco_unitario": 3.00, "preco_total": 6.00 }
+        ]
+      }
+    },
+    {
+      "id": "ca-02-independent-davie-2026-07-17",
+      "arquivo": "img/ca-02-independent-davie-2026-07-17.jpeg",
+      "descricao": "Supermercado Independent (Davie St). Compra 100% alimento — imposto ZERO.",
+      "armadilhas": [
+        "não há linha de imposto: subtotal == total. O extrator não pode inventar GST/PST",
+        "RECYCLING FEE 0.07 e DEPOSIT 0.10 são taxas, não produto",
+        "'NN BAR P MOZZ' = No Name Bar Part-skim Mozzarella — só decifrável pelo contexto da seção 22-DAIRY"
+      ],
+      "esperado": {
+        "sucesso": true,
+        "tipo": "mercado",
+        "moeda": "CAD",
+        "loja": "Independent",
+        "cnpj": null,
+        "data_compra": "2026-07-17",
+        "subtotal": 22.16,
+        "impostos": { "gst": 0.00, "pst": 0.00 },
+        "total": 22.16,
+        "itens": [
+          { "nome": "PC NFC APPL JUIC", "nome_canonico": "apple juice not from concentrate pc", "categoria": "bebidas", "quantidade": 1, "preco_unitario": 3.99, "preco_total": 3.99 },
+          { "nome": "RECYCLING FEE", "nome_canonico": "recycling fee", "categoria": "outros", "quantidade": 1, "preco_unitario": 0.07, "preco_total": 0.07 },
+          { "nome": "DEPOSIT", "nome_canonico": "container deposit fee", "categoria": "outros", "quantidade": 1, "preco_unitario": 0.10, "preco_total": 0.10 },
+          { "nome": "NN BAR P MOZZ", "nome_canonico": "mozzarella cheese part skim bar no name", "categoria": "laticinios", "quantidade": 2, "preco_unitario": 9.00, "preco_total": 18.00 }
+        ]
+      }
+    },
+    {
+      "id": "ca-03-shoppers-denman-2026-07-29",
+      "arquivo": "img/ca-03-shoppers-denman-2026-07-29.jpeg",
+      "descricao": "Farmácia Shoppers Drug Mart. Item único, não-alimento, totalmente tributado.",
+      "armadilhas": [
+        "tipo = 'outros' (farmácia não é mercado) — mas EXTRAI normalmente",
+        "data por extenso em inglês: 'Jul 29, 2026' — chave para provar o padrão YY/MM/DD dos outros recibos",
+        "recibo cheio de ruído de fidelidade (PC Optimum points, concurso, QR de pesquisa) que não é gasto"
+      ],
+      "esperado": {
+        "sucesso": true,
+        "tipo": "outros",
+        "moeda": "CAD",
+        "loja": "Shoppers Drug Mart",
+        "cnpj": null,
+        "data_compra": "2026-07-29",
+        "subtotal": 7.99,
+        "impostos": { "gst": 0.40, "pst": 0.56 },
+        "total": 8.95,
+        "itens": [
+          { "nome": "L'OREAL BARBER", "nome_canonico": "hair styling product loreal barber", "categoria": "outros", "quantidade": 1, "preco_unitario": 7.99, "preco_total": 7.99 }
+        ]
+      }
+    },
+    {
+      "id": "ca-04-nofrills-denman-2026-07-22",
+      "arquivo": "img/ca-04-nofrills-denman-2026-07-22.jpeg",
+      "descricao": "O caso mais rico: desconto de fidelidade, produto por PESO, pontos resgatados e pagamento MENOR que o total.",
+      "armadilhas": [
+        "PAGAMENTO ≠ TOTAL: total impresso 64.78, mas o cartão foi debitado 54.78 — 10.00 vieram de pontos PC Optimum resgatados (linha LOYALTY). ✅ DECIDIDO: vale o que saiu do bolso (54,78); o impresso vira 'total_bruto'. A reconciliação item×total usa o total_bruto.",
+        "'Member Pricing -3.58' é linha NEGATIVA: precisa entrar na reconciliação item×total ou a soma nunca fecha",
+        "item por peso: '0.620 kg @ $4.39/kg = 2.72' — quantidade não é inteira",
+        "só o Lysol (5.00) é tributado: GST 0.25 / PST 0.35 = 5% e 7% de 5.00"
+      ],
+      "esperado": {
+        "sucesso": true,
+        "tipo": "mercado",
+        "moeda": "CAD",
+        "loja": "Brandon's No Frills",
+        "cnpj": null,
+        "data_compra": "2026-07-22",
+        "subtotal": 64.18,
+        "impostos": { "gst": 0.25, "pst": 0.35 },
+        "total_bruto": 64.78,
+        "desconto_fidelidade": 10.00,
+        "total": 54.78,
+        "_decisao": "DECIDIDO pelo Gabriel em 2026-08-05: 'total' = o que saiu do bolso (54,78). O valor impresso vira 'total_bruto'. Reconciliação item×total roda contra total_bruto (soma dos itens + impostos), NUNCA contra total.",
+        "itens": [
+          { "nome": "ROOSTER RICE", "nome_canonico": "rice rooster", "categoria": "mercearia", "quantidade": 1, "preco_unitario": 5.00, "preco_total": 5.00 },
+          { "nome": "LYSL ALL PRP LMN", "nome_canonico": "all purpose cleaner lysol lemon", "categoria": "limpeza", "quantidade": 1, "preco_unitario": 5.00, "preco_total": 5.00 },
+          { "nome": "PCBM PINTO BEAN", "nome_canonico": "pinto beans pc blue menu", "categoria": "mercearia", "quantidade": 1, "preco_unitario": 3.79, "preco_total": 3.79 },
+          { "nome": "PC NFC APPL JUIC", "nome_canonico": "apple juice not from concentrate pc", "categoria": "bebidas", "quantidade": 1, "preco_unitario": 3.29, "preco_total": 3.29 },
+          { "nome": "NN EGGS WH LRG", "nome_canonico": "eggs white large no name", "categoria": "laticinios", "quantidade": 1, "preco_unitario": 10.22, "preco_total": 10.22 },
+          { "nome": "NN BAR P MOZZ", "nome_canonico": "mozzarella cheese part skim bar no name", "categoria": "laticinios", "quantidade": 2, "preco_unitario": 8.79, "preco_total": 17.58 },
+          { "nome": "Member Pricing", "nome_canonico": "member pricing discount", "categoria": "outros", "quantidade": 1, "preco_unitario": -3.58, "preco_total": -3.58 },
+          { "nome": "RECYCLING FEE", "nome_canonico": "recycling fee", "categoria": "outros", "quantidade": 1, "preco_unitario": 0.07, "preco_total": 0.07 },
+          { "nome": "DEPOSIT", "nome_canonico": "container deposit fee", "categoria": "outros", "quantidade": 1, "preco_unitario": 0.10, "preco_total": 0.10 },
+          { "nome": "NN THCK SLC BCN", "nome_canonico": "bacon thick sliced no name", "categoria": "carnes", "quantidade": 1, "preco_unitario": 11.99, "preco_total": 11.99 },
+          { "nome": "BROCC CROWNS", "nome_canonico": "broccoli crowns", "categoria": "hortifruti", "quantidade": 0.62, "unidade": "kg", "preco_unitario": 4.39, "preco_total": 2.72 },
+          { "nome": "GRN & PRTN BREAD", "nome_canonico": "bread grain and protein", "categoria": "padaria", "quantidade": 2, "preco_unitario": 3.00, "preco_total": 6.00 },
+          { "nome": "SANT GARLIC NAAN", "nome_canonico": "naan bread garlic", "categoria": "padaria", "quantidade": 1, "preco_unitario": 2.00, "preco_total": 2.00 }
+        ]
+      }
+    },
+    {
+      "id": "ca-05-dollarama-comox-2026-07-29",
+      "arquivo": "img/ca-05-dollarama-comox-2026-07-29.jpeg",
+      "descricao": "Loja de variedades Dollarama. Nada de alimento, item repetido, data em formato ISO.",
+      "armadilhas": [
+        "data já em ISO: '2026-07-29' — formato diferente dos supermercados no mesmo país",
+        "item 'PLANTER' aparece DUAS vezes como linhas separadas (não agregar em quantidade 2 sem necessidade)",
+        "tudo tributado (GST+PST) porque nada é alimento",
+        "categoria: nenhum item cai numa categoria de mercado — 'outros' é a resposta certa, não um erro"
+      ],
+      "esperado": {
+        "sucesso": true,
+        "tipo": "outros",
+        "moeda": "CAD",
+        "loja": "Dollarama",
+        "cnpj": null,
+        "data_compra": "2026-07-29",
+        "subtotal": 10.06,
+        "impostos": { "gst": 0.50, "pst": 0.70 },
+        "total": 11.26,
+        "itens": [
+          { "nome": "BATTERIES INCL. ECO", "nome_canonico": "batteries", "categoria": "outros", "quantidade": 1, "preco_unitario": 1.31, "preco_total": 1.31 },
+          { "nome": "DOUBLE SIDED FOA", "nome_canonico": "double sided foam tape", "categoria": "outros", "quantidade": 1, "preco_unitario": 1.25, "preco_total": 1.25 },
+          { "nome": "TAPE MEASURE", "nome_canonico": "tape measure", "categoria": "outros", "quantidade": 1, "preco_unitario": 3.50, "preco_total": 3.50 },
+          { "nome": "PLANTER", "nome_canonico": "planter pot", "categoria": "outros", "quantidade": 1, "preco_unitario": 2.00, "preco_total": 2.00 },
+          { "nome": "PLANTER", "nome_canonico": "planter pot", "categoria": "outros", "quantidade": 1, "preco_unitario": 2.00, "preco_total": 2.00 }
+        ]
+      }
+    },
+    {
+      "id": "ca-06-revs-bowling-2026-07-27",
+      "arquivo": "img/ca-06-revs-bowling-2026-07-27.jpeg",
+      "descricao": "Serviço (boliche Revs Burnaby). Não é varejo de produto — é o teste de 'gasto que não é compra de item'.",
+      "armadilhas": [
+        "data 'DD-MON-YY' em inglês: '27-JUL-26' = 2026-07-27 — terceiro formato de data do mesmo corpus",
+        "não existe nome de item de produto: as linhas são serviço ('10 GAMES', '5 SHOES')",
+        "impostos rotulados como 'TAX 1 GST' / 'TAX 2 PST', não com o percentual",
+        "não tem 'SUBTOTAL' impresso — só AMOUNT DUE"
+      ],
+      "esperado": {
+        "sucesso": true,
+        "tipo": "outros",
+        "moeda": "CAD",
+        "loja": "Revs Burnaby",
+        "cnpj": null,
+        "data_compra": "2026-07-27",
+        "subtotal": 42.35,
+        "impostos": { "gst": 2.12, "pst": 1.56 },
+        "total": 46.03,
+        "itens": [
+          { "nome": "10 GAMES", "nome_canonico": "bowling games", "categoria": "outros", "quantidade": 10, "preco_unitario": 2.00, "preco_total": 20.00 },
+          { "nome": "5 SHOES", "nome_canonico": "bowling shoe rental", "categoria": "outros", "quantidade": 5, "preco_unitario": 4.47, "preco_total": 22.35 }
+        ]
+      }
+    }
+  ]
+}
