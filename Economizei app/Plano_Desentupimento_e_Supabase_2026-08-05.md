@@ -207,12 +207,30 @@ GROUP BY c.relname, c.relrowsecurity
 ORDER BY c.relrowsecurity DESC, c.relname;
 
 -- 3) A RPC do incremento existe? (auditoria §3.3)
-SELECT proname, pg_get_function_identity_arguments(oid) AS args
+--    ⚠️ CORRIGIDA em 2026-08-05: a 1ª versão deste plano usava `pg_get_function_identity_arguments(oid)`
+--    e o Postgres devolvia "42702: column reference 'oid' is ambiguous" — tanto pg_proc quanto
+--    pg_namespace têm uma coluna `oid`. Erro meu; a correção é qualificar com `p.`.
+SELECT p.proname, pg_get_function_identity_arguments(p.oid) AS args
 FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = 'public'
-  AND proname IN ('incrementar_compras_mes','incrementar_perguntas_mes');
+  AND p.proname IN ('incrementar_compras_mes','incrementar_perguntas_mes');
 ```
+
+#### ✅ Resultados do S0 (rodado pelo Gabriel em 2026-08-05)
+
+| Query | Resultado | Leitura |
+|---|---|---|
+| 1 — tabelas | `assinatura_eventos` = **NULL** | A tabela **não existe**. `to_regclass` testa a existência da *relação*, não se há linhas — **não** tem nada a ver com "ninguém assinou ainda". A migration do MP foi aplicada só em parte. Consequência boa: **não há tabela pra dropar no S5.** |
+| 2 — RLS | `usuarios`, `compras`, `itens_compra` = **`rls_ligado = false`** | **Confirma o P2.** O `rls_migration.sql` nunca foi rodado. Combinado com a ausência da service_role no Railway: o bot funciona *porque* o RLS está desligado, e a chave anon lê tudo. |
+| 3 — RPC | erro `42702` (bug meu, acima) | **Pendente** — rodar a versão corrigida. |
+| Railway | `SUPABASE_SERVICE_ROLE_KEY` **ausente** (14 envs, nenhuma é ela) | **Confirma o P2 na raiz.** O bot roda 100% na `SUPABASE_ANON_KEY`. |
+| `ADMIN_PHONE` | setado, e o aviso do schema guard **chegou** no WhatsApp | O alarme funciona. O que faltou não foi alarme — foi destino de ação pro alarme. |
+
+> **Uma coisa ainda a confirmar na query 2:** quais tabelas voltaram com `rls_ligado = **true**`?
+> Pelo erro de dedup, `mensagens_processadas` deveria ser uma delas (é a única explicação pra ela
+> recusar insert enquanto `compras` aceita). Vale reler o resultado ordenado — a query já traz as
+> `true` no topo.
 
 **Como ler o resultado:**
 
@@ -252,23 +270,47 @@ SELECT to_regclass('public.resumos_mensais_enviados');  -- deve retornar o nome 
 
 ---
 
-### S2 — Corrigir a chave do Supabase no Railway (resolve a dedup na raiz)
+### S2 — Setar a `SUPABASE_SERVICE_ROLE_KEY` no Railway ✅ **CONFIRMADO AUSENTE — é a ação mais importante da sua lista**
 
-**Caminho certo (recomendado):**
+O print do Railway (05/08) mostra 14 variáveis e **nenhuma** é a service_role: `ADMIN_PHONE`,
+`AGENTE_MODELO`, `AGENTE_MODO`, `COMPARATIVO_AMOSTRAS_FREE`, `CRON_SECRET`, `GEMINI_API_KEY`,
+`LIMITE_PERGUNTAS_FREE`, `LINK_PAGAMENTO`, `SUPABASE_ANON_KEY`, `SUPABASE_URL`,
+`ZAPI_CLIENT_TOKEN`, `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_WEBHOOK_TOKEN`.
+Hipótese confirmada: o bot roda 100% na chave `anon`.
 
-1. Supabase → Settings → API → copie a **`service_role` key** (a secreta, não a anon).
-2. Railway → seu serviço → Variables → `SUPABASE_SERVICE_ROLE_KEY` = a chave.
-3. Redeploy.
-4. Mande uma mensagem qualquer pro bot e confira nos logs do Railway que **sumiu** o
-   `supabase_erro ... registrarMensagemProcessada`.
+#### Onde achar a chave
 
-Isso corrige a dedup **sem nenhum SQL** — a service_role bypassa RLS.
+**Supabase → seu projeto → ⚙️ Settings (canto inferior esquerdo) → API.**
+Na seção **"Project API keys"** há duas linhas:
+
+- `anon` `public` — é a que já está no Railway.
+- **`service_role` `secret`** — é esta. Clique em **Reveal** e copie.
+
+Se o seu painel já estiver no layout novo de chaves, o caminho é **Settings → API Keys**: as
+antigas aparecem na aba **"Legacy API keys"** (`anon` / `service_role`), e há a opção de gerar uma
+**Secret key** nova (`sb_secret_...`). Qualquer uma das duas serve — o código lê o **valor** da env
+`SUPABASE_SERVICE_ROLE_KEY`, não se importa com o formato.
+
+#### O que fazer com ela
+
+1. Railway → seu serviço → **Variables** → **+ New Variable**
+   - Nome: `SUPABASE_SERVICE_ROLE_KEY`
+   - Valor: a chave copiada
+2. O Railway **redeploya sozinho** ao salvar a variável.
+3. Mande uma mensagem qualquer pro bot e confira nos logs que **sumiu** o
+   `supabase_erro ... registrarMensagemProcessada ... row-level security`.
+
+> ⚠️ **A service_role bypassa RLS por completo.** Ela é uma chave de administrador. Só em
+> servidor (Railway), nunca em código de cliente, nunca commitada, nunca numa página. Se
+> vazar, vaza o banco inteiro.
+
+Isso corrige a dedup **sem rodar nenhum SQL** e é o pré-requisito do S4.
 
 **Contingência (só se você não quiser mexer no Railway agora):**
 
 ```sql
 -- Restaura a dedup desligando o RLS da tabela de deduplicação.
--- Trade-off honesto: a tabela guarda message_id + telefone. A exposição é a
+-- Trade-off honesto: a tabela guarda message_id + telefone. A exposição fica a
 -- MESMA que todas as outras tabelas já têm hoje (P2) — não piora nada, mas
 -- também não é a correção certa. Prefira o caminho do Railway.
 ALTER TABLE mensagens_processadas DISABLE ROW LEVEL SECURITY;
@@ -304,32 +346,65 @@ O nome do parâmetro **precisa ser `p_phone_number`** — é o que `supabase.js:
 > completo.** É a ordem que o próprio `rls_migration.sql` avisa no cabeçalho. Confirme primeiro
 > que o bot responde normalmente com a chave nova.
 
-Rode o `supabase/rls_migration.sql` inteiro. Depois do arquivo, acrescente as tabelas que ele não
-cobre (foram criadas depois):
+> ⚠️ **CORRIGIDO 2026-08-05.** A 1ª versão deste bloco listava `lembretes_enviados` (que decidimos
+> NÃO criar) e abortava inteira com `42P01: relation does not exist`. A versão abaixo **substitui
+> o `rls_migration.sql` inteiro** — não rode os dois — e **pula tabela que não existir** em vez de
+> falhar. É idempotente: pode rodar de novo sem efeito colateral.
 
 ```sql
-ALTER TABLE lembretes_enviados      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE mensagens_processadas   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE perguntas_log           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE acompanhamentos         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE precos_mercado          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE indicacoes              ENABLE ROW LEVEL SECURITY;
-
 DO $$
 DECLARE t TEXT;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['lembretes_enviados','mensagens_processadas','perguntas_log',
-                           'acompanhamentos','precos_mercado','indicacoes']
+  FOREACH t IN ARRAY ARRAY[
+    'usuarios','compras','itens_compra','resumos_mensais_enviados','waitlist',
+    'mensagens_processadas','perguntas_log','acompanhamentos','precos_mercado','indicacoes'
+  ]
   LOOP
-    EXECUTE format('DROP POLICY IF EXISTS "bloquear_anon" ON %I', t);
-    EXECUTE format('CREATE POLICY "bloquear_anon" ON %I AS RESTRICTIVE FOR ALL TO anon USING (false)', t);
+    IF to_regclass('public.' || t) IS NOT NULL THEN
+      EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
+      EXECUTE format('DROP POLICY IF EXISTS "bloquear_anon" ON %I', t);
+      EXECUTE format('CREATE POLICY "bloquear_anon" ON %I AS RESTRICTIVE FOR ALL TO anon USING (false)', t);
+      RAISE NOTICE 'RLS ligado: %', t;
+    ELSE
+      RAISE NOTICE 'ignorada (nao existe): %', t;
+    END IF;
   END LOOP;
 END $$;
 ```
 
-**Teste depois:** mande "oi" e um cupom pro bot. Se responder normal, está certo. Se o bot parar,
-o `SUPABASE_SERVICE_ROLE_KEY` não está valendo — reverta com `DISABLE ROW LEVEL SECURITY` nas
-tabelas e volte ao S2.
+**Conferência:**
+```sql
+SELECT c.relname AS tabela, c.relrowsecurity AS rls, COUNT(p.polname) AS policies
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+LEFT JOIN pg_policy p ON p.polrelid = c.oid
+WHERE n.nspname = 'public' AND c.relkind = 'r'
+GROUP BY c.relname, c.relrowsecurity
+ORDER BY c.relrowsecurity DESC, c.relname;
+```
+
+**Teste depois:** mande "oi" e um cupom pro bot. Se responder normal, está certo.
+
+**Rede de segurança — se o bot parar, isto o traz de volta na hora:**
+```sql
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'usuarios','compras','itens_compra','resumos_mensais_enviados','waitlist',
+    'mensagens_processadas','perguntas_log','acompanhamentos','precos_mercado','indicacoes'
+  ]
+  LOOP
+    IF to_regclass('public.' || t) IS NOT NULL THEN
+      EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY', t);
+    END IF;
+  END LOOP;
+END $$;
+```
+Se voltar com isso, o diagnóstico é simples: a `SUPABASE_SERVICE_ROLE_KEY` não pegou (valor errado
+ou redeploy não rodado).
+
+✅ **Rodado e confirmado pelo Gabriel em 2026-08-05.**
 
 ---
 
@@ -409,10 +484,74 @@ você já vai revisar. Combinado com o teto menor do B2.
 - **Contra:** você perde a sensação de "acordar com trabalho feito". É uma perda real — mas hoje
   você acorda com *relatório de run abortada*, que é pior.
 
-> ✅ **DECIDIDO (Gabriel, 2026-08-05): B3 + B2.** Aplicado nesta sessão — rotina das 8:02
-> desligada, teto por run em 1 tarefa P (≤150 linhas). **B1 fica registrada como a saída certa se
-> e quando a máquina virar o gargalo de verdade** — hoje ela não é; você é. Adicionar vazão do lado
-> que não é o gargalo só produz estoque.
+> ✅ **DECIDIDO (Gabriel, 2026-08-05, após reverter B3+B2): B1 — a máquina commita em branch.**
+> Rotina das 8:02 **religada**, teto por run de volta a 3 P / 1 M / 1 lote (≤ ~500 linhas).
+> Pedido dele: *"podemos trabalhar em defesas para os contras como fazer com que a pilha sempre
+> fique organizada e não tenha problemas como o exemplo dos cod 43 e 44."* — é o que a seção
+> **4-B1-DEFESAS** abaixo especifica. Aplicado nesta sessão.
+
+---
+
+### 4-B1-DEFESAS — Como o B1 fica seguro (Máquina 3.0)
+
+O B1 tem três riscos conhecidos. Cada um ganhou uma trava explícita, escrita nos comandos
+`/tarefa` e `/entregar`.
+
+#### Risco 1 — Levas vizinhas conflitam (o caso cod-0043 × cod-0044)
+
+Era o risco mais concreto: as duas mexem em `src/agent/`, e se cada uma nascesse da `main` o
+merge da segunda seria um conflito garantido.
+
+> **LEI 1 — PILHA LINEAR.** Cada leva nova nasce do **topo da pilha**, nunca da `main`.
+> `main → maquina/A → maquina/B → maquina/C`. A leva B já contém tudo de A, então **não existe
+> conflito entre elas por construção**. A ordem de merge é a ordem de criação, e o `/entregar`
+> nunca pula uma branch.
+
+Trava complementar: a máquina **não pega** tarefa cujo `depende-de` aponte pra algo que só existe
+na pilha (branch ≠ entregue), nem tarefa cujos critérios dependam de *como* uma leva não-mergeada
+foi implementada. Nesses casos ela reporta e segue adiante na fila.
+
+#### Risco 2 — Estoque não-revisado cresce invisível
+
+Era a crítica mais forte ao B1: sem o working tree sujo pra te lembrar, a dívida some de vista.
+
+> **LEI 2 — TETO DE PILHA = 3.** Com 3 branches `maquina/*` abertas, a máquina **para de
+> produzir** e reporta "pilha cheia" com a lista. É o substituto direto da antiga Regra 0 — a
+> diferença é que agora o freio é explícito e contável, em vez de ser um efeito colateral de o
+> tree estar sujo.
+
+> **PAINEL "📚 Pilha da máquina" na AGENDA.** Toda leva registra: ordem, branch, tarefa, data,
+> linhas, arquivos, migration s/n, idade. A máquina atualiza a cada run; o `/entregar` limpa
+> depois do push. Branch com **>7 dias = 🔴** — e o rótulo diz a verdade: o atraso é do
+> `/entregar`, não da máquina. Se a tabela divergir do git, **o git vence** e o `/entregar` avisa.
+
+#### Risco 3 — A `main` anda por baixo da pilha
+
+Se você commitar direto na `main` (sessão manual, hotfix) enquanto a pilha existe, a base dela
+fica velha e o merge vira surpresa.
+
+> **LEI 3 — MAIN PARADA.** No início de cada run a máquina compara a `main` com a base da pilha.
+> Se a `main` andou, ela **para e avisa** — você decide o rebase. A máquina **nunca** faz rebase,
+> merge, force-push ou reescrita de história.
+
+#### O que continua absolutamente proibido à máquina
+
+`git push` · `git merge` (em qualquer direção) · `git rebase` · `git reset --hard` ·
+commit na `main` · `git branch -D` · force-push · mexer em tags/remotes.
+E a zona proibida de arquivos não mudou: `supabase/`, `.env*`, `.github/`, `package.json`,
+`package-lock.json`, `Dockerfile`, `Procfile`, `scripts/check-firewall.mjs`, deploy.
+
+> **A regra 3 da §11 do CLAUDE.md muda de redação, não de espírito:** de *"a máquina nunca
+> commita"* para *"a máquina commita SÓ em branch `maquina/*`; `main` e `push` seguem 100% do
+> Gabriel"*. O gate real sempre foi o push (que deploya no Railway) — esse não se moveu um
+> milímetro.
+
+#### O contra que fica de pé (honestidade)
+
+Nada disso muda o fato de que **você continua sendo o gargalo**. O B1 impede a produção de
+*travar*, não faz a revisão andar mais rápido. Se a pilha viver cheia (3/3) por semanas, o
+sistema estará te dizendo a mesma coisa que a esteira entupida dizia — só que sem custar dias
+parados. **A pilha cheia é o sinal a observar.**
 
 ---
 
@@ -517,24 +656,34 @@ mas com o volume atual de usuários isso é opcional.
 
 ### Bloco 4 — Ajustes de processo — ✅ **APLICADOS em 2026-08-05**
 
-Decisão: **B3 + B2** (puxar em vez de empurrar, com teto menor).
+Decisão final: **B1 — Máquina 3.0, pilha de branches** (B3+B2 foram revertidos).
 
-- ✅ **Rotina das 8:02 DESLIGADA** (`economizei-rotina-matinal`, `enabled: false`). A máquina agora
-  roda sob demanda, via `/tarefa`, na sessão em que você já vai revisar.
-- ✅ **Teto por run reduzido:** 1 tarefa porte P, ≤ ~150 linhas (era: até 3 P / 1 M / 1 lote,
-  ≤ ~500 linhas). Porte M ou lote só se você pedir explicitamente na sessão.
-- ✅ **Ordem de escrita invertida** (Problema C): relatório-cabeçalho como passo 0, AGENDA gravada
-  no passo 7 **antes** de exibir o diff, relatório completo no passo 9. A run passa a deixar
-  rastro mesmo se morrer.
-- ⚠️ **Uma ação manual sua:** `.claude/` é diretório protegido nesta sessão, então não consegui
-  escrever direto. O novo `tarefa.md` está pronto em `Economizei app/tarefa_NOVO_2026-08-05.md`.
-  Copie por cima:
+- ✅ **Rotina das 8:02 RELIGADA** (`economizei-rotina-matinal`, `enabled: true`), com descrição
+  atualizada pro novo regime.
+- ✅ **Teto por run restaurado:** até 3 P, OU 1 M, OU 1 lote, ≤ ~500 linhas.
+- ✅ **A máquina passa a commitar em `maquina/cod-XXXX`** — nunca `main`, nunca `push`, com as
+  3 Leis da pilha (§4-B1-DEFESAS).
+- ✅ **Painel "📚 Pilha da máquina"** criado na AGENDA, com teto 3 e sinal de idade.
+- ✅ **Ordem de escrita invertida** (Problema C, autorizado): relatório-cabeçalho como passo 0,
+  AGENDA + pilha gravadas **antes** de exibir o diff, relatório completo por último. A run deixa
+  rastro mesmo se morrer no meio.
+- ⚠️ **Ação manual sua:** `.claude/` é diretório protegido nesta sessão, então não consegui
+  escrever direto. Os **dois** comandos foram reescritos e estão prontos pra copiar:
 
 ```powershell
 Copy-Item "C:\Economizei\Economizei app\tarefa_NOVO_2026-08-05.md" `
           "C:\Economizei\.claude\commands\tarefa.md" -Force
+Copy-Item "C:\Economizei\Economizei app\entregar_NOVO_2026-08-05.md" `
+          "C:\Economizei\.claude\commands\entregar.md" -Force
 Remove-Item "C:\Economizei\Economizei app\tarefa_NOVO_2026-08-05.md"
+Remove-Item "C:\Economizei\Economizei app\entregar_NOVO_2026-08-05.md"
 ```
+
+> **Por que o `/entregar` também mudou:** ele era um "commitador de working tree". Agora precisa
+> ser um "mergeador de pilha" — detectar as branches, mergear **na ordem**, rodar `npm run check`
+> **no resultado do merge** (não só na branch), pushar, apagar as branches com `git branch -d`
+> (nunca `-D`) e limpar o painel da pilha. Ele mantém os dois modos: **PILHA** (novo) e **TREE**
+> (o antigo, pra quando você mesmo mexer no código).
 
 ---
 
@@ -550,6 +699,57 @@ Sem alteração — nada neste plano depende disso nem antecipa nada:
 
 E a regra 7 da §11 continua valendo por cima de tudo: **W2 ≥ 30% antes de escalar aquisição.** O que
 este plano faz é garantir que, quando você medir W2, o motor de retenção esteja ligado — hoje não está.
+
+---
+
+## 7.5. 🚨 Achado de última hora — o corpus de regressão está com as imagens trocadas
+
+> Descoberto em 2026-08-05, na conferência pré-`/entregar` do `test/corpus/` (material criado na
+> sessão paralela de desdobramento Frente 1/Frente 2). **Bloqueia a entrega até ser corrigido.**
+
+Li as 6 fotos de `test/corpus/canada/img/` e cruzei com as expectativas de `recibos.json`.
+**Cinco das seis estão com o nome errado** — é uma rotação cíclica: o conteúdo que pertence ao
+`ca-0N` está gravado no arquivo `ca-0(N+1)`.
+
+| Arquivo hoje | Conteúdo REAL da foto | Expectativa do JSON com esse nome | Bate? |
+|---|---|---|---|
+| `ca-01-nofrills-denman-2026-07-29` | No Frills Denman · 26/07/29 · **23.24** | No Frills · 2026-07-29 · 23.24 | ✅ |
+| `ca-02-independent-davie-2026-07-17` | **Revs Burnaby** · 27-JUL-26 · **46.03** | Independent · 2026-07-17 · 22.16 | ❌ |
+| `ca-03-shoppers-denman-2026-07-29` | **Independent Davie** · 26/07/17 · **22.16** | Shoppers · 2026-07-29 · 8.95 | ❌ |
+| `ca-04-nofrills-denman-2026-07-22` | **Shoppers Drug Mart Denman** · Jul 29 · **8.95** | No Frills · 2026-07-22 · 64.78 | ❌ |
+| `ca-05-dollarama-comox-2026-07-29` | **No Frills Denman** · 26/07/22 · **64.78** | Dollarama · 2026-07-29 · 11.26 | ❌ |
+| `ca-06-revs-bowling-2026-07-27` | **Dollarama Comox** · 2026-07-29 · **11.26** | Revs · 2026-07-27 · 46.03 | ❌ |
+
+**As expectativas do `recibos.json` estão CORRETAS** — conferi cada total contra a foto real
+(23.24 · 22.16 · 8.95 · 64.78 · 11.26 · 46.03, todos batem com algum recibo). **O erro é só o nome
+do arquivo de imagem.**
+
+**Por que isso é grave, e não cosmético:** o teste offline (default) lê só o JSON, então ele
+**passa** — o defeito é invisível na rede de segurança. Só o teste `CORPUS_VISION=1` compararia
+imagem × expectativa, e aí 5 de 6 falhariam. O risco real não é a falha: é alguém "consertar" o
+JSON pra casar com a imagem errada e **destruir a verdade-base do corpus que protege o coração**
+(classificação). Corpus com ground truth corrompido é pior que corpus nenhum, porque dá confiança
+falsa.
+
+**Correção (rotação de 5 posições, com arquivo temporário pra não sobrescrever):**
+
+```powershell
+cd "C:\Economizei\test\corpus\canada\img"
+Rename-Item ca-02-independent-davie-2026-07-17.jpeg _tmp.jpeg
+Rename-Item ca-03-shoppers-denman-2026-07-29.jpeg  ca-02-independent-davie-2026-07-17.jpeg
+Rename-Item ca-04-nofrills-denman-2026-07-22.jpeg  ca-03-shoppers-denman-2026-07-29.jpeg
+Rename-Item ca-05-dollarama-comox-2026-07-29.jpeg  ca-04-nofrills-denman-2026-07-22.jpeg
+Rename-Item ca-06-revs-bowling-2026-07-27.jpeg     ca-05-dollarama-comox-2026-07-29.jpeg
+Rename-Item _tmp.jpeg                              ca-06-revs-bowling-2026-07-27.jpeg
+Get-ChildItem | Select-Object Name
+```
+
+**Varredura de privacidade (feita na mesma conferência) — ✅ limpa.** Os recibos mostram cartão
+mascarado (`******0236`, `******2899`), nomes que são de **estabelecimento** (gerente/franqueado
+impressos no cupom, informação comercial pública), sem nome de cliente, sem documento, sem dado de
+saúde (o item do Shoppers é cosmético, não medicamento controlado). No `pix/comprovantes.json`, os
+3 números que uma varredura de CPF acusa são **códigos ISPB de banco dentro do `id_transacao`**,
+não CPF. A regra de privacidade do `test/corpus/README.md` está sendo cumprida.
 
 ---
 

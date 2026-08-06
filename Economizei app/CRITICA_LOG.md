@@ -37,6 +37,11 @@ Sem memória, o senso crítico não aprende — só repete. Este log fecha o cic
 |---|---|---|---|---|---|
 | 2026-07-27 | D4 | "Podemos agir no cod-5, 7 e 8" (backlog) | cod-0005 e cod-0008 já foram ENTREGUES (viraram cod-0010..0017 e cod-0022); cod-0007 bloqueada por dados de produção — agir seria retrabalho/chute | ✅ Sim | Gabriel redirecionou pra cadeia 0043..0049+0018; de quebra pediu a limpa do backlog (feita) |
 | 2026-07-27 | D1 | "Trabalhar cod-0043..0049 + 0018" | Contradiz o gate dele de 07-09 ("cada etapa só sobe validada em produção; perguntas_log é o juiz") — pré-lançamento não há log | ✅ Parcial | Aprovou o híbrido (0043/0044/0048 sobem) E antecipou a 0049 com racional próprio (gatilhos pré-programados pra testar a estrutura; aprimorar com dados depois; gated pelo cod-0035 no main). 0045/0046/0047/0018 seguem gated — o espírito do gate sobreviveu onde importa |
+| 2026-08-05 | D5+D6 | "Por que a esteira está entupida? Vamos planejar" | Apontado ANTES de resolver: a esteira estava produzindo refinamentos do Agente (0044/0048/0049) pra um bot com ~0 usuários, enquanto o que bloqueia o lançamento (RLS/dedup, `lembretes_enviados`, RPC) estava numa fila que a máquina não alcança (`supabase/` = zona humana) e por isso apodrecia | ✅ Sim | Ele mandou 0044/0048/0049 pro fim, subiu 0067/0025, e pediu explicitamente a lista do Supabase. Achado que emergiu do desvio: o reengajamento nunca enviou 1 mensagem |
+| 2026-08-05 | D6 | "Colocar cod-0043 no fim da agenda também" | cod-0043 já estava IMPLEMENTADO no working tree — mandar pro fim significaria manter a esteira entupida ou jogar fora 707 linhas testadas. Sequenciamento invertido | ✅ Sim | Entregou via `/entregar` na mesma sessão (`9c094aa`). Esteira destravada |
+| 2026-08-05 | OBS | Diagnóstico de RLS herdado de 07-26 ("falta policy de insert") | Contestado o próprio diagnóstico anterior do sistema: `service_role` bypassa RLS, logo aquele erro seria impossível com a chave certa → a causa real é a env ausente + banco sem RLS | ✅ Confirmado por evidência | Print do Railway: 14 envs, nenhuma é `SUPABASE_SERVICE_ROLE_KEY`. Query 2: `usuarios`/`compras`/`itens_compra` com RLS `false`. Hipótese correta |
+| 2026-08-05 | — | *(erro meu, registrado por simetria)* | A query 3 do S0 que EU escrevi tinha `oid` ambíguo (`pg_proc` × `pg_namespace`) e falhou com `42702` na mão dele | n/a | Corrigida com `p.oid`. Lição: SQL entregue pra ele rodar precisa ser testado mentalmente contra ambiguidade de catálogo, não só contra a semântica |
+| 2026-08-05 | D1 | Recomendação B3+B2 (puxar em vez de empurrar) | *Meu* apontamento foi que adicionar vazão do lado que não é o gargalo só produz estoque | ❌ **RECUSADO** | Gabriel escolheu **B1** (branches) e pediu defesas pros contras em vez de evitar o modelo. Defesas construídas: pilha linear, teto de 3, main parada, painel de estoque. **Nota de calibração: o D1 supôs que a restrição de tempo dele era fixa; ele optou por atacar o contra em vez de aceitar o limite. Registrar como sinal — recomendação "aceite a restrição" tende a ser recusada por ele.** |
 
 ---
 
@@ -44,12 +49,12 @@ Sem memória, o senso crítico não aprende — só repete. Este log fecha o cic
 
 | Detector | Disparos | Acatados | Recusados | Status |
 |---|---|---|---|---|
-| D1 | 1 | 1 | 0 | ativo (acato parcial: híbrido + antecipação consciente da 0049) |
+| D1 | 2 | 1 | 1 | ativo — **atenção à calibração:** a recusa de 08-05 foi contra uma recomendação de "aceitar a restrição de tempo". O Gabriel prefere atacar o contra a aceitar o limite. Enquadrar recomendações como "aqui estão as defesas necessárias", não como "aceite o teto" |
 | D2 | 0 | 0 | 0 | ativo |
 | D3 | 0 | 0 | 0 | ativo |
 | D4 | 1 | 1 | 0 | ativo |
-| D5 | 0 | 0 | 0 | ativo |
-| D6 | 0 | 0 | 0 | ativo |
-| OBS | 0 | 0 | 0 | ativo |
+| D5 | 1 | 1 | 0 | ativo — 1º disparo (08-05): esteira otimizando o que não move W2 |
+| D6 | 2 | 2 | 0 | ativo — 2/2 acatados; sequenciamento invertido é o padrão mais produtivo até agora |
+| OBS | 1 | 1 | 0 | ativo — 1º disparo (08-05): contestar diagnóstico ANTERIOR do próprio sistema se pagou (a hipótese estava errada e a nova se confirmou por evidência) |
 
 > **Leitura do placar:** detector com muitos disparos e poucos acatos está mal calibrado (gera ruído e queima a credibilidade dos outros). Detector com 3 acatos seguidos pelo mesmo motivo virou candidato a regra permanente.
