@@ -447,6 +447,50 @@ async function gerenciarOnboarding(phone, step, tipo, dadosProcessados) {
 }
 
 // ---------------------------------------------------------------
+// Comandos que funcionam DURANTE o onboarding (cod-0025 / achado A3).
+//
+// Nos steps 0 e 1 todo texto era engolido pelo onboarding, então quem chegava
+// já querendo assinar mandava "/planos" e recebia a mensagem de onboarding —
+// conversão paga travada até a pessoa mandar 1 cupom. Estes comandos passam
+// ANTES do gate (mesmo tratamento que o /apagar já tinha por LGPD).
+//
+// Regra de casamento DELIBERADAMENTE mais estreita que a do `ehComando` normal:
+// durante o onboarding a mensagem precisa SER o comando (`/planos`, `planos`)
+// ou começar com a forma com barra. Assim "meu plano é apertado", respondendo
+// ao onboarding, continua caindo no onboarding — só o comando explícito escapa.
+//
+// O `onboarding_step` NÃO é alterado aqui: responde o comando e o onboarding
+// retoma no passo em que estava na próxima mensagem.
+// ---------------------------------------------------------------
+const COMANDOS_LIBERADOS_NO_ONBOARDING = {
+  planos: ['/planos', 'planos', '/plano', '/pro', '/upgrade', '/preco', '/preço'],
+  pix: ['/pix', 'pix'],
+  ajuda: ['/ajuda', '/help', '/menu'],
+  privacidade: ['/privacidade', 'privacidade'],
+};
+
+/**
+ * Qual comando liberado a mensagem representa durante o onboarding.
+ * Função pura (exportada só para teste).
+ * @param {string} texto mensagem crua do usuário
+ * @returns {'planos'|'pix'|'ajuda'|'privacidade'|null}
+ */
+function comandoLiberadoNoOnboarding(texto) {
+  const msg = (texto || '').toLowerCase().trim().replace(/[.,!?;:]+$/g, '');
+  if (!msg) return null;
+  const primeira = msg.split(/\s+/)[0];
+
+  for (const [nome, aliases] of Object.entries(COMANDOS_LIBERADOS_NO_ONBOARDING)) {
+    for (const alias of aliases) {
+      if (msg === alias) return nome;
+      // formas com barra também valem como 1ª palavra (ex.: "/planos familia")
+      if (alias.startsWith('/') && primeira === alias) return nome;
+    }
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------
 // Processa mensagens de texto (comandos)
 // ---------------------------------------------------------------
 async function processarTexto(phone, texto) {
@@ -474,8 +518,24 @@ async function processarTexto(phone, texto) {
     }
   }
 
-  // Steps 0 e 1: onboarding intercepta qualquer texto
+  // Steps 0 e 1: o onboarding intercepta qualquer texto — EXCETO os poucos
+  // comandos explícitos liberados acima (cod-0025). O step não é tocado: a
+  // pessoa responde o que quiser e o onboarding retoma na próxima mensagem.
   if (step === 0 || step === 1) {
+    const liberado = comandoLiberadoNoOnboarding(texto);
+    if (liberado) {
+      log('comando_durante_onboarding', { phone: maskPhone(phone), step, comando: liberado });
+      if (liberado === 'planos') {
+        await enviarMensagem(phone, montarMensagemPlanos());
+      } else if (liberado === 'pix') {
+        await enviarMensagem(phone, montarMensagemPix());
+      } else if (liberado === 'privacidade') {
+        await enviarMensagem(phone, montarMensagemPrivacidade());
+      } else {
+        await enviarMensagem(phone, montarMensagemBemVindo());
+      }
+      return;
+    }
     await gerenciarOnboarding(phone, step, 'texto', null);
     return;
   }
@@ -1182,5 +1242,13 @@ if (require.main === module) {
 // Exports test-only (cod-0052/cod-0061): dedup por messageId (lei 5), validação
 // pura do payload do webhook e o gate de MIME de documento. Nenhum outro módulo
 // de produção importa daqui.
-module.exports = { despacharComDedup, validarPayloadWebhook, mimeAceitavel, autenticarWebhook };
+module.exports = {
+  despacharComDedup,
+  validarPayloadWebhook,
+  mimeAceitavel,
+  autenticarWebhook,
+  // cod-0025: quais comandos escapam do gate de onboarding (função pura)
+  comandoLiberadoNoOnboarding,
+  COMANDOS_LIBERADOS_NO_ONBOARDING,
+};
 // fim do arquivo
