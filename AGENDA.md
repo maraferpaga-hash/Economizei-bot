@@ -15,7 +15,7 @@
 > Guia do sistema: `Economizei app/Automacao_Maquina_Noturna.md`.
 
 **Última curadoria:** 2026-07-16 (AGENDA enxugada ~68 KB→~37 KB — histórico integral no snapshot `Economizei app/arquivo-historico/AGENDA_arquivo_2026-07-15.md`; regra anti-inchaço no Protocolo). · **Modo:** execução local (GitHub Actions descontinuado).
-**🎯 Estado (2026-07-27):** `origin/main` = HEAD = `aebb24a` (cod-0033 `8588c4b` + financeiro `4f49ae7` + docs `8ad9d4f`). Working tree limpo. Último checkpoint integral: **2026-07-08 (Nível 2, 🟡→🟢)** — `Economizei app/Sistema_Checkpoints_Benchmarks_2026-06-30.md`.
+**🎯 Estado (2026-08-05, `/entregar` modo TREE):** `origin/main` = HEAD = `b485ba8`. 8 commits nesta entrega: cod-0068 (`18a0b45`) + cod-0067 (`689c9ae`) + cod-0025 (`548468f`) + Máquina 3.0/comandos (`2fa59c1`) + corpus PIX/Canadá (`67fe676`) + migration PIX ainda-não-executada (`46f9e96`) + config (`8e39333`) + docs (`b485ba8`). `npm run check` verde antes do push e no pre-push hook (509/509 testes). Working tree limpo pros arquivos do plano (sobrou só `.claude/settings.local.json`, re-tocado pelos próprios comandos desta sessão, e 2 rascunhos órfãos `Economizei app/*_NOVO_2026-08-05.md` não commitados — decisão pendente do Gabriel). Último checkpoint integral: **2026-07-08 (Nível 2, 🟡→🟢)** — `Economizei app/Sistema_Checkpoints_Benchmarks_2026-06-30.md`.
 **🗄️ Migrations:** pendências antigas rodadas (A4/A9 + agente + alerta pro); **pós-deploy do MP: DROP das colunas/tabela MP no Supabase liberado** (ordem código→deploy→banco cumprida até o deploy).
 **🚨 Foco (2026-08-05, sessão de desentupimento — CONCLUÍDA):** esteira ficou ~6 dias parada; **destravada** — cod-0043 entregue (`9c094aa`), `origin/main` = `aa6469c`, tree limpo. **Máquina 3.0 (opção B1) adotada:** a máquina passa a **commitar em branches `maquina/*`** (nunca `main`, nunca `push`), com 3 defesas — pilha linear (LEI 1), teto de 3 branches (LEI 2), main não anda por baixo (LEI 3) — + o painel "📚 Pilha da máquina" pra o estoque não crescer escondido. Rotina das 8:02 **religada**; teto por run de volta a 3 P / 1 M / 1 lote (≤500 linhas). **Reengajamento desligado por decisão** (só o resumo de fim de mês, que já funciona) → cod-0068. **Fila:** cod-0068/0067/0025 no topo; 0044/0048/0049 no fim. **⚠️ Pendências humanas quentes:** setar `SUPABASE_SERVICE_ROLE_KEY` no Railway (confirmado ausente — o bot roda com a chave `anon` e o banco está sem RLS). ~~Copiar os 2 arquivos de comando novos pra `.claude/commands/`~~ → ✅ feito (sessão Cowork 05/08 noite, junto com a limpeza do `.git/` e a reescrita da rotina agendada pra regra híbrida TREE-no-sandbox). Plano completo: `Economizei app/Plano_Desentupimento_e_Supabase_2026-08-05.md`.
 
@@ -146,7 +146,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 *(a máquina executa de cima pra baixo respeitando o teto por run da **Máquina 3.0** — até 3 tarefas porte P, OU 1 porte M, OU 1 lote, ≤ ~500 linhas somadas. Rotina automática às 8:02 AM Vancouver **ATIVA**, ou manual via `/tarefa`. **Desde 2026-08-05 a máquina COMMITA — só em branch `maquina/*`, nunca na `main`, nunca `git push`.** O que a trava agora não é mais o working tree sujo, é o **teto de pilha: 3 branches não-mergeadas** — ver "## 📚 Pilha da máquina".)*
 
 
-> **📍 Estado da fila (REORDENADA em 2026-08-05 — decisão do Gabriel).** A esteira ficou **~6 dias entupida** (working tree sujo com o cod-0043 desde 29/07; último commit 28/07). Diagnóstico e plano completo: `Economizei app/Plano_Desentupimento_e_Supabase_2026-08-05.md`. **O que mudou:** (1) **cod-0043 saiu da fila → "🔧 Em revisão"** — já está implementado no working tree, aguarda `/entregar`; (2) **cod-0044 / cod-0048 / cod-0049 desceram pro FIM da fila** (são refinamentos do Agente em cima de infraestrutura hoje quebrada — ver 🩺 abaixo); (3) **cod-0067 e cod-0025 subiram pro topo** (promessa falsa no ar + bugfix que trava conversão). ⚠️ **cod-0049 ganhou condição nova:** o gate do cod-0035 está satisfeito (`df18b53`), mas ela só é elegível **depois do bloco Supabase** do plano (S0–S4) — o cooldown dela provavelmente pede coluna nova, e o banco está com migration atrasada. 🔴 **Bloqueador de negócio descoberto em 05/08: o reengajamento está 100% morto** (`lembretes_enviados` não existe → `lembreteFoiEnviado` lança → zero lembretes D3/D10 já enviados). Isso desliga o motor de retenção que a métrica W2 mede. Fix humano no Supabase, seção 3 do plano. *(Histórico anterior desta nota migrado pro doc de sessão.)* **cod-0035 saiu daqui → "🔧 Em revisão"** (implementada, aguardando `/entregar`) e **cod-0066 está `pausada`** (autorização revogada). Próxima elegível: **cod-0043**. ⚠️ O gate do **cod-0049** (depende do cod-0035 no `origin/main`) segue valendo — só liberar depois do commit. Contexto original da repriorização: reabastecida em 2 levas — cod-0035 + cod-0066 e, com **APROVO** do Gabriel, a cadeia do Assistente em modo híbrido: **cod-0043 → cod-0044 → cod-0048 → cod-0049** (a 0049 antecipada por decisão dele — gatilhos pré-programados agora, aprimorar com dados depois; **gated até o cod-0035 estar no `origin/main`**). 0045/0046/0047/0018 seguem no backlog gated por produção. **cod-0062/cod-0065 desceram SÓ porque aguardam pré-req humano** (rodar com o Gabriel presente; notas de 07-18 valem). **Ordem dos blocos = prioridade** (o `/tarefa` pega o 1º `status: pronta`; rotina matinal = 1/dia → ~6 dias de produção autônoma). Docs: `Desenho_Alerta_Inteligente_Pro_2026-06-27.md` · `Ideias_Assistente_Financeiro_Conversacional_2026-07-09.md` · `Sessao_Repriorizacao_Fila_2026-07-27.md`.
+> **📍 Estado da fila (RECONCILIADA em 2026-08-05 pelo `/entregar`, modo TREE).** **cod-0068, cod-0067 e cod-0025 saíram da fila → entregues** (`18a0b45`/`689c9ae`/`548468f`, `origin/main`; detalhe em "✅ Concluído"). Próxima elegível: **cod-0044** (cadeia do Assistente, fim da fila) — segue gated pelo bloco Supabase (S0–S4) antes do cod-0049, ver "🩺" abaixo. **cod-0062/cod-0065** foram **destravadas** na 2ª parte desta sessão (corpus real chegou) mas continuam fora da "Fila pronta" — são porte G, rodam com o Gabriel presente. **cod-0071** (núcleo canal-agnóstico) está `pronta`; **cod-0069/cod-0070** (API/PWA) seguem `bloqueada-humano` pelo S2/RLS. **cod-0066 segue `pausada`** (autorização revogada). Docs: `Economizei app/Plano_Desentupimento_e_Supabase_2026-08-05.md` · `Economizei app/Frente1_Frente2_App_Desdobramento_2026-08-05.md`.
 
 ### [P2] Limpeza — remover funções MP órfãs (código morto)
 - id: cod-0066
@@ -162,53 +162,6 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
   - node --test verde (remover/ajustar testes que cobriam só o código morto)
 - fora-de-escopo: `/pix`, `/planos`, qualquer lógica viva de pagamento; comentários históricos no `zapi.js`
 - status: pausada
-
-### [P1] Desligar o reengajamento (mantendo só o resumo de fim de mês)
-- id: cod-0068
-- tipo: refino-codigo
-- porte: P
-- skills: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-automation-triage
-- origem: decisão do Gabriel 2026-08-05 — *"vamos deixar de lado a ideia do reengajamento por agora, quero somente a mensagem de final de mês indicando o quanto se gastou"*. Doc: `Economizei app/Plano_Desentupimento_e_Supabase_2026-08-05.md` §3 S1.
-- objetivo: (a) desligar o cron de reengajamento (`src/scheduler.js`, `0 10 * * *` → `executarReengajamento`), que hoje só produz erro por usuário porque a tabela `lembretes_enviados` não existe; (b) remover `lembretes_enviados` da lista `CHECAGENS_CRITICAS` do `src/schemaGuard.js` (alarme que grita sem motivo é alarme que se aprende a ignorar — foi assim que este problema passou despercebido).
-- arquivos-alvo: `src/scheduler.js`, `src/schemaGuard.js`, `test/`
-- criterios-de-aceite:
-  - o job de reengajamento não é mais agendado; o log de `jobs:` no boot reflete a lista real
-  - `executarResumoMensal` (cron `0 9 28-31 * *`) segue **intacto** — é a única mensagem proativa que fica
-  - `lembretes_enviados` fora do schema guard; as demais checagens intactas
-  - **NÃO apagar** `src/reengagement.js` nem as funções de `supabase.js` (`lembreteFoiEnviado`, `registrarLembreteEnviado`) — é "por agora", não "pra sempre"; reverter deve custar 2 linhas
-  - node --test verde
-- fora-de-escopo: apagar módulo/funções; mexer no `monthlySummary.js`; criar a tabela; qualquer coisa de pagamento
-- status: em-revisao (2026-08-05, rotina matinal — working tree, NÃO commitado)
-
-### [P1] Copy pós-MP — tirar as referências a cartão/renovação automática
-- id: cod-0067
-- tipo: refino-codigo
-- porte: P
-- skills: economizei-copywriter, copy-review, economizei-financial-firewall, economizei-code-decisions, economizei-tdd
-- objetivo: o `/pix` ainda termina com "no cartão (/planos) a renovação é automática" — o cartão morreu junto com o Mercado Pago (`4f49ae7`, 2026-07-26). É promessa falsa em produção hoje. Varrer `formatter.js` por referências a cartão / assinatura automática / renovação automática / `/assinar` e alinhar tudo ao fluxo PIX-manual vigente.
-- arquivos-alvo: `src/formatter.js`, `test/`
-- criterios-de-aceite:
-  - `grep` por "cartão", "assinar", "renovação automática", "Mercado Pago" em `formatter.js` → nenhuma promessa que o produto não cumpre hoje
-  - `/pix` e `/planos` descrevem SÓ o que existe: PIX manual, ativação em até 1h
-  - nada de gíria (regra 4 da §11); número/preço só com source no CLAUDE.md
-  - node --test verde; firewall acusa por design (é copy de pagamento) → commit consciente do Gabriel
-- fora-de-escopo: adicionar o ciclo anual ao `/planos` (§4.4 da auditoria — bloqueado até a empresa BC); Stripe/Hotmart; gate Pro
-- status: em-revisao (2026-08-05, rotina matinal — working tree, NÃO commitado)
-
-### [P1] Bugfix — onboarding tranca os comandos de pagamento [A3]
-- id: cod-0025
-- tipo: bugfix
-- porte: P
-- skills: economizei-debugging, economizei-code-decisions, economizei-tdd, economizei-automation-triage, economizei-financial-firewall
-- objetivo: nos steps 0–1 do onboarding todo texto é tratado como resposta de onboarding, então `/planos` e `/pix` não respondem até o usuário mandar 1 cupom — bloqueia conversão paga de quem chega já querendo assinar. Rotear os comandos de pagamento ANTES do gate de onboarding (mesmo padrão já usado pelo `/apagar`).
-- arquivos-alvo: `src/index.js` (roteamento), `test/`
-- criterios-de-aceite:
-  - usuário em `onboarding_step` 0 ou 1 manda `/planos` → recebe os planos (não a mensagem de onboarding)
-  - idem `/pix`, `/ajuda`, `/privacidade`; o onboarding NÃO é abortado — retoma no passo em que estava
-  - texto livre (não-comando) segue caindo no onboarding, exatamente como hoje
-  - node --test verde; firewall acusa (roteamento de pagamento) → revisão humana atenta no `/entregar`
-- fora-de-escopo: redesenhar o onboarding; mudar as mensagens de boas-vindas; qualquer lógica de cobrança
-- status: em-revisao (2026-08-05, rotina matinal — working tree, NÃO commitado)
 
 ### [P2] Frente 1 — ler comprovante de PIX (foto/PDF) ✅ **DESTRAVADA 2026-08-05 (corpus entregue)**
 - id: cod-0062
@@ -426,24 +379,16 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 |---|---|---|---|---|---|---|
 | — | *(pilha vazia)* | — | — | — | — | — |
 
-**Pilha: 0/3.** Última reconciliação: 2026-08-05 (`origin/main` = `aa6469c`, working tree limpo).
+**Pilha: 0/3.** Última reconciliação: 2026-08-05 (`origin/main` = `b485ba8`, working tree limpo pros arquivos do plano).
 
 ---
 
 ## 🔧 Em revisão
 *(a máquina move pra cá ao commitar numa branch — esperando o Gabriel mergear via `/entregar`)*
 
-### Leva de 2026-08-05 (rotina matinal) — ⚠️ **no WORKING TREE, sem commit** → usar o `/entregar` em modo **TREE**
+*(vazia — nenhuma leva pendente no momento)*
 
-> **Por que não virou branch (Máquina 3.0):** o git do sandbox **não consegue apagar arquivos** dentro de `.git/` no mount (`Operation not permitted` no unlink), então todo `git add`/`git commit` deixa `index.lock` para trás e trava o próximo comando. Tentativa registrada e revertida — a branch `maquina/cod-0068-0067-0025` ficou criada e **vazia**. **✅ Limpeza FEITA (sessão Cowork 2026-08-05, noite, com permissão de deleção concedida pelo Gabriel):** locks `.stale*` e `_lixo_stale_locks/` apagados, branch vazia removida com `git branch -d`, git verificado saudável (`main`=`origin/main`=`aa6469c`). **Regra híbrida adotada:** rotina agendada (sandbox) = entrega em working tree/modo TREE com git só-leitura; Máquina 3.0 completa (branch) só nas runs locais via `/tarefa`. Prompt da tarefa agendada já reescrito.
-
-| Tarefa | Arquivos | Testes novos | Financeiro? |
-|---|---|---|---|
-| **cod-0068** — desliga o reengajamento | `src/scheduler.js`, `src/schemaGuard.js`, `test/scheduler-reengajamento-off.test.js` | 8 | não |
-| **cod-0067** — copy pós-MP no `/pix` | `src/formatter.js`, `test/pix-copy.test.js` | 8 | **SIM** (copy de pagamento — commit consciente) |
-| **cod-0025** — comandos durante o onboarding | `src/index.js`, `test/onboarding-comandos.test.js` | 11 | **SIM** (roteia `/planos` e `/pix` — commit consciente) |
-
-Relatório completo: `RELATORIO_MATINAL.md`. Sem migration, sem env nova. 509/509 testes verdes.
+> **✅ RECONCILIADO em 2026-08-05, sessão à noite (comando `/entregar`, modo TREE):** **cod-0068 + cod-0067 + cod-0025** commitados e pushados em 8 grupos, na ordem código→docs (`origin/main` sincronizado em `b485ba8`, working tree limpo pros arquivos do plano, 509/509 testes verdes, `npm run check` verde antes de cada commit e no pre-push): cod-0068 `18a0b45` · cod-0067 `689c9ae` · cod-0025 `548468f` · Máquina 3.0/comandos `2fa59c1` · corpus PIX/Canadá `67fe676` · migration PIX (ainda não executada no Supabase) `46f9e96` · config `8e39333` · docs `b485ba8`. Sem conflito de arquivo entre grupos — staging direto, sem `git add -p`. Detalhe preservado em "✅ Concluído" abaixo. Seção esvaziada.
 
 > **✅ RECONCILIADO em 2026-08-05 (comando `/entregar`):** **cod-0043** commitado e pushado (`origin/main` sincronizado, working tree limpo, 482/482 testes verdes, `npm run check` verde antes do commit e no pre-push): `9c094aa`. Entregue na mesma sessão que os docs (Máquina 2.1 modo puxado + desentupimento da esteira + checkpoints, `2790e44`). Sem conflito de arquivo entre grupos — staging direto, sem `git add -p`. Detalhe preservado em "✅ Concluído" abaixo. Seção esvaziada.
 
@@ -456,6 +401,10 @@ Relatório completo: `RELATORIO_MATINAL.md`. Sem migration, sem env nova. 509/50
 ## ✅ Concluído
 *(tarefas mergeadas — registro histórico, mais recente no topo)*
 
+- **cod-0025 · Bugfix — onboarding tranca os comandos de pagamento [A3]** (commit `548468f`, 2026-08-05) — `/planos` e `/pix` (+ `/ajuda`, `/privacidade`) agora respondem mesmo nos steps 0–1 do onboarding, roteados ANTES do gate (mesmo padrão do `/apagar`); onboarding não é abortado, retoma no passo em que estava. `src/index.js`. `test/onboarding-comandos.test.js` (11 testes). Financeiro: roteia comandos de pagamento — commit consciente. *(skills: debugging, code-decisions, tdd, automation-triage, financial-firewall)*
+- **cod-0067 · Copy pós-MP no `/pix`** (commit `689c9ae`, 2026-08-05) — remove promessas que o produto não cumpre mais desde a saída do Mercado Pago (cartão, renovação automática) e alinha o texto ao fluxo PIX-manual vigente. `src/formatter.js`. `test/pix-copy.test.js` (8 testes). Financeiro: copy de pagamento — commit consciente. *(skills: copywriter, copy-review, financial-firewall, code-decisions, tdd)*
+- **cod-0068 · Desliga o reengajamento (mantém só o resumo de fim de mês)** (commit `18a0b45`, 2026-08-05) — cron `executarReengajamento` (D3/D10) desligado — nunca enviou uma mensagem sequer (`lembretes_enviados` nunca existiu, `lembreteFoiEnviado` lançava antes do envio). `executarResumoMensal` (cron dias 28-31) segue intacto e vira a única mensagem proativa do produto. Módulo `src/reengagement.js` fica no repo (reversível, não apagado). `src/scheduler.js`, `src/schemaGuard.js` (tira `lembretes_enviados` das CHECAGENS_CRITICAS). `test/scheduler-reengajamento-off.test.js` (8 testes). Financeiro: não toca. *(skills: code-decisions, tdd, product-principles, automation-triage)*
+- **Máquina 3.0 + corpus real + migration PIX preparatória** (commits `2fa59c1`/`67fe676`/`46f9e96`/`8e39333`/`b485ba8`, 2026-08-05) — `/tarefa` e `/entregar` reescritos pro regime de pilha de branches `maquina/*` (LEI 1 linear · LEI 2 teto 3 · LEI 3 main parada); corpus real versionado em `test/corpus/` (3 comprovantes PIX + 6 recibos de Vancouver, pseudonimizados), destravando cod-0062/cod-0065; migration `supabase/migration_2026-08-05_pix_direcao_id_transacao.sql` versionada (⚠️ **ainda NÃO executada no Supabase** — rodar antes do código da cod-0062); allowlist de permissões locais; AGENDA/CLAUDE.md/RELATORIO_MATINAL/CRITICA_LOG reconciliados. Docs: `Economizei app/Frente1_Frente2_App_Desdobramento_2026-08-05.md`.
 - **cod-0043 · Agente — Naturalidade 1: contexto de follow-up** (commit `9c094aa`, 2026-08-05) — memória curta por usuário (`{intent, params, timestamp}`, TTL ~10min, em memória do processo — sem tabela nova, sem migration) pra follow-up tipo "e em junho?" herdar a intent anterior trocando só o período/termo. O contexto só reclassifica — o número continua nascendo no executor determinístico. `src/agent/contexto.js` (novo). `src/agent/periodo.js`/`classifier.js`/`index.js`: integração da memória curta no fluxo do agente. `test/agent-contexto.test.js` (22 testes). Implementada 2026-07-29 pela rotina matinal, ficou 6 dias no working tree entupindo a esteira (Regra 0 do `/tarefa` bloqueava toda run nova) — motivou a mudança pra Máquina 2.1 (modo puxado, mesmo commit de docs `2790e44`). Financeiro: não toca · coração (classificação): não toca. *(skills: code-decisions, tdd, product-principles, copywriter, copy-review, financial-firewall)*
 - **cod-0035 · Alerta Pro — comando `/teto` + alerta proativo de limite** (commit `df18b53`, 2026-07-28) — fecha a cadeia do Alerta Pro (cod-0030..0035) e a promessa do `/planos`. `/teto <termo|categoria> <valor>` grava `limite_mensal` no acompanhamento (colunas já existiam desde a migration de 07-08 — sem migration nova); alerta automático dispara pós-cupom quando o gasto do mês no alvo atinge o teto, 1×/alvo/mês via `acompanhamentos.alertado_em`. `src/insights.js`: `interpretarTeto`, `verificarTetosEstourados`. `src/formatter.js`: `montarTetoConfirmado/Erro`, `montarAlertaLimite`. `src/supabase.js`: `definirLimiteAcompanhamento`, `marcarAlertaLimiteEnviado` + fix no `salvarAcompanhamento`. `src/index.js`: roteamento `/teto` + `verificarAlertasDeLimite` pós-`salvarCompra`. Número nasce só em `buscarGastoPorAlvo`, nunca no LLM. `test/alerta-limite.test.js` (38 testes) + ajuste em `test/acompanhamentos-io.test.js`. ⚠️ Pendências humanas: ratificar o nome `/teto` · decidir se entra no `/ajuda` · gate Pro segue fora (desdobramento humano). *(skills: code-decisions, tdd, product-principles, copywriter, copy-review, financial-firewall)*
 - **cod-0033 · Alerta Pro — comandos `/acompanhar` `/acompanhamentos` `/parar` `/superfluo`** (commit `8588c4b`, 2026-07-27) — 4 comandos finos sobre a I/O do cod-0031 e a lógica pura do cod-0030/0033. `src/insights.js`: `interpretarAcompanhamento(arg)` (categoria×termo pelas 10 CATEGORIAS_VALIDAS; guarda ≥3 chars) + `interpretarSuperfluo(arg, atuais)` (toggle/on|off/listar). `src/formatter.js`: `montarAcompanharConfirmado/Erro/Parado`, `montarListaAcompanhamentos` (R$ do mês por alvo; distingue "sem itens" de "não consegui somar"), `montarSuperfluoConfirmado/Config/Invalido`. `src/index.js`: roteamento (`/acompanhamentos`+alias `/meusalertas`; `/acompanhar` `/parar` `/superfluo` por `palavras[0]`) + 4 handlers, enriquecendo via `buscarItensDoMes`+`buscarGastoPorAlvo`. `test/acompanhamentos-comandos.test.js` (20 testes). ⚠️ `/limite <termo> <valor>` NÃO implementado (desvio consciente): colide com o `/limite` atual (status de cupons) e é a config do alerta proativo (cod-0035, fora-de-escopo). *(skills: code-decisions, tdd, copywriter, copy-review, product-principles, financial-firewall)*
