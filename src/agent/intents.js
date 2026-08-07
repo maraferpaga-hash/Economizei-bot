@@ -29,6 +29,10 @@
 
 const { brl, nomeDoMes } = require('../formatter');
 const { resolverPeriodo } = require('./periodo');
+// charts.js é puro (zero dependência nativa, zero I/O no import) — o require
+// direto é seguro no sandbox e garante que o gráfico do agente (cod-0048) é o
+// MESMO do /gastos e do resumo mensal, nunca uma cópia.
+const { gerarUrlGraficoCategorias } = require('../charts');
 const {
   calcularEconomia,
   analisarInflacaoPessoal,
@@ -72,6 +76,27 @@ function rotuloCategoria(categoria) {
   return ROTULO_CATEGORIA[categoria] || categoria;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Voz de usuário × voz do bot (cod-0042/cod-0044). Os `exemplos` do registro
+// são voz de USUÁRIO (gíria ajuda o classificador), mas mensagem DO BOT não usa
+// gíria (regra 2026-05-26). Estes helpers escolhem um exemplo "limpo" — usados
+// na lista viva da ajuda (duvida_sobre_bot) e nas sugestões pós-resposta
+// (render.montarSugestao). \b do JS falha após vogal acentuada ("tá") —
+// compara sem acento.
+// ─────────────────────────────────────────────────────────────────────────────
+function temGiria(exemplo) {
+  return /\b(ce|ta|ne|to)\b/.test(
+    String(exemplo).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  );
+}
+
+// Primeiro exemplo sem gíria da intent; fallback no primeiro exemplo (o
+// chamador decide se o fallback serve — a ajuda aceita, a sugestão não).
+function exemploSemGiria(def) {
+  if (!def || !Array.isArray(def.exemplos) || def.exemplos.length === 0) return null;
+  return def.exemplos.find((e) => !temGiria(e)) || def.exemplos[0];
+}
+
 // Resolve o rótulo de período de um parâmetro em 'YYYY-MM', com default.
 // Defesa em profundidade (Camada 0): mesmo que um rótulo inválido escape da
 // validação do guards.js (Camada 1), nunca quebra a pergunta — cai no default.
@@ -97,6 +122,8 @@ const gastoTotalMes = {
   parametros: {
     periodo: { tipo: 'periodo', obrigatorio: false, default: 'mes_atual' },
   },
+  // cod-0044: depois do total, o passo natural é "onde foi esse dinheiro".
+  sugestoes: ['raio_x_categorias'],
 
   async executar(phone, params = {}, deps = {}) {
     const buscar = deps.buscarGastosPorCategoria || _supabase().buscarGastosPorCategoria;
@@ -140,6 +167,8 @@ const gastoPorCategoria = {
     categoria: { tipo: 'enum', valores: CATEGORIAS_VALIDAS, obrigatorio: false },
     periodo: { tipo: 'periodo', obrigatorio: false, default: 'mes_atual' },
   },
+  // cod-0044: da categoria pro item específico ("quanto gastei em cerveja?").
+  sugestoes: ['gasto_por_termo'],
 
   async executar(phone, params = {}, deps = {}) {
     const buscar = deps.buscarGastosPorCategoria || _supabase().buscarGastosPorCategoria;
@@ -201,6 +230,8 @@ const compararMeses = {
   parametros: {
     periodo: { tipo: 'periodo', obrigatorio: false, default: 'mes_atual' },
   },
+  // cod-0044: comparou e viu o movimento → o próximo passo é onde agir.
+  sugestoes: ['onde_cortar'],
 
   async executar(phone, params = {}, deps = {}) {
     const buscar = deps.buscarTotaisMensais || _supabase().buscarTotaisMensais;
@@ -270,6 +301,8 @@ const inflacaoItem = {
     'qual a inflação das minhas compras', 'o que ficou mais caro pra mim',
   ],
   parametros: {},
+  // cod-0044: item subiu de preço → onde ele está mais barato.
+  sugestoes: ['comparativo_mercados'],
 
   async executar(phone, params = {}, deps = {}) {
     const buscar = deps.buscarHistoricoPrecoItens || _supabase().buscarHistoricoPrecoItens;
@@ -340,6 +373,8 @@ const raioXCategorias = {
   parametros: {
     periodo: { tipo: 'periodo', obrigatorio: false, default: 'mes_atual' },
   },
+  // cod-0044: viu o maior gasto → quanto dele foi supérfluo.
+  sugestoes: ['gasto_superfluo'],
 
   async executar(phone, params = {}, deps = {}) {
     const buscarGastos = deps.buscarGastosPorCategoria || _supabase().buscarGastosPorCategoria;
@@ -411,6 +446,8 @@ const economiaAcumulada = {
   parametros: {
     periodo: { tipo: 'periodo', obrigatorio: false },
   },
+  // cod-0044: quer economizar mais → onde os mercados diferem de preço.
+  sugestoes: ['comparativo_mercados'],
 
   async executar(phone, params = {}, deps = {}) {
     const buscar = deps.buscarTotaisMensais || _supabase().buscarTotaisMensais;
@@ -627,6 +664,8 @@ const gastoSuperfluo = {
   parametros: {
     periodo: { tipo: 'periodo', obrigatorio: false, default: 'mes_atual' },
   },
+  // cod-0044: viu o supérfluo → onde dá pra aliviar sem mexer no essencial.
+  sugestoes: ['onde_cortar'],
 
   async executar(phone, params = {}, deps = {}) {
     const buscarGastos = deps.buscarGastosPorCategoria || _supabase().buscarGastosPorCategoria;
@@ -759,6 +798,61 @@ const gastoPorTermo = {
   },
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// mostrar_grafico — "me mostra o gráfico" (cod-0048)
+// Reusa buscarGastosPorCategoria (supabase.js) + gerarUrlGraficoCategorias
+// (charts.js) — o MESMO gráfico do /gastos e do resumo mensal, nunca duplicado.
+// A entrega é uma IMAGEM (`entregaImagem: true`): o fato carrega `imagemUrl` +
+// `legenda`, e o orquestrador envia via zapi.enviarImagem (o mesmo envio do
+// resumo mensal). Sem narração LLM: os números moram DENTRO da imagem, gerados
+// deterministicamente pelo charts.js — não há texto numérico pro modelo tocar.
+// Períodos arbitrários ficam fora (AGENDA cod-0048, fora-de-escopo): o gráfico
+// é sempre do mês atual — por isso `parametros: {}`.
+// ─────────────────────────────────────────────────────────────────────────────
+const mostrarGrafico = {
+  id: 'mostrar_grafico',
+  descricao: 'A pessoa quer VER o gráfico de gastos por categoria do mês atual (resposta em imagem)',
+  exemplos: [
+    'me mostra o gráfico', 'gráfico dos gastos',
+    'quero ver o gráfico do mês', 'manda o gráfico das categorias',
+  ],
+  parametros: {},
+  entregaImagem: true,
+
+  async executar(phone, params = {}, deps = {}) {
+    const buscar = deps.buscarGastosPorCategoria || _supabase().buscarGastosPorCategoria;
+    const gerarUrl = deps.gerarUrlGrafico || gerarUrlGraficoCategorias;
+    const mesRef = resolverPeriodo('mes_atual');
+
+    const categorias = await buscar(phone, mesRef);
+    if (!categorias || categorias.length === 0) {
+      return { temDados: false, mesRef };
+    }
+
+    const imagemUrl = gerarUrl(categorias, nomeDoMes(mesRef));
+    if (!imagemUrl) {
+      // charts.js só devolve null sem dados; se acontecer mesmo assim, a
+      // resposta é o texto honesto de ausência — nunca uma imagem quebrada.
+      return { temDados: false, mesRef };
+    }
+
+    return {
+      temDados: true,
+      mesRef,
+      imagemUrl,
+      legenda: `📊 Gastos por categoria — ${nomeDoMes(mesRef)}`,
+    };
+  },
+
+  // Estado-vazio honesto (texto) e, com dados, a legenda que acompanha a imagem.
+  template(fato) {
+    if (!fato.temDados) {
+      return `Ainda não tenho gastos categorizados em ${nomeDoMes(fato.mesRef)} pra montar o gráfico. Manda uma foto do cupom que eu começo! 📸`;
+    }
+    return fato.legenda;
+  },
+};
+
 // ═════════════════════════════════════════════════════════════════════════════
 // cod-0042 — duvida_sobre_bot: "o que você sabe fazer?" respondido natural-
 // mente, em vez de cair em fora_de_escopo (o maior balde de frustração
@@ -788,16 +882,12 @@ const duvidaSobreBot = {
   template() {
     // Lista viva: 1 exemplo real por intent, exceto esta própria. Registro
     // cresceu → a ajuda cresce junto, sem tocar aqui. Exibe o primeiro
-    // exemplo SEM gíria: os exemplos do registro são voz de usuário (bom pro
-    // classificador), mas mensagem do bot não usa gíria (regra 2026-05-26).
-    // \b do JS falha após vogal acentuada ("tá") — compara sem acento.
-    const temGiria = (e) => /\b(ce|ta|ne|to)\b/.test(
-      String(e).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-    );
+    // exemplo SEM gíria via exemploSemGiria (helper compartilhado com as
+    // sugestões do cod-0044): os exemplos do registro são voz de usuário (bom
+    // pro classificador), mas mensagem do bot não usa gíria (regra 2026-05-26).
     const exemplos = REGISTRO
       .filter((i) => i && i.id !== 'duvida_sobre_bot' && Array.isArray(i.exemplos) && i.exemplos.length)
-      .map((i) => i.exemplos.find((e) => !temGiria(e)) || i.exemplos[0])
-      .map((e) => `• _${e}?_`);
+      .map((i) => `• _${exemploSemGiria(i)}?_`);
     return (
       `Eu leio a foto do seu cupom e respondo perguntas sobre os seus gastos de mercado. 📸\n\n` +
       `Pode perguntar, por exemplo:\n${exemplos.join('\n')}\n\n` +
@@ -817,6 +907,7 @@ const REGISTRO = [
   comparativoMercados,
   gastoSuperfluo,
   gastoPorTermo,
+  mostrarGrafico,
   duvidaSobreBot,
 ];
 
@@ -832,7 +923,10 @@ module.exports = {
   comparativoMercados,
   gastoSuperfluo,
   gastoPorTermo,
+  mostrarGrafico,
   duvidaSobreBot,
   CATEGORIAS_VALIDAS,
   rotuloCategoria,
+  temGiria,
+  exemploSemGiria,
 };

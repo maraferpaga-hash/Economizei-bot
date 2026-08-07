@@ -127,10 +127,24 @@ async function responderPergunta(phone, texto, deps = {}) {
     // (Camada 0: o número nunca nasce no LLM).
     const fato = await def.executar(phone, cls.params || {});
 
-    // [5] RENDER — narração (modo llm) com firewall de fidelidade; airbag
-    // template em reprovação/erro (cod-0014).
-    const resultado = await d.responder(fato, def, d.modo);
-    await d.enviarMensagem(phone, resultado.texto);
+    // [5] RENDER/ENTREGA — dois caminhos:
+    //   • intent de imagem (cod-0048, `entregaImagem:true`) COM dados → envia a
+    //     imagem com legenda pelo MESMO enviarImagem do resumo mensal, sem
+    //     narração LLM (os números moram dentro da imagem, gerados pelo
+    //     charts.js). Estado-vazio segue o caminho de texto normal (template
+    //     honesto — nunca imagem quebrada). Falha no envio cai no catch geral
+    //     (Desenho §9: resposta neutra, cota não incrementa).
+    //   • demais intents → narração (modo llm) com firewall de fidelidade e
+    //     airbag template (cod-0014), como sempre.
+    let resultado;
+    if (def.entregaImagem === true && fato && fato.temDados === true && fato.imagemUrl) {
+      const enviarImagem = d.enviarImagem || require('../zapi').enviarImagem;
+      await enviarImagem(phone, fato.imagemUrl, def.template(fato));
+      resultado = { texto: def.template(fato), modoUsado: 'imagem', fidelidadeOk: null, caiuNoAirbag: false };
+    } else {
+      resultado = await d.responder(fato, def, d.modo);
+      await d.enviarMensagem(phone, resultado.texto);
+    }
 
     // [6] Cota + aviso do meio (idempotente por igualdade — cod-0016) + LOG.
     // Intent marcada com consomeCota:false (ex.: duvida_sobre_bot, cod-0042)

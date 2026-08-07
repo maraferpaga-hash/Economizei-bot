@@ -250,14 +250,14 @@ test('REGISTRO: intent fora do registro é rejeitada pelo guard', () => {
   assert.equal(r.motivo, 'intent_desconhecida');
 });
 
-test('REGISTRO: 3 intenções do MVP + 4 da Leva 2a (cod-0040) + 2 da Leva 2b (cod-0041) + ajuda (cod-0042) + gasto_por_termo (cod-0034), todas com executar/template', () => {
-  assert.equal(REGISTRO.length, 11);
+test('REGISTRO: 3 intenções do MVP + 4 da Leva 2a (cod-0040) + 2 da Leva 2b (cod-0041) + ajuda (cod-0042) + gasto_por_termo (cod-0034) + mostrar_grafico (cod-0048), todas com executar/template', () => {
+  assert.equal(REGISTRO.length, 12);
   const ids = REGISTRO.map((i) => i.id).sort();
   assert.deepEqual(ids, [
     'comparar_meses', 'comparativo_mercados', 'duvida_sobre_bot',
     'economia_acumulada', 'gasto_por_categoria', 'gasto_por_termo',
-    'gasto_superfluo', 'gasto_total_mes', 'inflacao_item', 'onde_cortar',
-    'raio_x_categorias',
+    'gasto_superfluo', 'gasto_total_mes', 'inflacao_item', 'mostrar_grafico',
+    'onde_cortar', 'raio_x_categorias',
   ]);
   for (const intent of REGISTRO) {
     assert.equal(typeof intent.executar, 'function');

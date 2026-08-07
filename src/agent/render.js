@@ -29,6 +29,7 @@
 
 const { log } = require('../logger');
 const { conferirFidelidadeNumerica } = require('./guards.js');
+const { REGISTRO, temGiria, exemploSemGiria } = require('./intents.js');
 
 const MODO_PADRAO = () => process.env.AGENTE_MODO || 'llm';
 const MODELO_PADRAO = () => process.env.AGENTE_MODELO || 'gemini-2.5-flash';
@@ -116,6 +117,45 @@ async function _chamarGeminiNarracao(prompt, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// montarSugestao(intent, fato, registro) → string|null  (PURA) — cod-0044
+// Sugestão contextual pós-resposta, custo zero de LLM: o texto é derivado dos
+// `exemplos` do próprio REGISTRO (firewall de promessa — só aponta pra intent
+// que EXISTE e é executável; intent removida do registro some da sugestão
+// sozinha). Regras:
+//   • no MÁXIMO 1 sugestão por resposta (o primeiro alvo válido ganha);
+//   • SÓ quando a resposta teve dados (fato.temDados === true) — nunca em erro
+//     ou estado-vazio: empurrar "pergunte também X" pra quem acabou de ouvir
+//     "não tenho dados" é ruído, não ajuda;
+//   • sem gíria (regra 2026-05-26) e sem dígito — o sufixo entra DEPOIS da
+//     checagem de fidelidade numérica, então número aqui é proibido por
+//     construção;
+//   • intent sem `sugestoes[]` → null (resposta segue idêntica à de hoje).
+// ─────────────────────────────────────────────────────────────────────────────
+function montarSugestao(intent, fato, registro) {
+  if (!fato || fato.temDados !== true) return null;
+  if (!intent || !Array.isArray(intent.sugestoes) || intent.sugestoes.length === 0) return null;
+
+  const lista = Array.isArray(registro) ? registro : [];
+  for (const alvoId of intent.sugestoes) {
+    if (alvoId === intent.id) continue; // nunca sugere a si mesma
+    const alvo = lista.find((i) => i && i.id === alvoId && typeof i.executar === 'function');
+    if (!alvo) continue; // firewall de promessa: fora do registro, não vira sugestão
+    const exemplo = exemploSemGiria(alvo);
+    if (!exemplo || temGiria(exemplo) || /\d/.test(exemplo)) continue;
+    return `\n\n💡 Você também pode perguntar: _"${exemplo}?"_`;
+  }
+  return null;
+}
+
+// Anexa a sugestão (quando houver) ao resultado final do responder. Sem
+// sugestão, devolve o MESMO objeto — intents sem `sugestoes[]` seguem idênticas.
+function _anexarSugestao(resultado, intent, fato, registro) {
+  const sugestao = montarSugestao(intent, fato, registro);
+  if (!sugestao) return resultado;
+  return { ...resultado, texto: resultado.texto + sugestao, sugestaoAnexada: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // responder(fato, intent, modo, opts) → { texto, modoUsado, fidelidadeOk, caiuNoAirbag }
 //   fato   — objeto devolvido por intent.executar() (nunca inventado aqui)
 //   intent — a definição da intenção (precisa de .template; .descricao ajuda o prompt)
@@ -134,13 +174,19 @@ async function responder(fato, intent, modo, opts = {}) {
     throw new Error('render.responder: intent sem template()');
   }
 
+  // cod-0044: registro injetável nos testes; default = o REGISTRO real.
+  const registro = Array.isArray(opts.registro) ? opts.registro : REGISTRO;
   const textoTemplate = intent.template(fato);
   const modoPedido = modo || MODO_PADRAO();
 
   // Opção 1 explícita, ou Camada 3: sem dado não há narração — só a resposta
-  // honesta de ausência, que o template já dá.
+  // honesta de ausência, que o template já dá. (Sem dado também não há
+  // sugestão — montarSugestao devolve null com temDados !== true.)
   if (modoPedido !== 'llm' || !fato || fato.temDados !== true) {
-    return { texto: textoTemplate, modoUsado: 'template', fidelidadeOk: null, caiuNoAirbag: false };
+    return _anexarSugestao(
+      { texto: textoTemplate, modoUsado: 'template', fidelidadeOk: null, caiuNoAirbag: false },
+      intent, fato, registro
+    );
   }
 
   const chamar = typeof opts.chamarModelo === 'function' ? opts.chamarModelo : _chamarGeminiNarracao;
@@ -151,28 +197,43 @@ async function responder(fato, intent, modo, opts = {}) {
     narracao = await chamar(prompt, { modelo: opts.modelo || MODELO_PADRAO() });
   } catch (e) {
     log('agente_render_narracao_erro', { erro: e && e.message ? e.message : String(e) });
-    return { texto: textoTemplate, modoUsado: 'template', fidelidadeOk: null, caiuNoAirbag: true };
+    return _anexarSugestao(
+      { texto: textoTemplate, modoUsado: 'template', fidelidadeOk: null, caiuNoAirbag: true },
+      intent, fato, registro
+    );
   }
 
   const texto = String(narracao == null ? '' : narracao).trim();
   if (!texto) {
     log('agente_render_narracao_vazia', {});
-    return { texto: textoTemplate, modoUsado: 'template', fidelidadeOk: null, caiuNoAirbag: true };
+    return _anexarSugestao(
+      { texto: textoTemplate, modoUsado: 'template', fidelidadeOk: null, caiuNoAirbag: true },
+      intent, fato, registro
+    );
   }
 
   // Camada 5 — firewall de fidelidade numérica (determinístico, pós-geração).
+  // A sugestão do cod-0044 entra DEPOIS desta checagem, deterministicamente e
+  // sem dígitos — nunca compete com o firewall.
   const permitidos = montarAllowlist(fato, textoTemplate);
   const veredito = conferirFidelidadeNumerica(texto, permitidos);
   if (!veredito.ok) {
     log('agente_render_fidelidade_reprovada', { intrusos: veredito.intrusos.slice(0, 5) });
-    return { texto: textoTemplate, modoUsado: 'template', fidelidadeOk: false, caiuNoAirbag: true };
+    return _anexarSugestao(
+      { texto: textoTemplate, modoUsado: 'template', fidelidadeOk: false, caiuNoAirbag: true },
+      intent, fato, registro
+    );
   }
 
-  return { texto, modoUsado: 'llm', fidelidadeOk: true, caiuNoAirbag: false };
+  return _anexarSugestao(
+    { texto, modoUsado: 'llm', fidelidadeOk: true, caiuNoAirbag: false },
+    intent, fato, registro
+  );
 }
 
 module.exports = {
   responder,
   montarPromptNarracao,
   montarAllowlist,
+  montarSugestao,
 };
