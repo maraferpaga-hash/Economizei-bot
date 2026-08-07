@@ -146,7 +146,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 *(a máquina executa de cima pra baixo respeitando o teto por run da **Máquina 3.0** — até 3 tarefas porte P, OU 1 porte M, OU 1 lote, ≤ ~500 linhas somadas. Rotina automática às 8:02 AM Vancouver **ATIVA**, ou manual via `/tarefa`. **Desde 2026-08-05 a máquina COMMITA — só em branch `maquina/*`, nunca na `main`, nunca `git push`.** O que a trava agora não é mais o working tree sujo, é o **teto de pilha: 3 branches não-mergeadas** — ver "## 📚 Pilha da máquina".)*
 
 
-> **📍 Estado da fila (RECONCILIADA em 2026-08-05 pelo `/entregar`, modo TREE).** **cod-0068, cod-0067 e cod-0025 saíram da fila → entregues** (`18a0b45`/`689c9ae`/`548468f`, `origin/main`; detalhe em "✅ Concluído"). Próxima elegível: **cod-0044** (cadeia do Assistente, fim da fila) — segue gated pelo bloco Supabase (S0–S4) antes do cod-0049, ver "🩺" abaixo. **cod-0062/cod-0065** foram **destravadas** na 2ª parte desta sessão (corpus real chegou) mas continuam fora da "Fila pronta" — são porte G, rodam com o Gabriel presente. **cod-0071** (núcleo canal-agnóstico) está `pronta`; **cod-0069/cod-0070** (API/PWA) seguem `bloqueada-humano` pelo S2/RLS. **cod-0066 segue `pausada`** (autorização revogada). Docs: `Economizei app/Plano_Desentupimento_e_Supabase_2026-08-05.md` · `Economizei app/Frente1_Frente2_App_Desdobramento_2026-08-05.md`.
+> **📍 Estado da fila (atualizada 2026-08-06 pela rotina matinal).** **cod-0044 e cod-0048 implementadas → "🔧 Em revisão" (WORKING TREE, sem commit — `/entregar` em modo TREE).** ⚠️ A run deixou um `.git/index.lock` órfão (limitação do sandbox — apagar com `del .git\index.lock` antes de qualquer git). Nada mais elegível pra run autônoma: cod-0049 gated pelo bloco Supabase (S0–S4); cod-0062/0065/0072 são porte G (com o Gabriel); cod-0071 (porte M) não combina com as 2 P desta run (teto: 3 P **OU** 1 M) — é a candidata natural da próxima. Anterior (2026-08-05, `/entregar` modo TREE): cod-0068/0067/0025 entregues (`18a0b45`/`689c9ae`/`548468f`, `origin/main`; detalhe em "✅ Concluído"). **cod-0062/cod-0065** foram **destravadas** na 2ª parte desta sessão (corpus real chegou) mas continuam fora da "Fila pronta" — são porte G, rodam com o Gabriel presente. **cod-0071** (núcleo canal-agnóstico) está `pronta`; **cod-0069/cod-0070** (API/PWA) seguem `bloqueada-humano` pelo S2/RLS. **cod-0066 segue `pausada`** (autorização revogada). Docs: `Economizei app/Plano_Desentupimento_e_Supabase_2026-08-05.md` · `Economizei app/Frente1_Frente2_App_Desdobramento_2026-08-05.md`.
 
 ### [P2] Limpeza — remover funções MP órfãs (código morto)
 - id: cod-0066
@@ -232,36 +232,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 ---
 
-> **⬇️ FIM DA FILA — cadeia de refinamento do Agente (rebaixada em 2026-08-05, decisão do Gabriel).** As três abaixo são código puro, sem migration e sem risco técnico — **podem continuar na fila**, mas desceram porque são polimento de um agente que ainda não tem usuário, enquanto a infraestrutura por baixo está com problemas abertos (ver 🩺 "Saúde do banco" em "Ações do Gabriel"). Racional completo: `Economizei app/Plano_Desentupimento_e_Supabase_2026-08-05.md` §1.
-
-### [P3] Agente — Naturalidade 2: sugestões pós-resposta
-- id: cod-0044
-- tipo: feature-codigo
-- porte: P
-- skills: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-copywriter, copy-review, economizei-financial-firewall
-- objetivo: cada intent do REGISTRO pode declarar `sugestoes[]`; a resposta termina com **no máx. 1 sugestão contextual** ("Quer ver o comparativo entre mercados? É só perguntar.") derivada do registro — custo zero de LLM.
-- arquivos-alvo: `src/agent/intents.js` (campo `sugestoes` por intent), `src/agent/render.js` (anexar ≤1 sugestão), `test/`
-- criterios-de-aceite:
-  - ≤1 sugestão por resposta; SÓ quando a resposta teve dados (`temDados` true) — nunca em erro/estado-vazio
-  - sugestão só aponta pra intent que EXISTE no REGISTRO (firewall de promessa: nada de feature inexistente); sem gíria
-  - intents sem `sugestoes[]` seguem idênticas; node --test verde
-- fora-de-escopo: personalização por histórico de uso; rotação/A-B de sugestões
-- status: pronta
-
-### [P3] Agente — gráfico sob demanda
-- id: cod-0048
-- tipo: feature-codigo
-- porte: P
-- skills: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-copywriter, copy-review, economizei-financial-firewall
-- objetivo: intent `mostrar_grafico` — "me mostra o gráfico" envia o gráfico de categorias do mês **reusando `charts.js`** (o mesmo do resumo mensal), sem duplicar lógica.
-- arquivos-alvo: `src/agent/intents.js` (+1 intent), wiring de envio de imagem (`src/index.js`/`src/zapi.js` — reusar o envio que o resumo mensal já usa), `test/`
-- criterios-de-aceite:
-  - "me mostra o gráfico" / "gráfico dos gastos" → imagem do gráfico de categorias do mês atual
-  - mês sem compras → resposta de texto honesta (nunca imagem quebrada); `charts.js` não duplicado
-  - consome cota como pergunta normal (proposta — ratificar na revisão); node --test verde
-- atencao-de-revisao (2026-08-05): mexe em `src/index.js`/`src/zapi.js` — o mesmo terreno do `autenticarWebhook` (cod-0053). Revisar o wiring do envio com atenção extra no `/entregar`.
-- fora-de-escopo: períodos arbitrários; tipos novos de gráfico; gráfico no follow-up do cod-0043
-- status: pronta
+> **⬇️ FIM DA FILA — cadeia de refinamento do Agente (rebaixada em 2026-08-05, decisão do Gabriel).** ~~As três abaixo~~ → **cod-0044 e cod-0048 implementadas pela rotina matinal de 2026-08-06** (ver "🔧 Em revisão"); resta a cod-0049, gated pelo bloco Supabase. Racional do rebaixamento: `Economizei app/Plano_Desentupimento_e_Supabase_2026-08-05.md` §1.
 
 ### [P3] Alerta Pro — insights proativos pré-programados (base)
 - id: cod-0049
@@ -386,7 +357,17 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ## 🔧 Em revisão
 *(a máquina move pra cá ao commitar numa branch — esperando o Gabriel mergear via `/entregar`)*
 
-*(vazia — nenhuma leva pendente no momento)*
+### cod-0044 · Agente — Naturalidade 2: sugestões pós-resposta
+- status: em-revisao (2026-08-06, rotina matinal SANDBOX) — **no WORKING TREE, sem commit → `/entregar` em modo TREE**
+- arquivos: `src/agent/intents.js` (campo `sugestoes` em 7 intents + helpers `temGiria`/`exemploSemGiria`), `src/agent/render.js` (`montarSugestao` pura + anexo ≤1 sugestão pós-fidelidade), `test/agent-sugestoes.test.js` (16 testes)
+- migration: **não** · financeiro: **não** · coração: **não toca**
+- ⚠️ arquivo compartilhado com a cod-0048: `src/agent/intents.js` (o `/entregar` precisa fatiar por hunk ou commitar as duas juntas)
+
+### cod-0048 · Agente — gráfico sob demanda (intent `mostrar_grafico`)
+- status: em-revisao (2026-08-06, rotina matinal SANDBOX) — **no WORKING TREE, sem commit → `/entregar` em modo TREE**
+- arquivos: `src/agent/intents.js` (intent `mostrar_grafico`, `entregaImagem:true`, reusa `charts.js`), `src/agent/index.js` (ramo de entrega de imagem via `zapi.enviarImagem` — `src/index.js`/`src/zapi.js` NÃO foram tocados: o envio existente já era exportado), `test/agent-grafico.test.js` (9 testes), `test/agent-intents.test.js` (inventário 11→12 intents)
+- migration: **não** · financeiro: **não** · coração: **não toca**
+- ratificar na revisão: consome cota como pergunta normal (proposta da AGENDA mantida)
 
 > **✅ RECONCILIADO em 2026-08-05, sessão à noite (comando `/entregar`, modo TREE):** **cod-0068 + cod-0067 + cod-0025** commitados e pushados em 8 grupos, na ordem código→docs (`origin/main` sincronizado em `b485ba8`, working tree limpo pros arquivos do plano, 509/509 testes verdes, `npm run check` verde antes de cada commit e no pre-push): cod-0068 `18a0b45` · cod-0067 `689c9ae` · cod-0025 `548468f` · Máquina 3.0/comandos `2fa59c1` · corpus PIX/Canadá `67fe676` · migration PIX (ainda não executada no Supabase) `46f9e96` · config `8e39333` · docs `b485ba8`. Sem conflito de arquivo entre grupos — staging direto, sem `git add -p`. Detalhe preservado em "✅ Concluído" abaixo. Seção esvaziada.
 

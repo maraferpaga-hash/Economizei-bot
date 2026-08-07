@@ -23,7 +23,9 @@
       "Read(//tmp/**)",
       "Bash(diff \"Economizei app/tarefa_NOVO_2026-08-05.md\" \".claude/commands/tarefa.md\")",
       "Bash(set -e)",
-      "Bash(echo \"COMMIT7_EXIT=$?\")"
+      "Bash(echo \"COMMIT7_EXIT=$?\")",
+      "Bash(echo \"COMMIT8_EXIT=$?\")",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }
