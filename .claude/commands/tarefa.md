@@ -31,6 +31,22 @@ AS 3 LEIS DA PILHA (violar qualquer uma = PARE e me avise):
      Você NUNCA faz rebase, merge na main, force-push ou reescrita de história.
 
 ════════════════════════════════════════════════════════════════════════
+REGRA DO LOCK (2026-08-07 — causa-raiz encontrada, obedeça sem exceção)
+════════════════════════════════════════════════════════════════════════
+`git status` e `git diff --stat` ATUALIZAM o índice e por isso PEGAM o `.git/index.lock`.
+Em mount que não permite apagar dentro de `.git/` (o sandbox do Cowork), o lock fica pra
+trás e TRAVA todo commit posterior — foi assim em 05/08 e 06/08, em runs que nem commitaram.
+
+**Prefixe TODO comando git de LEITURA com `GIT_OPTIONAL_LOCKS=0`**
+(status, diff, diff --stat, log, branch, rev-parse). Testado em 2026-08-07: com a
+variável, zero lock criado; sem ela, lock órfão garantido.
+
+Comandos de ESCRITA (add/commit/checkout/branch) precisam do lock de verdade — esses só
+rodam LOCALMENTE, onde o `rm` funciona. Se um lock órfão aparecer, `rm .git/index.lock`
+(é 0 byte, seguro). Se o `rm` falhar com "Operation not permitted", PARE e me avise:
+nenhum commit vai funcionar até eu apagar na mão (`del .git\index.lock` no Windows).
+
+════════════════════════════════════════════════════════════════════════
 
 TETO POR RUN: até 3 tarefas de porte P, OU 1 tarefa de porte M, OU 1 lote (tarefas com
 o mesmo campo "lote:") — sempre ≤ ~500 linhas de diff somadas. Tarefa sem "porte:":
@@ -40,67 +56,70 @@ só entram se EU pedir explicitamente nesta sessão.
 
 PASSOS:
 
-0) RASTRO PRIMEIRO (obrigatório, antes de qualquer coisa). Escreva o cabeçalho do
-   RELATORIO_MATINAL.md AGORA com: data/hora, HEAD, branch atual, `git status --short`,
-   estado da pilha (`git branch --list "maquina/*"`), e "STATUS: run iniciada".
+PASSO 0) RASTRO PRIMEIRO (obrigatório, antes de qualquer coisa). Escreva o cabeçalho do
+   RELATORIO_MATINAL.md AGORA com: data/hora, HEAD, branch atual,
+   `GIT_OPTIONAL_LOCKS=0 git status --short`, estado da pilha
+   (`GIT_OPTIONAL_LOCKS=0 git branch --list "maquina/*"`), e "STATUS: run iniciada".
    Runs já morreram no meio sem deixar rastro (29/07/2026) — se esta morrer no passo
    seguinte, eu ainda saberei o que ela estava fazendo.
 
-1) INSPEÇÃO DA PILHA (aplica as 3 leis). Rode:
-      git status --short
-      git branch --list "maquina/*"
-      git log --oneline origin/main..HEAD
+PASSO 1) INSPEÇÃO DA PILHA (aplica as 3 leis). Rode:
+      GIT_OPTIONAL_LOCKS=0 git status --short
+      GIT_OPTIONAL_LOCKS=0 git branch --list "maquina/*"
+      GIT_OPTIONAL_LOCKS=0 git log --oneline origin/main..HEAD
    a) Working tree sujo com .js/.mjs? → me avise e PARE (é resto de sessão manual minha;
       .md e PAINEL.html sujos NÃO contam).
    b) Já existem 3 branches `maquina/*`? → LEI 2: reporte "pilha cheia" e PARE.
    c) A `main` andou por baixo da pilha? → LEI 3: reporte e PARE.
+   d) Existe `.git/index.lock`? → aplique a REGRA DO LOCK acima.
    Escreva o resultado no relatório.
 
-2) Leia a AGENDA.md. Na "## 🌙 Fila pronta", selecione de cima pra baixo dentro do teto.
-   **NÃO pegue tarefa cujo `depende-de` aponte pra algo que ainda não está na `main`**
+PASSO 2) Leia a AGENDA.md. Na "## 🌙 Fila pronta", selecione de cima pra baixo dentro do
+   teto. **NÃO pegue tarefa cujo `depende-de` aponte pra algo que ainda não está na `main`**
    (branch da pilha não conta como entregue). **NÃO pegue tarefa cujos critérios dependam
    de como uma tarefa não-mergeada foi implementada** — reporte e siga adiante na fila.
    Se nada for elegível, use a "## ⚓ Fila de lastro" (só testes/revisão/segurança).
    Se nem o lastro tiver item, me diga e pare.
 
-3) GATILHO DE SKILLS (obrigatório, antes de codar): carregue as skills do campo
+PASSO 3) GATILHO DE SKILLS (obrigatório, antes de codar): carregue as skills do campo
    "skills:" de cada tarefa; se vazio, DERIVE pelo mapa tipo→skills da seção
    "🧠 Gatilho de Skills". Com número/preço/promessa, o economizei-financial-firewall
    é inegociável; todo código novo segue economizei-tdd (vem com teste).
 
-4) CRIE A BRANCH — antes de escrever a primeira linha de código.
+PASSO 4) CRIE A BRANCH — antes de escrever a primeira linha de código.
    - Pilha vazia  → `git checkout main && git checkout -b maquina/cod-XXXX`
    - Pilha existe → `git checkout <topo-da-pilha> && git checkout -b maquina/cod-XXXX`
    (LEI 1). Se a run pegou várias tarefas, use o id da PRIMEIRA no nome da branch.
 
-5) Implemente SÓ o que objetivo/arquivos-alvo/critérios-de-aceite pedem; respeite
+PASSO 5) Implemente SÓ o que objetivo/arquivos-alvo/critérios-de-aceite pedem; respeite
    "fora-de-escopo". Padrão: lógica pura separada de I/O; português nos
-   nomes/mensagens. Toda lógica nova vem com teste em test/<nome>.test.js
-   (modelo: test/insights.test.js).
+   nomes/mensagens. Toda lógica nova vem com teste em `test/NOME.test.js`
+   (modelo: `test/insights.test.js`).
 
-6) AUTO-REVISÃO ADVERSARIAL: releia o diff como revisor hostil (edge cases, erro
+PASSO 6) AUTO-REVISÃO ADVERSARIAL: releia o diff como revisor hostil (edge cases, erro
    engolido, LGPD em log, regressão de mensagem, teste frágil) e corrija ANTES de commitar.
 
-7) Rode e deixe verde: npm run check   — se vermelho, corrija; NÃO commite vermelho.
+PASSO 7) Rode e deixe verde: `npm run check` — se vermelho, corrija; NÃO commite vermelho.
 
-8) COMMITE NA BRANCH (um commit por tarefa, mensagem `tipo(escopo): descricao (cod-XXXX)`).
+PASSO 8) COMMITE NA BRANCH (um commit por tarefa, mensagem `tipo(escopo): descricao (cod-XXXX)`).
    NUNCA `git add -A` nem `git add .` — estageie os arquivos explícitos.
    **NUNCA `git push`. NUNCA `git checkout main` depois de commitar.** Termine a run
    com a branch da leva em check-out.
 
-9) GRAVE O ESTADO — ANTES de me mostrar o diff (é a parte cara, e é onde runs morrem):
+PASSO 9) GRAVE O ESTADO — ANTES de me mostrar o diff (é a parte cara, e é onde runs morrem):
    a) AGENDA.md → mova cada tarefa pra "## 🔧 Em revisão" (status: em-revisao + data +
       branch + mapa tarefa→arquivos + migration necessária, se houver).
    b) AGENDA.md → atualize a seção "## 📚 Pilha da máquina": acrescente a linha desta
       leva (ordem, branch, tarefa, data, linhas, arquivos, migration s/n) e confira que
       as anteriores continuam lá, na ordem certa.
 
-10) Me mostre: resumo por tarefa, MAPA TAREFA→ARQUIVOS, como testar, resultado do check,
-    O NOME DA BRANCH, a pilha atual em ordem de merge, e AS SKILLS QUE USOU.
+PASSO 10) Me mostre: resumo por tarefa, MAPA TAREFA→ARQUIVOS, como testar, resultado do
+   check, O NOME DA BRANCH, a pilha atual em ordem de merge, e AS SKILLS QUE USOU.
 
-11) FECHE O RELATÓRIO: complete o RELATORIO_MATINAL.md aberto no passo 0 — diff, métricas,
-    pendências humanas, financeiro tocado (se houver), zona proibida, estado da pilha.
-    Troque "STATUS: run iniciada" por "STATUS: concluída".
+PASSO 11) FECHE O RELATÓRIO: complete o RELATORIO_MATINAL.md aberto no PASSO 0 — diff,
+   métricas, pendências humanas, financeiro tocado (se houver), zona proibida, estado da
+   pilha. Troque "STATUS: run iniciada" por "STATUS: concluída". Confirme que nenhum
+   `.git/index.lock` ficou pra trás.
 
 FINANCEIRO (modo ADVISORY, 2026-07-26): PODE tocar código de pagamento/cobrança se a
 tarefa pedir — o firewall só avisa. Ao tocar, DESTAQUE a lista exata do que é financeiro

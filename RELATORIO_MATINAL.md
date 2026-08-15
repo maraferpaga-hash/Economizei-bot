@@ -1,52 +1,43 @@
-# 🌅 Relatório da rotina matinal — 2026-08-06 (variante SANDBOX)
+# 🌅 Relatório da Rotina Matinal — Máquina Local (variante SANDBOX)
 
-**HEAD na entrada:** `7b41c57` · **Pilha:** 0/3 · **Guardas:** todas limpas (esteira sem `.js` sujo, sem lock na entrada).
-**Tarefas pegas:** 2 de porte P — **cod-0044** (sugestões pós-resposta) e **cod-0048** (gráfico sob demanda), topo elegível da fila. Entrega em **WORKING TREE, sem commit → `/entregar` em modo TREE**.
+**Data/hora:** 2026-08-15 13:16 (PDT)
+**HEAD:** `92dd273` (2026-08-07)
+**Pilha `maquina/*`:** vazia (0 branches)
+**`.git/index.lock`:** ausente no início ✅ e no fim ✅ (todos os comandos git rodaram com `GIT_OPTIONAL_LOCKS=0`)
 
-> ⚠️ **LEIA PRIMEIRO:** no FIM da run, um `git diff --stat` (comando de LEITURA) deixou um **`.git/index.lock` órfão** — a limitação conhecida do sandbox (não consegue apagar dentro de `.git/`). O git ainda responde a leitura, mas **qualquer commit vai falhar** até você rodar `del .git\index.lock` no Windows. É um arquivo de 0 bytes, seguro de apagar. Todo o trabalho e as checagens desta run foram concluídos ANTES/APESAR disso.
-
----
-
-## 🗺️ Mapa tarefa → arquivos
-
-| Tarefa | Arquivos de código | Teste novo | Financeiro? | Migration? |
-|---|---|---|---|---|
-| **cod-0044** — sugestões pós-resposta | `src/agent/intents.js` (campo `sugestoes` em 7 intents + helpers `temGiria`/`exemploSemGiria`), `src/agent/render.js` | `test/agent-sugestoes.test.js` (16 testes) | não | não |
-| **cod-0048** — gráfico sob demanda | `src/agent/intents.js` (intent `mostrar_grafico`), `src/agent/index.js` | `test/agent-grafico.test.js` (9 testes) + `test/agent-intents.test.js` (inventário 11→12) | não | não |
-
-⚠️ **`src/agent/intents.js` é compartilhado pelas duas** (a cod-0044 põe `sugestoes` nas intents; a cod-0048 adiciona uma intent nova no mesmo arquivo). Pro `/entregar` fatiar em 2 commits vai precisar de `git add -p`; commitar as duas juntas num commit só também é defensável (mesma cadeia, mesmo desenho — critério de lote da Máquina 2.0).
-
-**Firewall: verde de verdade** (nenhuma das duas toca pagamento/plano/preço — zero token financeiro no diff).
+**STATUS: concluída — ENCERRADA SEM IMPLEMENTAR (guarda (a) disparou)**
 
 ---
 
-## 📝 O que mudou e por quê
+## 🛑 Guarda que disparou: (a) ESTEIRA ENTUPIDA
 
-### cod-0044 — sugestões pós-resposta (custo zero de LLM)
+`git status --short` mostra código não-commitado de leva anterior:
 
-Cada intent pode declarar `sugestoes: ['<id>']`; o `render.responder` anexa **no máximo 1** sufixo `💡 Você também pode perguntar: "..."` — e o texto da sugestão é **derivado dos `exemplos` do próprio REGISTRO** (firewall de promessa por construção: intent que não existe no registro não vira sugestão; intent removida some da sugestão sozinha). Sugestão só quando `temDados === true` — nunca em erro/estado-vazio (empurrar "pergunte X" pra quem ouviu "não tenho dados" é ruído). Entra **DEPOIS** da checagem de fidelidade numérica, deterministicamente, e o gerador recusa exemplo com dígito ou gíria — não compete com o firewall de números nem com a regra 4 (§11). 7 intents ganharam sugestão (total→raio-x, categoria→termo, comparação→onde-cortar, inflação→comparativo, raio-x→supérfluo, economia→comparativo, supérfluo→onde-cortar); as demais seguem **byte a byte idênticas** (teste garante). Extraí o filtro de gíria do `duvida_sobre_bot` pra um helper compartilhado (`exemploSemGiria`) — saída da ajuda idêntica, testes antigos verdes.
+```
+ M src/supabase.js                ← .js modificado
+?? test/filtro-gasto.test.js      ← .js novo
+```
 
-**Escolha minha a ratificar:** quando o alvo só tem exemplos com gíria ou com número, a sugestão é **omitida** (silêncio > texto que viole regra). E resposta de "não encontrei a categoria X" com `temDados:true` (o mês tem dados, a categoria não) **ganha** sugestão — li o critério literalmente ("resposta teve dados") e o caso até ajuda (oferece caminho alternativo).
+(Os demais sujos — `AGENDA.md`, `CLAUDE.md`, `PAINEL.html`, `RELATORIO_*.md`, `CRITICA_LOG.md`, `.claude/commands/tarefa.md`, docs em `Economizei app/`, `supabase/rls_migration_parte2_2026-08-07.sql` — **não contam** pela regra da guarda.)
 
-### cod-0048 — gráfico sob demanda (intent `mostrar_grafico`)
+**É a cod-0062a**, produzida pela rotina matinal de **2026-08-07** e já registrada em "## 🔧 Em revisão" na AGENDA. Está no working tree há **8 dias**.
 
-"Me mostra o gráfico" → o agente envia a **imagem** do gráfico de categorias do mês atual, gerada pelo **mesmo** `gerarUrlGraficoCategorias` do `/gastos` e do resumo mensal (teste lê o fonte e prova que não há lógica de gráfico copiada). A intent é marcada `entregaImagem: true`; o orquestrador ganhou um ramo que, COM dados, chama `zapi.enviarImagem` (o envio que o resumo mensal já usa) com a legenda `📊 Gastos por categoria — <mês>` — **sem narração LLM** (os números moram dentro da imagem, gerados deterministicamente; não há texto numérico pro modelo tocar). Mês sem compras → caminho de texto normal com template honesto (**nunca imagem quebrada**); falha no envio → resposta neutra do Desenho §9 e **cota não cobra o que não entregou**. Consome cota como pergunta normal (proposta da AGENDA mantida — ratificar). Períodos arbitrários ficaram fora (`parametros: {}`), como manda o fora-de-escopo. Bônus da lista viva: a ajuda do `duvida_sobre_bot` passou a oferecer "me mostra o gráfico?" sozinha, sem copy nova.
+Guardas (b) pilha cheia e (c) repo travado: **não dispararam.**
 
-**Desvio consciente de escopo (a favor):** a AGENDA listava `src/index.js`/`src/zapi.js` como arquivos-alvo do wiring — **não precisei tocar em nenhum dos dois**: `enviarImagem` já existia e já era exportado. O "terreno do `autenticarWebhook`" que a nota de revisão pedia atenção ficou intacto.
-
-**Auto-revisão adversarial — o que chequei e ficou:** sugestão duplicando pergunta que a narração LLM já faz (cosmético, aceito); follow-up "e em junho?" após o gráfico NÃO herda a intent (ela não tem parâmetro de período — cai no classificador normal, coerente com o fora-de-escopo); a URL do QuickChart carrega valores de gasto pra um serviço terceiro — **não é exposição nova** (o `/gastos` e o resumo mensal já funcionam exatamente assim desde 06), mas fica registrado caso um dia vire tema LGPD.
+Nenhuma tarefa foi selecionada, nenhum código foi escrito, a AGENDA não foi alterada.
 
 ---
 
-## ✅ Rede de segurança
+## 🔍 Verificação de valor agregado (só leitura — não altera nada)
 
-| Etapa | Resultado |
-|---|---|
-| `check-firewall.mjs --working` | **exit 0, verde de verdade** — "nenhuma mudança financeira/proibida detectada" |
-| `node --test "test/**/*.test.js"` | **534/534 verdes** (era 509 → +25 novos) |
-| `check-pages.mjs` | **0 erros**, 20 avisos de rota absoluta (pré-existentes) |
+Como a leva está parada há mais de uma semana, rodei a suíte para o Gabriel saber se ela ainda está entregável:
 
-⚠️ **Ressalva honesta (regra 11 do CLAUDE.md):** a suíte completa rodou numa **cópia limpa em `/tmp` com stub do `sharp`** (o SIGBUS do módulo nativo no sandbox derruba os arquivos que carregam `gemini.js`/`index.js`; o stub existe só em `/tmp`, **não** foi pro repositório e a cópia foi apagada). Os 215 testes do agente (incluindo os 25 novos) também rodaram **direto na pasta real**, sem stub, todos verdes. **O gate final é o `npm run check` na sua máquina.**
+- **`node --test test/filtro-gasto.test.js` → 18/18 verdes** ✅ (os testes novos da cod-0062a passam)
+- **`npm run check` (suíte completa) → 450 pass / 8 fail**
+- Os **8 fails são TODOS `signal: 'SIGBUS'`** — a limitação conhecida de módulo nativo (`sharp`) no sandbox, prevista na **Regra 11 do CLAUDE.md**. Arquivos afetados: `classificacao-corpus`, `erro-copy`, `gemini-canonico`, `gemini-extracao`, `onboarding-comandos`, `webhook-auth`, `webhook-dedup`, `webhook-documento`. **Nenhuma falha de asserção.**
+- ⚠️ **Ressalva honesta:** o gate final continua sendo o `npm run check` na máquina do Gabriel. O que dá pra afirmar daqui é que **não há regressão de lógica visível** — nenhum teste falhou por asserção.
+
+*Nota:* o total contado foi 458 (e não os 534 da AGENDA) porque os 8 arquivos que morrem por SIGBUS não chegam a reportar seus subtestes.
 
 ---
 
@@ -54,26 +45,33 @@ Cada intent pode declarar `sugestoes: ['<id>']`; o `render.responder` anexa **no
 
 | Métrica | Valor |
 |---|---|
-| Tarefas concluídas | **2** (cod-0044, cod-0048) |
-| Linhas de diff | **~590** — ~205 em `src/agent/` (3 arquivos, boa parte comentário) + ~385 de teste (2 arquivos novos + 8 no inventário) |
-| Tempo estimado de revisão humana | **~20 min** (≈10 min cada; nada financeiro, nada de migration, coração intacto) |
+| Tarefas concluídas nesta run | **0** (guarda) |
+| Linhas de diff produzidas nesta run | **0** |
+| Tempo estimado de revisão humana desta run | **0 min** |
 
-> Mesma leitura da run anterior sobre o teto de ~500: o código de produção (~205) fica bem abaixo; o estouro é teste, que é leitura rápida. Tratei produção como a métrica do custo da sua revisão — se quiser o teto contando teste, é só dizer.
-
----
-
-## 🙋 O que precisa de você
-
-1. **🔴 Apagar o lock órfão:** `del .git\index.lock` (Windows, na raiz do projeto) — 0 bytes, deixado por um `git diff` de leitura no fim da run. Sem isso, nenhum commit passa.
-2. **Rodar `npm run check` na sua máquina** (gate final — aqui o `sharp` obrigou o stub em `/tmp`).
-3. **`/entregar` em modo TREE.** As duas tarefas dividem `src/agent/intents.js`: ou `git add -p` pra fatiar em 2 commits, ou 1 commit combinado (mesma cadeia/desenho — critério de lote válido). A working tree também tem os 2 rascunhos órfãos `Economizei app/*_NOVO_2026-08-05.md` (decisão sua pendente desde 05/08) e o `.claude/settings.local.json` — separar do código.
-4. **Ratificar 3 escolhas minhas:** (a) sugestão omitida quando o alvo só tem exemplos com gíria/número; (b) sugestão TAMBÉM em "não encontrei a categoria X" quando o mês tem dados; (c) gráfico consome cota como pergunta normal (proposta que a própria AGENDA pedia pra ratificar).
-5. **Próxima run:** nada mais é elegível autônomo (cod-0049 gated pelo bloco Supabase; cod-0062/0065/0072 são porte G). A candidata natural é a **cod-0071** (núcleo canal-agnostico, porte M) — precisa de run dedicada (teto: 1 M sozinha). As pendências 🔴 do Supabase (`SUPABASE_SERVICE_ROLE_KEY` no Railway + RLS) seguem abertas e continuam sendo o desbloqueio de mais coisa na fila.
+**Estoque parado esperando revisão (da run de 07/08):** ~278 linhas em `src/supabase.js` + 260 linhas em `test/filtro-gasto.test.js` · revisão estimada **~30 min**.
 
 ---
 
-## 🧠 Skills usadas
+## 💰 Financeiro
 
-`economizei-code-decisions` · `economizei-tdd` · `economizei-product-principles` · `economizei-copywriter` + `copy-review` (copy das sugestões e da legenda/estado-vazio do gráfico) · `economizei-financial-firewall` (verde) · transversais sempre ligadas (`memory-system`, `automation-triage`, `token-economy`, `dual-format`, `critical-partner`).
+**Nada financeiro nesta run** (nada foi tocado).
 
-STATUS: concluída
+Sobre a leva parada: a cod-0062a **não** mexe em pagamento/cobrança. O `check-firewall` acusa **apenas a palavra "PIX" em comentário** explicando por que o filtro existe. Zero comportamento de dinheiro.
+
+---
+
+## 👤 O que precisa do Gabriel
+
+1. **Destravar a esteira — entregar a cod-0062a** via `/entregar` em **modo TREE**. Enquanto ela ficar no working tree, **toda rotina matinal vai encerrar na guarda (a)** sem produzir nada. Já foram 8 dias.
+   - Migration necessária: **NÃO**. O filtro de `direcao` fica atrás de um probe de existência e só entra na query depois que a migration da cod-0062 rodar. Nada a fazer no banco pra mergear.
+   - Duas decisões embutidas esperando ratificação (detalhe na AGENDA, "## 🔧 Em revisão"): (a) `insights.js` não foi tocado de propósito; (b) `listarUsuariosAtivosNoMes` e `buscarElegiveisInativos` **não** filtram — medem atividade, não gasto.
+
+2. **Decidir o destino dos untracked antigos** que estão na raiz/`Economizei app/` desde 07 e 09 de agosto — `PATCH_comandos_lock_2026-08-07.md`, `Roteiro_SQL_Editor_2026-08-07.md`, `tarefa_CORRIGIDO_2026-08-07.md`, `Projeto_Claude_CONTEXTO_2026-08-09.md`, `supabase/rls_migration_parte2_2026-08-07.sql`. Não bloqueiam a guarda, mas o `Roteiro_SQL_Editor` e a `rls_migration_parte2` são justamente o bloco Supabase (S3/S4) que continua pendente — e é ele que destrava a cod-0049 e as fases de API do painel.
+
+3. **Fila:** assim que a esteira liberar, o topo elegível é **cod-0073 (Gate Pro — ligar o `/comparar`, porte M, 💰 financeiro)**. Como é financeiro e é porte M, vale considerar puxar numa sessão com você presente em vez de deixar pra run autônoma — ou, se preferir que a máquina adiante, os candidatos limpos e não-financeiros logo abaixo são o guard do `precos_mercado` (P), o módulo de datas do Canadá (M) e o `fmtMoeda` (P).
+
+---
+
+### ✅ Confirmação final
+Nenhum `.git/index.lock` ficou para trás. Nenhum comando git de escrita foi executado.

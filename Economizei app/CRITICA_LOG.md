@@ -43,6 +43,9 @@ Sem memória, o senso crítico não aprende — só repete. Este log fecha o cic
 | 2026-08-05 | — | *(erro meu, registrado por simetria)* | A query 3 do S0 que EU escrevi tinha `oid` ambíguo (`pg_proc` × `pg_namespace`) e falhou com `42702` na mão dele | n/a | Corrigida com `p.oid`. Lição: SQL entregue pra ele rodar precisa ser testado mentalmente contra ambiguidade de catálogo, não só contra a semântica |
 | 2026-08-05 | D1 | Recomendação B3+B2 (puxar em vez de empurrar) | *Meu* apontamento foi que adicionar vazão do lado que não é o gargalo só produz estoque | ❌ **RECUSADO** | Gabriel escolheu **B1** (branches) e pediu defesas pros contras em vez de evitar o modelo. Defesas construídas: pilha linear, teto de 3, main parada, painel de estoque. **Nota de calibração: o D1 supôs que a restrição de tempo dele era fixa; ele optou por atacar o contra em vez de aceitar o limite. Registrar como sinal — recomendação "aceite a restrição" tende a ser recusada por ele.** |
 
+| 2026-08-07 | D6 | "Revise a máquina e as decisões pendentes; faça perguntas pra eu guiar o foco" | Antes de propor foco, apontado que o sistema **gera diagnóstico bem e consome mal**: o Checkpoint N2 rodou em 01/08, gerou doc completo com um 🔴 material (gate Pro nunca ligado → R$9,90 compra só cupons ilimitados) e ficou **6 dias sem leitura**, com a AGENDA ainda dizendo "último checkpoint: 07-08". Mesmo padrão no `index.lock` (reportado 2× como "limitação conhecida", ninguém procurou a causa) e na cod-0066 (11 dias com duas verdades contraditórias na mesma AGENDA) | ✅ Sim | Gabriel escolheu "consertar a máquina" como foco. Achados promovidos pro painel de ações; causa-raiz do lock encontrada e corrigida (`GIT_OPTIONAL_LOCKS=0`) |
+| 2026-08-07 | OBS | Fatiar as porte-G em P/M (escolha dele) | Ao fatiar, a varredura do código achou o que a tarefa-mãe não previa: **`buscarComprasDoMes` e `buscarHistorico` não filtram `tipo`** — com PIX gravando `tipo='pix'`, um comprovante entraria no `/gastos` e no resumo mensal como gasto. Virou a cod-0062a, com prioridade P1 acima das demais fatias | ✅ Aplicado | Reforça o padrão: o fatiamento não é só logístico — obriga a ler o código e revela invariante que o desenho assumia resolvido |
+
 ---
 
 ## Placar dos detectores (atualizar ao registrar)
@@ -54,7 +57,7 @@ Sem memória, o senso crítico não aprende — só repete. Este log fecha o cic
 | D3 | 0 | 0 | 0 | ativo |
 | D4 | 1 | 1 | 0 | ativo |
 | D5 | 1 | 1 | 0 | ativo — 1º disparo (08-05): esteira otimizando o que não move W2 |
-| D6 | 2 | 2 | 0 | ativo — 2/2 acatados; sequenciamento invertido é o padrão mais produtivo até agora |
-| OBS | 1 | 1 | 0 | ativo — 1º disparo (08-05): contestar diagnóstico ANTERIOR do próprio sistema se pagou (a hipótese estava errada e a nova se confirmou por evidência) |
+| D6 | 3 | 3 | 0 | ativo — **3/3 acatados = candidato a regra permanente (§11)**. Padrão consolidado: o gargalo do Economizei quase nunca é produzir, é **consumir o que já foi produzido** (checkpoint sem leitura, relatório sem ação, lock reportado sem causa-raiz, contradição sem árbitro). Proposta de regra: *antes de gerar diagnóstico novo, verificar se o anterior foi lido* |
+| OBS | 2 | 2 | 0 | ativo — 2/2. Ambos vieram de **olhar o código/evidência em vez de confiar no doc** (08-05: chave anon × RLS; 08-07: leituras agregadas sem filtro de `tipo`) |
 
 > **Leitura do placar:** detector com muitos disparos e poucos acatos está mal calibrado (gera ruído e queima a credibilidade dos outros). Detector com 3 acatos seguidos pelo mesmo motivo virou candidato a regra permanente.
