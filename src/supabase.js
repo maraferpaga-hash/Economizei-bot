@@ -11,6 +11,123 @@ const supabase = createClient(
   { realtime: { transport: ws } }
 );
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FILTRO DE GASTO (cod-0062a) — o que conta como gasto em toda leitura agregada
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// POR QUE ISTO EXISTE. Antes desta tarefa o filtro era ad-hoc: `calcularMedia`,
+// `buscarHistoricoPrecoItens`, `buscarItensDoMes`, `buscarTotaisMensais` e
+// `buscarObservacoesComparativo` filtravam `.eq('tipo','mercado')` na mão, e
+// `buscarHistorico`, `buscarComprasDoMes`, `buscarGastosPorCategoria`,
+// `buscarMesMaisRecenteComGastos` e `buscarHistoricoCategorias` NÃO filtravam
+// nada — justamente as que alimentam o `/gastos` e o resumo mensal. Com a
+// Frente 1 (cod-0062: comprovante de PIX gravado como `compras` `tipo='pix'`,
+// com `direcao` entrada/saída), a ausência de filtro faria um PIX aparecer como
+// compra do mês, e um PIX RECEBIDO aparecer como gasto. Um único esquecimento
+// faz o número mentir — então o filtro deixa de ser opcional e vira explícito
+// em TODO ponto, com um teste de guarda que reprova leitura nova sem ele.
+//
+// COMPORTAMENTO HOJE. `compras.tipo` é `NOT NULL DEFAULT 'mercado'` e só assume
+// 'mercado' ou 'outros' (migration 2026-06-07). Logo `TIPOS_GASTO` cobre 100%
+// das linhas existentes e `TIPOS_MERCADO` reproduz exatamente o `.eq` anterior:
+// **nenhum número muda** — é o que os testes existentes provam.
+//
+// ANTI-A9. A coluna `compras.direcao` ainda NÃO existe no banco (a migration
+// `migration_2026-08-05_pix_direcao_id_transacao.sql` é da cod-0062). Pedir uma
+// coluna inexistente ao PostgREST devolve 42703 e quebraria TODA leitura em
+// produção — exatamente o incidente A9. Por isso o filtro de `direcao` fica
+// atrás de um probe de existência (mesmo padrão do `schemaGuard`): só entra na
+// query depois que a coluna existir. Nada a fazer quando a migration rodar.
+
+// Tipos que representam uma COMPRA do usuário (dinheiro que saiu numa compra).
+// PIX/fatura/qualquer tipo novo fica de fora até haver decisão de produto.
+const TIPOS_GASTO = ['mercado', 'outros'];
+// Só supermercado — média, base de preços, comparativo e itens do mês.
+const TIPOS_MERCADO = ['mercado'];
+const DIRECAO_SAIDA = 'saida';
+
+// Códigos de "coluna/tabela não existe" (espelha schemaGuard.CODIGOS_AUSENCIA).
+const _CODIGOS_AUSENCIA = ['42703', '42P01', 'PGRST204', 'PGRST205'];
+function _ehAusencia(error) {
+  if (!error) return false;
+  if (error.code && _CODIGOS_AUSENCIA.includes(String(error.code))) return true;
+  const msg = String(error.message || '').toLowerCase();
+  return msg.includes('does not exist') || msg.includes('could not find');
+}
+
+/**
+ * Probe de existência da coluna `compras.direcao` (mesmo padrão do schemaGuard).
+ * Nunca lança. Três respostas, e a distinção importa:
+ *   true  → a coluna existe (resposta conclusiva, pode cachear)
+ *   false → a coluna NÃO existe (resposta conclusiva, pode cachear)
+ *   null  → inconclusivo (rede/permissão). NÃO cacheia: um blip de rede no
+ *           primeiro acesso não pode desligar o filtro pelo resto do processo.
+ */
+async function _detectarDirecao(cliente) {
+  try {
+    // limit(0): probe de existência sem trazer linha nenhuma (LGPD-friendly)
+    // filtro-gasto: nao-se-aplica — é o próprio probe do filtro (limit(0), zero linha).
+    const { error } = await cliente.from('compras').select('direcao').limit(0);
+    if (!error) return true;
+    return _ehAusencia(error) ? false : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+// Resultado do probe, resolvido uma vez por processo. Quando a migration da
+// cod-0062 rodar, o deploy reinicia o processo e o probe passa a dar `true`.
+let _direcaoNoBanco = null;
+
+/**
+ * Resolve o filtro de gasto. Devolve um objeto simples — NUNCA um query
+ * builder, que é thenable e seria executado pelo `await`.
+ *
+ * O probe roda SÓ contra o cliente real do módulo. Cliente injetado é dublê de
+ * teste: não tem schema pra responder, e probar nele acrescentaria uma query
+ * fantasma às asserções dos testes de I/O já existentes. Em produção o caminho
+ * é sempre o cliente real, então a blindagem vale onde importa.
+ */
+async function filtroGasto({ tipos = TIPOS_GASTO, cliente = supabase } = {}) {
+  if (cliente !== supabase) {
+    return { tipos, direcao: _direcaoNoBanco === true ? DIRECAO_SAIDA : null };
+  }
+  if (_direcaoNoBanco === null) {
+    const resultado = await _detectarDirecao(supabase);
+    if (resultado !== null) {
+      _direcaoNoBanco = resultado; // só cacheia resposta conclusiva
+      if (resultado === false) {
+        log('filtro_direcao_indisponivel', {
+          motivo: 'coluna compras.direcao ausente',
+          acao: 'rodar migration_2026-08-05_pix_direcao_id_transacao.sql (cod-0062) e redeployar',
+        });
+      }
+    }
+  }
+  return { tipos, direcao: _direcaoNoBanco === true ? DIRECAO_SAIDA : null };
+}
+
+/**
+ * Aplica o filtro resolvido a um query builder de `compras` (síncrono).
+ * Um tipo só → `.eq` (idêntico ao que existia antes); vários → `.in`.
+ */
+function aplicarFiltroGasto(query, filtro) {
+  // Lista vazia/inválida NUNCA vira "sem filtro" nem "filtro que casa nada":
+  // cai no default de COMPRA. Errar pro lado do default é reversível; errar
+  // pro lado de "sem filtro" é o bug que esta tarefa existe pra impedir.
+  const tipos = (filtro && Array.isArray(filtro.tipos) && filtro.tipos.length > 0)
+    ? filtro.tipos
+    : TIPOS_GASTO;
+  let q = tipos.length === 1 ? query.eq('tipo', tipos[0]) : query.in('tipo', tipos);
+  if (filtro && filtro.direcao) q = q.eq('direcao', filtro.direcao);
+  return q;
+}
+
+// Só pra teste: lê/escreve o cache do probe entre cenários.
+function _setCacheDirecao(valor) {
+  _direcaoNoBanco = valor;
+}
+
 // Garante que o usuário existe — cria na primeira mensagem, ignora se já existir
 async function upsertUsuario(phoneNumber) {
   try {
@@ -43,6 +160,7 @@ async function salvarCompra(phoneNumber, dados) {
     // só compras de mercado (decisão 2026-06-07).
     // `cnpj` é gravado no nível da compra (A9, 2026-06-30) para preparar o
     // comparativo entre mercados (cod-0020). Requer a migration compras.cnpj.
+    // filtro-gasto: nao-se-aplica — INSERT (escrita), não leitura agregada.
     const { data: compra, error: erroCompra } = await supabase
       .from('compras')
       .insert({ phone_number: phoneNumber, loja, total, data_compra, tipo, cnpj })
@@ -115,10 +233,16 @@ async function salvarCompra(phoneNumber, dados) {
 // Retorna as últimas N compras e a soma do mês atual
 async function buscarHistorico(phoneNumber, limite = 5) {
   try {
-    const { data: compras, error: erroCompras } = await supabase
-      .from('compras')
-      .select('*')
-      .eq('phone_number', phoneNumber)
+    const filtro = await filtroGasto();
+
+    // filtro-gasto: aplicado
+    const { data: compras, error: erroCompras } = await aplicarFiltroGasto(
+      supabase
+        .from('compras')
+        .select('*')
+        .eq('phone_number', phoneNumber),
+      filtro
+    )
       .order('criado_em', { ascending: false })
       .limit(limite);
 
@@ -129,11 +253,14 @@ async function buscarHistorico(phoneNumber, limite = 5) {
     inicioDomes.setDate(1);
     inicioDomes.setHours(0, 0, 0, 0);
 
-    const { data: somaMes, error: erroSoma } = await supabase
-      .from('compras')
-      .select('total')
-      .eq('phone_number', phoneNumber)
-      .gte('data_compra', inicioDomes.toISOString().split('T')[0]);
+    // filtro-gasto: aplicado
+    const { data: somaMes, error: erroSoma } = await aplicarFiltroGasto(
+      supabase
+        .from('compras')
+        .select('total')
+        .eq('phone_number', phoneNumber),
+      filtro
+    ).gte('data_compra', inicioDomes.toISOString().split('T')[0]);
 
     if (erroSoma) throw erroSoma;
 
@@ -155,12 +282,14 @@ async function calcularMedia(phoneNumber) {
     const noventaDiasAtras = new Date();
     noventaDiasAtras.setDate(noventaDiasAtras.getDate() - 90);
 
-    const { data, error } = await supabase
-      .from('compras')
-      .select('total')
-      .eq('phone_number', phoneNumber)
-      .eq('tipo', 'mercado')
-      .gte('data_compra', noventaDiasAtras.toISOString().split('T')[0]);
+    // filtro-gasto: aplicado
+    const { data, error } = await aplicarFiltroGasto(
+      supabase
+        .from('compras')
+        .select('total')
+        .eq('phone_number', phoneNumber),
+      await filtroGasto({ tipos: TIPOS_MERCADO })
+    ).gte('data_compra', noventaDiasAtras.toISOString().split('T')[0]);
 
     if (error) throw error;
 
@@ -279,6 +408,10 @@ async function listarUsuariosAtivosNoMes(mesReferencia) {
     ? `${ano + 1}-01-01`
     : `${ano}-${String(mes + 1).padStart(2, '0')}-01`;
 
+  // filtro-gasto: nao-se-aplica — lista QUEM interagiu no mês (elegibilidade do
+  // resumo mensal), não soma gasto. Quem só mandou um comprovante de PIX segue
+  // sendo usuário ativo; o corte de gasto acontece em buscarComprasDoMes, que
+  // devolve null e faz o resumo ser pulado se não houver compra.
   const { data, error } = await supabase
     .from('compras')
     .select('phone_number')
@@ -299,10 +432,14 @@ async function buscarComprasDoMes(phoneNumber, mesReferencia) {
     ? `${ano + 1}-01-01`
     : `${ano}-${String(mes + 1).padStart(2, '0')}-01`;
 
-  const { data: compras, error: errC } = await supabase
-    .from('compras')
-    .select('id, loja, total, data_compra')
-    .eq('phone_number', phoneNumber)
+  // filtro-gasto: aplicado
+  const { data: compras, error: errC } = await aplicarFiltroGasto(
+    supabase
+      .from('compras')
+      .select('id, loja, total, data_compra')
+      .eq('phone_number', phoneNumber),
+    await filtroGasto()
+  )
     .gte('data_compra', primeiroDia)
     .lt('data_compra', proximoMes);
 
@@ -397,10 +534,14 @@ async function buscarGastosPorCategoria(phoneNumber, mesReferencia) {
       ? `${ano + 1}-01-01`
       : `${ano}-${String(mes + 1).padStart(2, '0')}-01`;
 
-    const { data: compras, error: errC } = await supabase
-      .from('compras')
-      .select('id, total')
-      .eq('phone_number', phoneNumber)
+    // filtro-gasto: aplicado
+    const { data: compras, error: errC } = await aplicarFiltroGasto(
+      supabase
+        .from('compras')
+        .select('id, total')
+        .eq('phone_number', phoneNumber),
+      await filtroGasto()
+    )
       .gte('data_compra', primeiroDia)
       .lt('data_compra', proximoMes);
 
@@ -464,11 +605,14 @@ async function buscarGastosPorCategoria(phoneNumber, mesReferencia) {
 // /gastos quando o mês atual ainda não tem gastos categorizados.
 async function buscarMesMaisRecenteComGastos(phoneNumber) {
   try {
-    const { data: compras, error: errC } = await supabase
-      .from('compras')
-      .select('id, data_compra')
-      .eq('phone_number', phoneNumber)
-      .order('data_compra', { ascending: false });
+    // filtro-gasto: aplicado
+    const { data: compras, error: errC } = await aplicarFiltroGasto(
+      supabase
+        .from('compras')
+        .select('id, data_compra')
+        .eq('phone_number', phoneNumber),
+      await filtroGasto()
+    ).order('data_compra', { ascending: false });
 
     if (errC) throw errC;
     if (!compras || compras.length === 0) return null;
@@ -537,10 +681,14 @@ async function buscarHistoricoCategorias(phoneNumber, mesReferencia, nMeses = 3)
     const inicio = _primeiroDia(_mesMenos(mesReferencia, nMeses));
     const fim = _primeiroDia(mesReferencia); // exclusivo: não inclui o mês atual
 
-    const { data: compras, error: errC } = await supabase
-      .from('compras')
-      .select('id, data_compra')
-      .eq('phone_number', phoneNumber)
+    // filtro-gasto: aplicado
+    const { data: compras, error: errC } = await aplicarFiltroGasto(
+      supabase
+        .from('compras')
+        .select('id, data_compra')
+        .eq('phone_number', phoneNumber),
+      await filtroGasto()
+    )
       .gte('data_compra', inicio)
       .lt('data_compra', fim);
     if (errC) throw errC;
@@ -609,12 +757,14 @@ async function buscarHistoricoPrecoItens(phoneNumber, nMeses = 6) {
     const mesAtual = new Date().toISOString().slice(0, 7);
     const inicio = _primeiroDia(_mesMenos(mesAtual, nMeses));
 
-    const { data: compras, error: errC } = await supabase
-      .from('compras')
-      .select('id, data_compra')
-      .eq('phone_number', phoneNumber)
-      .eq('tipo', 'mercado')
-      .gte('data_compra', inicio);
+    // filtro-gasto: aplicado
+    const { data: compras, error: errC } = await aplicarFiltroGasto(
+      supabase
+        .from('compras')
+        .select('id, data_compra')
+        .eq('phone_number', phoneNumber),
+      await filtroGasto({ tipos: TIPOS_MERCADO })
+    ).gte('data_compra', inicio);
     if (errC) throw errC;
     if (!compras || compras.length === 0) return [];
 
@@ -669,11 +819,14 @@ async function buscarItensDoMes(phoneNumber, mesReferencia, cliente = supabase) 
       ? `${ano + 1}-01-01`
       : `${ano}-${String(mes + 1).padStart(2, '0')}-01`;
 
-    const { data: compras, error: errC } = await cliente
-      .from('compras')
-      .select('id')
-      .eq('phone_number', phoneNumber)
-      .eq('tipo', 'mercado')
+    // filtro-gasto: aplicado
+    const { data: compras, error: errC } = await aplicarFiltroGasto(
+      cliente
+        .from('compras')
+        .select('id')
+        .eq('phone_number', phoneNumber),
+      await filtroGasto({ tipos: TIPOS_MERCADO, cliente })
+    )
       .gte('data_compra', primeiroDia)
       .lt('data_compra', proximoMes);
     if (errC) throw errC;
@@ -700,12 +853,14 @@ async function buscarTotaisMensais(phoneNumber, nMeses = 12) {
     const mesAtual = new Date().toISOString().slice(0, 7);
     const inicio = _primeiroDia(_mesMenos(mesAtual, nMeses));
 
-    const { data: compras, error } = await supabase
-      .from('compras')
-      .select('total, data_compra')
-      .eq('phone_number', phoneNumber)
-      .eq('tipo', 'mercado')
-      .gte('data_compra', inicio);
+    // filtro-gasto: aplicado
+    const { data: compras, error } = await aplicarFiltroGasto(
+      supabase
+        .from('compras')
+        .select('total, data_compra')
+        .eq('phone_number', phoneNumber),
+      await filtroGasto({ tipos: TIPOS_MERCADO })
+    ).gte('data_compra', inicio);
     if (error) throw error;
     if (!compras || compras.length === 0) return [];
 
@@ -745,11 +900,14 @@ async function buscarObservacoesComparativo(phoneNumber, opts = {}) {
     const mesAtual = new Date().toISOString().slice(0, 7);
     const inicio = _primeiroDia(_mesMenos(mesAtual, nMeses));
 
-    const { data: compras, error: errC } = await supabase
-      .from('compras')
-      .select('id, loja, data_compra')
-      .eq('phone_number', phoneNumber)
-      .eq('tipo', 'mercado')
+    // filtro-gasto: aplicado
+    const { data: compras, error: errC } = await aplicarFiltroGasto(
+      supabase
+        .from('compras')
+        .select('id, loja, data_compra')
+        .eq('phone_number', phoneNumber),
+      await filtroGasto({ tipos: TIPOS_MERCADO })
+    )
       .gte('data_compra', inicio)
       .order('data_compra', { ascending: false });
     if (errC) throw errC;
@@ -1121,6 +1279,8 @@ async function buscarElegiveisInativos(diasDesde) {
     const { inicio, fim } = _janelaDiaAtras(diasDesde);
 
     // Última atividade por usuário: criado_em desc → primeira ocorrência = mais recente
+    // filtro-gasto: nao-se-aplica — mede ATIVIDADE (última interação) pro
+    // reengajamento, não gasto. Mandar um comprovante é atividade legítima.
     const { data, error } = await supabase
       .from('compras')
       .select('phone_number, criado_em')
@@ -1565,6 +1725,8 @@ async function apagarDadosUsuario(phoneNumber) {
 
   // 1. Compras (itens_compra caem em cascata via ON DELETE CASCADE)
   {
+    // filtro-gasto: nao-se-aplica — DELETE do /apagar (LGPD): tem de levar TUDO,
+    // inclusive tipos que não contam como gasto. Filtrar aqui deixaria rastro.
     const { error } = await supabase
       .from('compras')
       .delete()
@@ -1820,6 +1982,14 @@ async function buscarCategoriasSuperfluas(phoneNumber, cliente = supabase) {
 }
 
 module.exports = {
+  // filtro de gasto (cod-0062a)
+  TIPOS_GASTO,
+  TIPOS_MERCADO,
+  DIRECAO_SAIDA,
+  filtroGasto,
+  aplicarFiltroGasto,
+  _detectarDirecao,
+  _setCacheDirecao,
   apagarDadosUsuario,
   upsertUsuario,
   salvarCompra,
