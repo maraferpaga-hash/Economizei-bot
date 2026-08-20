@@ -16,13 +16,43 @@ O S2 (`SUPABASE_SERVICE_ROLE_KEY`) foi setado, mas o print prova só que a
 **variável existe**. Falta provar que o **valor certo está em uso** — e o bloco 2
 (RLS) **derruba o bot** se ele ainda estiver rodando com a chave `anon`.
 
-1. Mande **"oi"** pro bot no WhatsApp (acorda o serviço, que estava "Sleeping", e força o boot com a env nova).
-2. Ele respondeu? → a chave é válida (se fosse inválida, **toda** query falharia — o código faz `SERVICE_ROLE || ANON`, então valor errado-mas-presente **não** cai no fallback).
-3. Railway → Deployments → logs: procure `supabase_erro` com `fn: registrarMensagemProcessada`. **Deve ter sumido** — era o sintoma da anon.
-4. **Prova definitiva (opcional, custa 1 chamada de Gemini):** mande a **mesma foto de cupom duas vezes**. A 2ª deve ser ignorada pela dedup. Com anon, ela reprocessava.
+> ❌ **CORREÇÃO 2026-08-07 — o teste original deste passo estava ERRADO (erro meu).**
+> Eu escrevi *"mande a mesma foto 2× e a 2ª deve ser ignorada pela dedup"*. **Não deve.**
+> A dedup é por **`messageId`**, não por conteúdo — ela existe pro caso de *"o Z-API
+> reentregar o mesmo evento (retry/rede/reconexão)"* (`index.js:155`). Duas fotos que
+> você envia separadamente são duas mensagens distintas, com messageIds distintos: o
+> bot processa as duas, e isso é o **comportamento correto**. O Gabriel rodou o teste
+> em 07/08, recebeu 2 respostas, e não havia nada de errado.
+>
+> **E o mais importante:** o comportamento visível do bot **não distingue** anon de
+> service_role. A falha de `registrarMensagemProcessada` é *fail-open* — o cupom
+> processa normal e nada aparece pro usuário. Foi por isso que o problema passou
+> semanas despercebido. Nenhum teste "pelo WhatsApp" decide isso.
 
-> 🚦 **Se o bot não responder ou os erros continuarem, PARE.** Não rode o bloco 2.
-> Reveja o valor da variável no Railway (Supabase → Settings → API → `service_role` → Reveal).
+**Teste 1 — decisivo, 30 segundos.** As chaves do Supabase são JWTs que carregam o
+próprio papel no payload. Decodifique e leia o campo `role` (PowerShell, na pasta do projeto):
+
+```
+node -e "const t=process.argv[1].split('.')[1];console.log(JSON.parse(Buffer.from(t,'base64url')))" COLE_A_CHAVE_AQUI
+```
+
+- `role: 'service_role'` → ✅ chave certa. Pode seguir.
+- `role: 'anon'` → 🚦 **PARE.** Você colou a anon por engano — o bloco 2 derrubaria o bot. Supabase → Settings → API → `service_role` → Reveal.
+
+⚠️ A chave fica no histórico do PowerShell: rode `Clear-History` depois, ou salve num
+`.txt` temporário **fora do repositório** e passe o caminho. **Não** use jwt.io nem
+sites parecidos — é uma chave com acesso total ao banco.
+
+**Teste 2 — confirmação pelos logs (se preferir não mexer na chave).**
+Mande qualquer mensagem ao bot, depois Railway → Deployments → logs e procure
+`supabase_erro` com `fn: registrarMensagemProcessada`:
+
+- **nenhuma ocorrência** → ✅ service_role em uso
+- **uma por mensagem** → 🚦 ainda em anon. Não rode o bloco 2.
+
+**Teste 3 — o bot está de pé.** Mande "oi" (acorda o serviço, que aparecia "Sleeping",
+e força o boot com a env nova). Isto **não** prova qual chave está em uso — prova só
+que o bot subiu. Se ele **não** responder, algo mais básico quebrou: pare aqui.
 
 ---
 
@@ -65,6 +95,12 @@ menor e cobre 5 relações. O código de hoje usa **15**. Sem a parte 2, ficam e
 elas rodam com o privilégio de **quem as criou**, então `v_dashboard` continuaria
 devolvendo tudo mesmo com RLS ligado nas tabelas base. Ligar só o original tranca a
 porta da frente e deixa a lateral aberta.
+
+> ⚠️ **Se você já tentou rodar e tomou `42P01: relation "..." does not exist`:**
+> nada foi aplicado (o SQL Editor roda tudo numa transação — o erro fez rollback
+> do bloco inteiro). O arquivo da parte 2 foi **reescrito em v2** e agora
+> **descobre sozinho** o que existe, em vez de assumir uma lista fixa. É
+> idempotente: pode rodar inteiro, quantas vezes quiser. Pegue a versão nova.
 
 **Verificação — o teste que vale é fora do SQL Editor.** O Editor roda como
 `service_role` e enxerga tudo: testar por lá dá **falso positivo**. Use o terminal:
@@ -157,3 +193,16 @@ SELECT column_name FROM information_schema.columns
 - [ ] **cod-0062 destravada** — é porte G (coração), roda em sessão com você presente
 - [ ] **cod-0069/0070 destravadas** — o bloqueio delas era exatamente o S2+S4
 - [ ] Setar `COMPARATIVO_MAX_PRO=10` no Railway (pré-req da cod-0073, o gate Pro)
+
+---
+
+## 📌 Nota de método (2026-08-07)
+
+O erro do passo 0 vale ficar registrado: eu propus um teste **de comportamento** para
+uma falha que é **silenciosa por construção**. `registrarMensagemProcessada` é
+fail-open — quando falha, nada muda pro usuário. Testar pelo WhatsApp nunca poderia
+distinguir anon de service_role.
+
+**Regra que fica:** quando o defeito é silencioso, o teste tem que ser **de estado**
+(o que a chave é, o que a tabela tem, o que o log diz), nunca **de comportamento**
+(o que o bot respondeu). Vale para tudo nesta pasta: dedup, RLS, RPC, schema guard.
