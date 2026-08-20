@@ -32,6 +32,7 @@ const {
   ativarIndicacao,
   converterIndicacao,
   marcarProAtivo,
+  temFeaturesProAtivas,
   buscarStatusIndicacoes,
   registrarMensagemProcessada,
   // salvarWaitlist — DEPRECATED em 2026-05-22 (waitlist removida); função
@@ -588,7 +589,7 @@ async function processarTexto(phone, texto) {
   }
 
   if (ehComando('/comparar', 'comparar', '/comparativo', 'comparativo')) {
-    await mostrarComparativo(phone);
+    await mostrarComparativo(phone, usuario);
     return;
   }
 
@@ -844,23 +845,32 @@ async function mostrarCortar(phone) {
 }
 
 // ---------------------------------------------------------------
-// Comparativo entre mercados (/comparar) — cod-0020, feature paga nº1.
+// Comparativo entre mercados (/comparar) — cod-0020 + GATE PRO (cod-0073,
+// ligado em 2026-08-16; fecha o achado B10 do Checkpoint N2 de 01/08, em que o
+// plano pago entregava só "cupons ilimitados").
 // Lê a base anônima de preços dos produtos que o usuário compra e mostra onde
-// cada um sai mais barato. O teaser (nº de comparativos mostrados) é o env
-// COMPARATIVO_AMOSTRAS_FREE (default 3); o gate por plano pago é passo humano
-// SEPARADO — aqui o limite é único pra todos e não decide nada de cobrança.
+// cada um sai mais barato.
+//   Free: teaser de COMPARATIVO_AMOSTRAS_FREE itens (default 3) + upsell honesto
+//         — e o upsell só aparece quando há mais pra ver (resultado.temMais).
+//   Pro (temFeaturesProAtivas = assinante OU janela da recompensa de indicação):
+//        até COMPARATIVO_MAX_PRO itens (default 10 — teto por tamanho de mensagem),
+//        sem upsell.
+// O gate NÃO cobra nada e não decide preço: só escolhe quantos itens mostrar.
 // ---------------------------------------------------------------
-async function mostrarComparativo(phone) {
+async function mostrarComparativo(phone, usuario) {
   try {
     const { observacoes, produtosDoUsuario, lojaDoUsuario } = await buscarObservacoesComparativo(phone);
-    const maxComparativos = Number(process.env.COMPARATIVO_AMOSTRAS_FREE) || 3;
+    const ehPro = temFeaturesProAtivas(usuario);
+    const maxComparativos = ehPro
+      ? (Number(process.env.COMPARATIVO_MAX_PRO) || 10)
+      : (Number(process.env.COMPARATIVO_AMOSTRAS_FREE) || 3);
     const resultado = compararPrecosMercado(observacoes, {
       produtosDoUsuario,
       lojaDoUsuario,
       minEconomiaPct: 3,
       maxComparativos,
     });
-    await enviarMensagem(phone, montarMensagemComparativo(resultado));
+    await enviarMensagem(phone, montarMensagemComparativo(resultado, { ehPro }));
   } catch (err) {
     log('comparativo_erro', { phone: maskPhone(phone), erro: err.message });
     await enviarMensagem(phone, 'Não consegui montar o comparativo agora. Tenta de novo em instantes? 🙏');

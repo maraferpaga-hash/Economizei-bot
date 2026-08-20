@@ -1188,8 +1188,8 @@ async function buscarStatusIndicacoes(phoneNumber) {
 }
 
 // Helper puro: o usuário tem acesso às funções Pro? (assinante OU janela de recompensa ativa)
-// Usar como gate de comparativo entre mercados + alerta inteligente QUANDO essas features
-// forem implementadas. NÃO usar pro limite de cupons (decisão 2026-06-07).
+// Gate do comparativo entre mercados (ligado no cod-0073, 2026-08-16) e do alerta
+// inteligente. NÃO usar pro limite de cupons (decisão 2026-06-07).
 function temFeaturesProAtivas(usuario) {
   if (!usuario) return false;
   if (usuario.is_pro) return true;

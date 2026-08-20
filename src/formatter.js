@@ -774,7 +774,13 @@ function _capitalizar(s) {
 // insights.compararPrecosMercado. Número no topo (menor preço + economia),
 // voz de WhatsApp, sem gíria proibida. Sem dados → mensagem honesta que
 // convida a continuar mandando cupom (a base cresce com o uso).
-function montarMensagemComparativo(resultado) {
+//
+// `opts.ehPro` (cod-0073, 2026-08-16) controla só o rodapé de upsell. O default
+// `{}` mantém a chamada de 1 argumento byte a byte igual ao que era antes —
+// retrocompatibilidade é critério de aceite, não detalhe.
+// Copy do upsell: sem preço hardcoded (o preço vive só em montarMensagemPlanos,
+// pra não ficar stale se o pricing mudar), sem urgência falsa, sem gíria.
+function montarMensagemComparativo(resultado, opts = {}) {
   if (!resultado || !resultado.temComparativo || !resultado.comparativos.length) {
     return (
       '🛒 *Comparativo entre mercados*\n\n' +
@@ -804,6 +810,11 @@ function montarMensagemComparativo(resultado) {
   partes.push(`\n_Preços que a rede registrou nos últimos ${resultado.janelaDias} dias._`);
   if (resultado.temMais) {
     partes.push(`_Mostrando os ${resultado.mostrados} com maior diferença, de ${resultado.totalComparaveis} no total._`);
+    // Upsell só quando há de fato mais comparativo pra ver — é o momento de maior
+    // valor percebido, e evita prometer conteúdo que não existe.
+    if (!opts.ehPro) {
+      partes.push(`💡 No plano *Individual* você vê o comparativo completo. Detalhes: */planos*`);
+    }
   }
   return partes.join('\n');
 }
