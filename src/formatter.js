@@ -228,6 +228,41 @@ function montarTetoErro(motivo, extra) {
   return 'Pra que item ou categoria você quer definir um teto? Ex.: */teto cerveja 100* ou */teto doces 150*.';
 }
 
+// ---------------------------------------------------------------
+// GATE PRO — upsell dos comandos de CONFIGURAÇÃO do Alerta Pro (cod-0074,
+// 2026-08-20). Mesmo espírito do rodapé do /comparar (cod-0073): fecha o achado
+// B10 do Checkpoint N2 de 01/08, em que os comandos de configuração rodavam sem
+// gate nenhum.
+//
+// Regras da copy (critério de aceite da AGENDA + regra 4 do §11 do CLAUDE.md):
+//   • VALOR primeiro (o que a pessoa passa a conseguir fazer), caminho depois
+//   • SEM preço e SEM ciclo de cobrança — o preço vive só em montarMensagemPlanos,
+//     senão a copy fica stale no dia em que o pricing mudar
+//   • sem urgência falsa, sem gíria, sem moralizar
+//   • lembra que */acompanhamentos* e */parar* continuam abertos — quem já
+//     configurou algo precisa poder VER e DESLIGAR mesmo fora do Pro (decisão
+//     07-10: decência + LGPD; evita acompanhamento zumbi)
+//
+// `comando` escolhe só a frase de valor; valor desconhecido cai no texto
+// genérico — nunca em erro, nunca em mensagem vazia.
+// ---------------------------------------------------------------
+const _VALOR_UPSELL_PRO = {
+  acompanhar: 'Acompanhe um item ou uma categoria — por exemplo *cerveja* — e veja, a qualquer momento, quanto ele já somou no mês.',
+  teto: 'Defina um teto para um item ou categoria — por exemplo R$ 100,00 em *cerveja* — e receba um aviso quando o gasto do mês chegar lá.',
+  superfluo: 'Escolha quais categorias contam como supérfluo pra você, e o bloco de supérfluo do */gastos* passa a seguir a sua régua, não a padrão.',
+};
+
+function montarUpsellAcompanhamentos(comando) {
+  const valor = _VALOR_UPSELL_PRO[comando]
+    || 'Acompanhe itens e categorias, defina o teto de gasto de cada um e receba o aviso quando o mês chegar lá.';
+  return (
+    `⭐ *Essa configuração é do plano Individual*\n\n` +
+    `${valor}\n\n` +
+    `O que você já configurou continua visível em */acompanhamentos* — e dá pra desligar qualquer um com */parar*.\n\n` +
+    `Pra conhecer os planos: */planos*`
+  );
+}
+
 // alertas = [{ rotulo, tipo_alvo, total, limite, pct }] — vindo de
 // verificarTetosEstourados (insights.js). Lista vazia/inválida → '' (o chamador
 // não envia nada). Um alvo = mensagem focada; vários = uma mensagem só, pra não
@@ -1202,6 +1237,7 @@ module.exports = {
   montarSuperfluoInvalido,
   montarTetoConfirmado,
   montarTetoErro,
+  montarUpsellAcompanhamentos,
   montarAlertaLimite,
   montarMensagemInflacao,
   montarMensagemEconomia,

@@ -61,6 +61,7 @@ const {
   montarSuperfluoInvalido,
   montarTetoConfirmado,
   montarTetoErro,
+  montarUpsellAcompanhamentos,
   montarAlertaLimite,
   montarMensagemInflacao,
   montarMensagemEconomia,
@@ -593,18 +594,24 @@ async function processarTexto(phone, texto) {
     return;
   }
 
-  // Alerta Pro — acompanhamentos personalizáveis (cod-0033). Comandos finos
-  // sobre a I/O do cod-0031 e a lógica pura do cod-0030/0033. SEM gate Pro aqui:
-  // ligar/desligar o Pro é passo humano (firewall). /acompanhamentos e /parar
-  // ficam sempre acessíveis (decisão 07-10: quem caiu do plano pago precisa ver
-  // e parar o que configurou). Comandos com argumento casam por palavras[0]
-  // (não por ehComando, que casaria a palavra em qualquer posição da mensagem).
+  // Alerta Pro — acompanhamentos personalizáveis (cod-0033) + GATE PRO
+  // (cod-0074, 2026-08-20). O recorte é o decidido em 2026-07-08 e refinado em
+  // 07-27 — não relitigar aqui:
+  //   • Pro: /acompanhar, /teto, /superfluo (a CONFIGURAÇÃO)
+  //   • sempre abertos, de propósito: /acompanhamentos e /parar — quem teve Pro
+  //     e voltou pro Free precisa VER e DESLIGAR o que configurou (decência +
+  //     LGPD; evita acompanhamento zumbi disparando alerta pra quem não pode
+  //     desligar). NÃO adicionar gate aqui sem revogar a decisão de 07-10.
+  //   • o bloco de supérfluo com baseline no /gastos continua Free (é insight)
+  // Comandos com argumento casam por palavras[0] (não por ehComando, que casaria
+  // a palavra em qualquer posição da mensagem).
   if (ehComando('/acompanhamentos', 'acompanhamentos', '/meusalertas', 'meusalertas')) {
     await mostrarAcompanhamentos(phone);
     return;
   }
 
   if (palavras[0] === '/acompanhar' || palavras[0] === 'acompanhar') {
+    if (!(await exigirProAlerta(phone, usuario, 'acompanhar'))) return;
     await criarAcompanhamento(phone, palavras.slice(1).join(' '));
     return;
   }
@@ -618,12 +625,14 @@ async function processarTexto(phone, texto) {
   // Nome escolhido pra NÃO colidir com o /limite atual (status de cupons), que
   // segue significando "quantos cupons ainda tenho".
   if (palavras[0] === '/teto' || palavras[0] === 'teto') {
+    if (!(await exigirProAlerta(phone, usuario, 'teto'))) return;
     await definirTeto(phone, palavras.slice(1).join(' '));
     return;
   }
 
   if (palavras[0] === '/superfluo' || palavras[0] === 'superfluo'
       || palavras[0] === '/supérfluo' || palavras[0] === 'supérfluo') {
+    if (!(await exigirProAlerta(phone, usuario, 'superfluo'))) return;
     await configurarSuperfluo(phone, palavras.slice(1).join(' '));
     return;
   }
@@ -797,7 +806,9 @@ async function processarReciboRecebido(phone, baixar) {
 
     // Alerta proativo de teto (cod-0035): esta compra pode ter feito um alvo
     // acompanhado cruzar o limite do mês. Self-contained — nunca derruba o fluxo.
-    await verificarAlertasDeLimite(phone);
+    // Passa o usuário porque o alerta é Pro (gate silencioso, cod-0074).
+    // `usuarioAtualizado` é a leitura mais fresca; `usuario` é o fallback.
+    await verificarAlertasDeLimite(phone, usuarioAtualizado || usuario);
 
     // Marco de ativação de indicação: se este usuário veio por indicação e ainda
     // estava pendente, este 1º cupom libera a recompensa pros dois lados.
@@ -878,9 +889,43 @@ async function mostrarComparativo(phone, usuario) {
 }
 
 // ---------------------------------------------------------------
+// GATE PRO do Alerta Pro (cod-0074) — mesmo padrão do /comparar (cod-0073):
+// `temFeaturesProAtivas` = assinante OU dentro da janela da recompensa de
+// indicação. O gate NÃO cobra nada, não cria cobrança e não decide preço: só
+// escolhe quem pode CONFIGURAR.
+//
+// COMANDOS_PRO_ALERTA é a lista viva do recorte; `comandoExigeProAlerta` é pura
+// e exportada test-only, pra que o recorte seja testável sem subir o webhook.
+// /acompanhamentos e /parar estão fora da lista DE PROPÓSITO (decisão 07-10).
+// ---------------------------------------------------------------
+const COMANDOS_PRO_ALERTA = ['acompanhar', 'teto', 'superfluo'];
+
+function comandoExigeProAlerta(comando) {
+  return COMANDOS_PRO_ALERTA.includes(comando);
+}
+
+// Pura: este comando pode seguir pra este usuário?
+// Direção segura: usuário ausente/desconhecido é tratado como Free — errar pra
+// menos é recuperável, errar pra mais entrega de graça o que sustenta o pago.
+function comandoLiberadoParaUsuario(comando, usuario) {
+  if (!comandoExigeProAlerta(comando)) return true;
+  return temFeaturesProAtivas(usuario);
+}
+
+// Devolve true quando o handler pode seguir; false depois de já ter respondido
+// com o upsell (o chamador só precisa dar `return`).
+async function exigirProAlerta(phone, usuario, comando) {
+  if (comandoLiberadoParaUsuario(comando, usuario)) return true;
+  log('gate_pro_bloqueado', { phone: maskPhone(phone), comando });
+  await enviarMensagem(phone, montarUpsellAcompanhamentos(comando));
+  return false;
+}
+
+// ---------------------------------------------------------------
 // Alerta Pro — acompanhamentos personalizáveis (cod-0033).
 // Handlers finos: parsing puro (insights.js) + I/O (supabase.js cod-0031) +
-// copy (formatter.js). SEM gate Pro — passo humano (firewall).
+// copy (formatter.js). O gate Pro fica no roteador (exigirProAlerta), não aqui:
+// o handler continua fazendo uma coisa só.
 // A config do alerta proativo (cod-0035) virou o comando */teto* — nome novo
 // pra não colidir com o /limite atual, que segue sendo o status de cupons.
 // ---------------------------------------------------------------
@@ -955,30 +1000,49 @@ async function definirTeto(phone, argumento) {
 // Self-contained: NUNCA lança (o cupom já foi salvo e respondido; um erro aqui
 // não pode virar "erro ao processar imagem" pro usuário).
 //
+// GATE PRO SILENCIOSO (cod-0074): sem Pro, o alerta simplesmente NÃO SAI — e
+// não vira upsell. Mensagem proativa não solicitada é o pior lugar possível pra
+// vender: a pessoa não pediu nada, e o bot chegaria oferecendo. Os
+// acompanhamentos ficam salvos e voltam a alertar sozinhos se o Pro voltar.
+// O gate vem antes de qualquer leitura do banco — não faz sentido pagar duas
+// consultas pra decidir não enviar.
+//
 // Ordem enviar → marcar de propósito: se a marcação falhar, o pior caso é
 // repetir o aviso na próxima compra; se marcasse antes e o envio falhasse, o
 // usuário ficaria sem o aviso no mês inteiro — silêncio é o pior dos dois.
-async function verificarAlertasDeLimite(phone) {
+//
+// `deps` existe só pro teste (mesmo padrão de despacharComDedup, cod-0052):
+// produção chama com 2 argumentos e usa os imports do módulo.
+async function verificarAlertasDeLimite(phone, usuario, deps = {}) {
+  const _temPro = deps.temFeaturesProAtivas || temFeaturesProAtivas;
+  const _buscarAcompanhamentos = deps.buscarAcompanhamentos || buscarAcompanhamentos;
+  const _buscarItensDoMes = deps.buscarItensDoMes || buscarItensDoMes;
+  const _enviarMensagem = deps.enviarMensagem || enviarMensagem;
+  const _marcarAlertaLimiteEnviado = deps.marcarAlertaLimiteEnviado || marcarAlertaLimiteEnviado;
+  const _log = deps.log || log;
+
   try {
-    const acompanhamentos = await buscarAcompanhamentos(phone);
+    if (!_temPro(usuario)) return;
+
+    const acompanhamentos = await _buscarAcompanhamentos(phone);
     if (!acompanhamentos.some((a) => Number(a.limite_mensal) > 0)) return;
 
     const mesAtual = new Date().toISOString().slice(0, 7);
-    const itens = await buscarItensDoMes(phone, mesAtual);
+    const itens = await _buscarItensDoMes(phone, mesAtual);
     if (itens === null) return; // leitura falhou: não alerta com número chutado
 
     const alertas = verificarTetosEstourados(acompanhamentos, itens, mesAtual);
     if (alertas.length === 0) return;
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    await enviarMensagem(phone, montarAlertaLimite(alertas));
-    log('alerta_limite_enviado', { phone: maskPhone(phone), alvos: alertas.length });
+    await _enviarMensagem(phone, montarAlertaLimite(alertas));
+    _log('alerta_limite_enviado', { phone: maskPhone(phone), alvos: alertas.length });
 
     for (const a of alertas) {
-      await marcarAlertaLimiteEnviado(phone, a.id, mesAtual);
+      await _marcarAlertaLimiteEnviado(phone, a.id, mesAtual);
     }
   } catch (err) {
-    log('alerta_limite_erro', { phone: maskPhone(phone), erro: err.message });
+    _log('alerta_limite_erro', { phone: maskPhone(phone), erro: err.message });
   }
 }
 
@@ -1260,5 +1324,11 @@ module.exports = {
   // cod-0025: quais comandos escapam do gate de onboarding (função pura)
   comandoLiberadoNoOnboarding,
   COMANDOS_LIBERADOS_NO_ONBOARDING,
+  // cod-0074: recorte Free×Pro dos comandos do Alerta Pro (funções puras) +
+  // o alerta proativo com deps injetáveis, pra provar o gate silencioso.
+  COMANDOS_PRO_ALERTA,
+  comandoExigeProAlerta,
+  comandoLiberadoParaUsuario,
+  verificarAlertasDeLimite,
 };
 // fim do arquivo
