@@ -46,6 +46,18 @@ const TIPOS_GASTO = ['mercado', 'outros'];
 const TIPOS_MERCADO = ['mercado'];
 const DIRECAO_SAIDA = 'saida';
 
+/**
+ * O documento deste `tipo` pode alimentar a base anônima de preços?
+ * (cod-0062b — puro de propósito: é a regra, testável sem banco.)
+ *
+ * LISTA BRANCA: só supermercado. Comprovante de PIX (`tipo='pix'`, cod-0062)
+ * não tem item nem preço unitário de produto — deixá-lo entrar poluiria o
+ * comparativo entre mercados com valores que não são preço de nada.
+ */
+function entraEmPrecosMercado(tipo) {
+  return TIPOS_MERCADO.includes(tipo);
+}
+
 // Códigos de "coluna/tabela não existe" (espelha schemaGuard.CODIGOS_AUSENCIA).
 const _CODIGOS_AUSENCIA = ['42703', '42P01', 'PGRST204', 'PGRST205'];
 function _ehAusencia(error) {
@@ -193,7 +205,11 @@ async function salvarCompra(phoneNumber, dados) {
       // Registra preços anônimos para o comparativo de mercados (fire-and-forget).
       // Cupom não-mercado (tipo='outros') NÃO entra no comparativo de mercados —
       // farmácia/posto/restaurante poluiriam a base de preços de supermercado.
-      if (tipo !== 'outros') {
+      // ⚠️ cod-0062b (2026-08-21): o guard era `tipo !== 'outros'` — LISTA NEGRA.
+      // Qualquer tipo NOVO (o `'pix'` da cod-0062 é o primeiro) entraria na base
+      // de preços por omissão. Agora é LISTA BRANCA: só `mercado` registra preço.
+      // Idêntico hoje (só existem 'mercado' e 'outros'); seguro quando o PIX chegar.
+      if (entraEmPrecosMercado(tipo)) {
         registrarPrecosMercado(phoneNumber, dados.loja, dados.cnpj ?? null, itens)
           .catch(err => log('precos_mercado_erro', { fn: 'salvarCompra', erro: err.message }));
       }
@@ -1985,6 +2001,7 @@ module.exports = {
   // filtro de gasto (cod-0062a)
   TIPOS_GASTO,
   TIPOS_MERCADO,
+  entraEmPrecosMercado,
   DIRECAO_SAIDA,
   filtroGasto,
   aplicarFiltroGasto,

@@ -394,6 +394,79 @@ function montarResposta(dadosCompra, historico) {
   return tituloLinha + linhaMes + blocoItens;
 }
 
+// ---------------------------------------------------------------
+// Comprovante de PIX — copy de confirmação (cod-0062b, 2026-08-21).
+//
+// Escrita ANTES da leitura do comprovante (cod-0062, porte G, roda com o
+// Gabriel presente): quando a extração chegar, é só plugar. Nada aqui lê,
+// grava ou decide — são três funções puras de texto.
+//
+// 🔒 LGPD: estas funções recebem SÓ contraparte, valor e data. CPF, chave PIX
+// (que é telefone), agência e conta não entram aqui de propósito — são lidos e
+// descartados no pipeline, nunca exibidos e nunca persistidos.
+//
+// Vocabulário: `saida` = dinheiro que saiu (PIX enviado, vira gasto);
+// `entrada` = dinheiro que entrou (PIX recebido, NUNCA vira gasto).
+// É o vocabulário da coluna `compras.direcao`
+// (migration_2026-08-05_pix_direcao_id_transacao.sql).
+// ---------------------------------------------------------------
+
+// `Number.isFinite(Number(x))` sozinho ACEITA null, '' e false (todos viram 0):
+// um valor ausente viraria "R$ 0,00" — exatamente o número chutado que a recusa
+// honesta existe pra evitar. Daí a checagem estrita.
+function _valorPix(v) {
+  if (v === null || v === undefined || v === '' || typeof v === 'boolean') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// Confirmação de PIX ENVIADO (direcao='saida'): dinheiro que saiu, é gasto.
+// `totalMes` é opcional de propósito — enquanto o PIX não entrar nas agregações
+// (cod-0062), mostrar "no mês" seria um número que não bate com o /gastos.
+// Sem valor legível NÃO existe confirmação: cai na recusa honesta (corpus
+// pix-03, print do Mercado Pago sem o valor impresso). CODE_GUIDE §0.4.
+function montarConfirmacaoPix({ contraparte, total, data_compra, totalMes = null, qtdMes = null } = {}) {
+  const valor = _valorPix(total);
+  if (valor === null) return montarPixValorIlegivel();
+
+  const para = contraparte ? ` — para ${contraparte}` : '';
+  let msg =
+    `✅ *PIX registrado*${para}, ${dataCurta(data_compra)}\n` +
+    `💸 *R$ ${brl(valor)}* neste PIX`;
+
+  const mes = _valorPix(totalMes);
+  if (mes !== null) {
+    const n = Number(qtdMes) || 0;
+    msg += `\n📊 *R$ ${brl(mes)}* no mês (${n} ${n === 1 ? 'lançamento' : 'lançamentos'})`;
+  }
+  return msg;
+}
+
+// Confirmação de PIX RECEBIDO (direcao='entrada'): dinheiro que entrou.
+// A mensagem existe para deixar explícito o que o número NÃO é — somar um PIX
+// recebido como gasto faria todo o resto mentir (decisão do Gabriel, 2026-08-05).
+function montarConfirmacaoPixEntrada({ contraparte, total, data_compra } = {}) {
+  const valor = _valorPix(total);
+  if (valor === null) return montarPixValorIlegivel();
+
+  const de = contraparte ? ` — de ${contraparte}` : '';
+  return (
+    `📥 *PIX recebido*${de}, ${dataCurta(data_compra)}\n` +
+    `💰 *R$ ${brl(valor)}* que entraram\n\n` +
+    `_Guardei como entrada. Não somei nada nos seus gastos: dinheiro que entra não é gasto._`
+  );
+}
+
+// Recusa honesta: comprovante legível, valor não. Prefere não registrar a
+// registrar um número chutado — e diz isso sem culpar a pessoa.
+function montarPixValorIlegivel() {
+  return (
+    `⚠️ *Não consegui ler o valor deste comprovante com segurança.*\n\n` +
+    `Não registrei nada: prefiro não colocar um número errado na sua conta.\n\n` +
+    `_Se puder, manda o comprovante completo (ou um print em que o valor apareça inteiro)._`
+  );
+}
+
 function montarMensagemErro(motivo, categoria = 'outro') {
   const dicas = {
     borrado:
@@ -1203,6 +1276,9 @@ function montarErroAgente() {
 module.exports = {
   nomeDoMes,
   brl,
+  montarConfirmacaoPix,
+  montarConfirmacaoPixEntrada,
+  montarPixValorIlegivel,
   montarDigestSemanal,
   montarResposta,
   montarMensagemErro,
