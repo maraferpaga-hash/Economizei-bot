@@ -142,6 +142,66 @@ function lerCampoDoManifesto(leva, campo) {
   return linha ? linha.slice(linha.indexOf(":") + 1).trim() : null;
 }
 
+// ---------------------------------------------------------------- cadeia
+// A leva N é construída EM CIMA da N-1 (REGRA 1 do /tarefa). Então o "delta" de um
+// arquivo tem que ser medido contra a versão da leva anterior que o contém — NÃO contra
+// `src/`. Medir contra `src/` faz duas levas encadeadas parecerem concorrentes.
+function baseDoArquivo(levas, indice, rel) {
+  for (let i = indice - 1; i >= 0; i--) {
+    const p = path.join(levas[i].dir, "arquivos", rel);
+    if (fs.existsSync(p)) return { caminho: p, origem: `leva ${String(levas[i].numero).padStart(4, "0")}` };
+  }
+  const noRepo = path.join(RAIZ, rel);
+  return fs.existsSync(noRepo) ? { caminho: noRepo, origem: "repo" } : null;
+}
+
+// Linhas "com identidade" — descarta `}`, `//`, linhas curtas e só-pontuação, que
+// casam por acaso em qualquer arquivo e mascarariam uma cadeia quebrada.
+function linhasSignificativas(texto) {
+  return texto
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length >= 12 && /[A-Za-zÀ-ÿ0-9]{4}/.test(l));
+}
+
+// A leva atual preservou o trabalho da anterior neste mesmo arquivo?
+//
+// Comparar linha a linha não serve: uma linha LEGITIMAMENTE editada (ex.: acrescentar
+// um nome ao `module.exports`) some da comparação e parece trabalho perdido. O que
+// interessa é o caso catastrófico — a leva N ter nascido do REPO em vez da N-1, jogando
+// fora a leva inteira. Então medimos só a CONTRIBUIÇÃO da leva anterior (as linhas que
+// ela acrescentou em relação ao repositório) e vemos quanto dela sobreviveu.
+function cadeiaIntacta(levas, indice, rel) {
+  if (indice === 0) return null;
+  const anterior = levas
+    .slice(0, indice)
+    .reverse()
+    .find((l) => fs.existsSync(path.join(l.dir, "arquivos", rel)));
+  if (!anterior) return null;
+
+  const noRepo = path.join(RAIZ, rel);
+  const linhasRepo = new Set(fs.existsSync(noRepo) ? linhasSignificativas(fs.readFileSync(noRepo, "utf8")) : []);
+  const contribuicao = linhasSignificativas(
+    fs.readFileSync(path.join(anterior.dir, "arquivos", rel), "utf8")
+  ).filter((l) => !linhasRepo.has(l));
+
+  // Contribuição pequena demais pra distinguir sinal de ruído.
+  if (contribuicao.length < 3) return null;
+
+  const doAtual = new Set(
+    linhasSignificativas(fs.readFileSync(path.join(levas[indice].dir, "arquivos", rel), "utf8"))
+  );
+  const sobreviveram = contribuicao.filter((l) => doAtual.has(l)).length;
+  const fracao = sobreviveram / contribuicao.length;
+  return {
+    origem: `leva ${String(anterior.numero).padStart(4, "0")}`,
+    fracao,
+    sobreviveram,
+    total: contribuicao.length,
+    quebrada: fracao < 0.34,
+  };
+}
+
 // ---------------------------------------------------------------- status
 function comandoStatus() {
   const levas = listarLevas();
@@ -151,10 +211,10 @@ function comandoStatus() {
     return;
   }
 
-  let totalLinhas = 0;
+  let totalDelta = 0;
   let algumProblema = false;
 
-  for (const leva of levas) {
+  levas.forEach((leva, i) => {
     const arquivos = arquivosDaLeva(leva);
     const tarefa = lerCampoDoManifesto(leva, "tarefa") || "(sem manifesto)";
     const migration = lerCampoDoManifesto(leva, "migration") || "?";
@@ -162,7 +222,8 @@ function comandoStatus() {
 
     console.log(`── leva ${String(leva.numero).padStart(4, "0")} · ${leva.nome}`);
     console.log(`   tarefa:     ${tarefa}`);
-    console.log(`   migration:  ${migration}    financeiro: ${financeiro}`);
+    console.log(`   migration:  ${migration}`);
+    console.log(`   financeiro: ${financeiro}`);
 
     if (!fs.existsSync(path.join(leva.dir, "LEVA.md"))) {
       console.log(`   ⚠️  SEM LEVA.md — manifesto obrigatório ausente`);
@@ -175,12 +236,10 @@ function comandoStatus() {
 
     for (const rel of arquivos) {
       const origem = path.join(leva.dir, "arquivos", rel);
-      const destino = path.join(RAIZ, rel);
       const nl = contarLinhas(origem);
-      const na = fs.existsSync(destino) ? contarLinhas(destino) : null;
-      totalLinhas += nl || 0;
-
+      const base = baseDoArquivo(levas, i, rel);
       const marcas = [];
+
       if (ehProibido(rel)) {
         marcas.push("⛔ ZONA PROIBIDA");
         algumProblema = true;
@@ -190,28 +249,42 @@ function comandoStatus() {
         marcas.push(`⛔ SINTAXE: ${sint.erro}`);
         algumProblema = true;
       }
-      if (na === null) marcas.push("novo");
-      else {
-        const delta = nl - na;
-        marcas.push(`${na} → ${nl} linhas (${delta >= 0 ? "+" : ""}${delta})`);
-        if (na > 0 && nl < na * 0.5) {
+
+      if (!base) {
+        marcas.push(`novo · ${nl} linhas`);
+        totalDelta += nl;
+      } else {
+        const nb = contarLinhas(base.caminho);
+        const delta = nl - nb;
+        totalDelta += Math.abs(delta);
+        marcas.push(`base ${base.origem}: ${nb} → ${nl} (${delta >= 0 ? "+" : ""}${delta})`);
+        if (nb > 0 && nl < nb * 0.5) {
           marcas.push("⚠️ ENCOLHEU MAIS DE 50% — conferir truncamento");
           algumProblema = true;
+        }
+        const cad = cadeiaIntacta(levas, i, rel);
+        if (cad && cad.quebrada) {
+          marcas.push(
+            `🔴 CADEIA QUEBRADA: só ${cad.sobreviveram}/${cad.total} linhas da ${cad.origem} sobreviveram — esta leva parece ter nascido do repo, não dela`
+          );
+          algumProblema = true;
+        } else if (cad) {
+          marcas.push(`cadeia ok (${cad.sobreviveram}/${cad.total} da ${cad.origem})`);
         }
       }
       console.log(`     • ${rel}  ${marcas.join(" · ")}`);
     }
     console.log("");
-  }
+  });
 
   const proxima = levas[0];
-  console.log(`Total: ${levas.length} leva(s) · ~${totalLinhas} linhas em estoque`);
+  console.log(`Total: ${levas.length} leva(s) · ~${totalDelta} linhas de trabalho novo`);
   console.log(`Próxima a aplicar: leva ${String(proxima.numero).padStart(4, "0")} (${proxima.nome})`);
   if (algumProblema) {
     console.log(`\n⚠️  Há problemas acima. NÃO aplique antes de resolver.`);
     process.exitCode = 2;
   } else {
-    console.log(`\n✅ Estoque íntegro — nenhuma sintaxe quebrada, nenhuma zona proibida.`);
+    console.log(`\n✅ Estoque íntegro — sintaxe OK, zona proibida limpa, cadeia preservada.`);
   }
   console.log("");
 }

@@ -1,136 +1,173 @@
-Você é o engenheiro do Economizei rodando LOCAL, na pasta do projeto (regime
-**Máquina 3.0 — PILHA DE BRANCHES**, 2026-08-05 — doc:
-`Economizei app/Plano_Desentupimento_e_Supabase_2026-08-05.md` §4-B).
-Pegue trabalho da AGENDA.md respeitando o TETO POR RUN e o TETO DE PILHA, implemente com
-teste, **commite numa branch própria** e me mostre o diff pra eu revisar.
+Você é o engenheiro do Economizei. Pegue trabalho da AGENDA.md respeitando o TETO POR RUN
+e o TETO DE ESTOQUE, implemente com teste, e **entregue o resultado como uma LEVA numerada
+dentro de `estoque/`** — sem tocar em `src/`, sem tocar em `test/`, sem git.
 
 ════════════════════════════════════════════════════════════════════════
-REGIME NOVO (2026-08-05) — LEIA ANTES DE TUDO
+REGIME ESTOQUE POR PASTA (2026-08-18) — LEIA ANTES DE TUDO
 ════════════════════════════════════════════════════════════════════════
-Você AGORA COMMITA — mas **SÓ em branch `maquina/*`**. NUNCA na `main`. NUNCA `git push`.
+**VOCÊ NÃO USA GIT PARA ESCREVER. NUNCA. EM NENHUMA HIPÓTESE.**
 
-Motivo: antes, código não-commitado no working tree bloqueava a run seguinte (Regra 0), e
-a esteira ficou 6 dias parada. Agora cada leva vira uma branch, o working tree volta limpo,
-e a produção não trava esperando minha revisão. O gate real continua intacto: **push na
-`main` deploya no Railway, e isso é 100% meu, via /entregar.**
+Motivo, medido em 2026-08-18 (doc: `Economizei app/Veredito_Teste_Commit_Sandbox_2026-08-18.md`):
+o disco montado **não permite apagar arquivo** (`rm` → `Operation not permitted`). Todo
+comando de escrita do git cria um `.lock`, grava, e depois apaga. Como o apagar falha, o
+lock fica órfão e **a segunda escrita de git morre para sempre**. Testado: `commit #1: OK`,
+`commit #2: FALHOU`. Isso vale para `commit`, `checkout -b`, `merge`, `branch -d`, `add`.
+Não existe variável de ambiente que resolva — o lock de escrita é a garantia de integridade
+do git, não um opcional. **A Máquina 3.0 (pilha de branches) está morta e enterrada.**
 
-AS 3 LEIS DA PILHA (violar qualquer uma = PARE e me avise):
+Comandos git de LEITURA você PODE usar — sempre prefixados com `GIT_OPTIONAL_LOCKS=0`
+(status, diff, log, branch, rev-parse, show). Sem o prefixo, a leitura cria `index.lock`
+e trava o repositório do Gabriel. Testado nos dois sentidos em 2026-08-07.
 
-  LEI 1 — PILHA LINEAR. Cada leva nova nasce do TOPO da pilha, não da `main`.
-     Se já existe `maquina/cod-0067` não-mergeada, a próxima leva faz
-     `git checkout maquina/cod-0067` e SÓ ENTÃO `git checkout -b maquina/cod-0025`.
-     Isso é o que impede o problema cod-0043 × cod-0044 (levas vizinhas mexendo nos
-     mesmos arquivos e conflitando). A ordem de merge é sempre a ordem de criação.
+**O que você faz no lugar de commitar:** cada leva de trabalho vira uma pasta numerada:
 
-  LEI 2 — TETO DE PILHA = 3 BRANCHES NÃO-MERGEADAS. Se já houver 3, você NÃO produz:
-     reporte "pilha cheia" com a lista da pilha e pare. Isto substitui a antiga Regra 0
-     e é o que impede estoque não-revisado crescer sem controle.
+```
+estoque/
+  0001_2026-08-19_cod-0071/
+      LEVA.md                          ← o manifesto (obrigatório)
+      arquivos/src/agent/canal.js      ← a versão COMPLETA do arquivo depois da mudança
+      arquivos/test/canal.test.js
+```
 
-  LEI 3 — A `main` NÃO PODE TER ANDADO POR BAIXO DA PILHA. No início da run, se a `main`
-     tiver commits que a base da pilha não tem, PARE e me avise (eu resolvo o rebase).
-     Você NUNCA faz rebase, merge na main, force-push ou reescrita de história.
+Como `src/` e `test/` nunca são tocados, **o working tree nunca fica sujo de `.js`, a guarda
+nunca dispara, e você produz todo dia — mesmo com entregas atrasadas há uma semana.**
+Era exatamente esse acoplamento que custou 6 dias (cod-0043) e 8 dias (cod-0062a) de produção.
+
+AS 2 REGRAS DO ESTOQUE (violar qualquer uma = PARE e avise):
+
+  REGRA 1 — CADEIA. A leva nova nasce da leva ANTERIOR, não da `main`. Antes de editar um
+     arquivo, procure a versão mais nova dele: se ele aparece em alguma leva já no estoque,
+     a base é a **cópia da leva de MAIOR número** que o contém; se não aparece em nenhuma,
+     a base é o arquivo em `src/`/`test/`. Nunca parta da `main` ignorando o estoque —
+     é isso que impede o problema cod-0043 × cod-0044 (levas vizinhas se desfazendo).
+
+  REGRA 2 — TETO DE ESTOQUE = 4 LEVAS ou ~1200 linhas. Se já houver 4 pastas em `estoque/`
+     (ou o somatório passar de ~1200 linhas), você **NÃO produz**: reporte "estoque cheio"
+     com a lista e pare. É o que impede a dívida crescer escondida.
 
 ════════════════════════════════════════════════════════════════════════
-REGRA DO LOCK (2026-08-07 — causa-raiz encontrada, obedeça sem exceção)
-════════════════════════════════════════════════════════════════════════
-`git status` e `git diff --stat` ATUALIZAM o índice e por isso PEGAM o `.git/index.lock`.
-Em mount que não permite apagar dentro de `.git/` (o sandbox do Cowork), o lock fica pra
-trás e TRAVA todo commit posterior — foi assim em 05/08 e 06/08, em runs que nem commitaram.
 
-**Prefixe TODO comando git de LEITURA com `GIT_OPTIONAL_LOCKS=0`**
-(status, diff, diff --stat, log, branch, rev-parse). Testado em 2026-08-07: com a
-variável, zero lock criado; sem ela, lock órfão garantido.
-
-Comandos de ESCRITA (add/commit/checkout/branch) precisam do lock de verdade — esses só
-rodam LOCALMENTE, onde o `rm` funciona. Se um lock órfão aparecer, `rm .git/index.lock`
-(é 0 byte, seguro). Se o `rm` falhar com "Operation not permitted", PARE e me avise:
-nenhum commit vai funcionar até eu apagar na mão (`del .git\index.lock` no Windows).
-
-════════════════════════════════════════════════════════════════════════
-
-TETO POR RUN: até 3 tarefas de porte P, OU 1 tarefa de porte M, OU 1 lote (tarefas com
-o mesmo campo "lote:") — sempre ≤ ~500 linhas de diff somadas. Tarefa sem "porte:":
-estime (P = 1 função + teste; M = multi-arquivo bem especificado; G = o resto).
-Porte G e tarefas do CORAÇÃO (prompt do Gemini / extração / categoria / nome_canonico)
-só entram se EU pedir explicitamente nesta sessão.
+TETO POR RUN: até 3 tarefas de porte P, OU 1 tarefa de porte M, OU 1 lote (tarefas com o
+mesmo campo "lote:") — sempre ≤ ~500 linhas de diff somadas. Tarefa sem "porte:": estime
+(P = 1 função + teste; M = multi-arquivo bem especificado; G = o resto). Porte G e tarefas
+do CORAÇÃO (prompt do Gemini / extração / categoria / nome_canonico) só entram se o Gabriel
+pedir explicitamente nesta sessão.
 
 PASSOS:
 
 PASSO 0) RASTRO PRIMEIRO (obrigatório, antes de qualquer coisa). Escreva o cabeçalho do
-   RELATORIO_MATINAL.md AGORA com: data/hora, HEAD, branch atual,
-   `GIT_OPTIONAL_LOCKS=0 git status --short`, estado da pilha
-   (`GIT_OPTIONAL_LOCKS=0 git branch --list "maquina/*"`), e "STATUS: run iniciada".
+   RELATORIO_MATINAL.md AGORA com: data/hora, HEAD, estado do estoque
+   (`ls estoque/`), `GIT_OPTIONAL_LOCKS=0 git status --short`, e "STATUS: run iniciada".
    Runs já morreram no meio sem deixar rastro (29/07/2026) — se esta morrer no passo
-   seguinte, eu ainda saberei o que ela estava fazendo.
+   seguinte, o Gabriel ainda saberá o que ela estava fazendo.
 
-PASSO 1) INSPEÇÃO DA PILHA (aplica as 3 leis). Rode:
+PASSO 1) INSPEÇÃO (aplica as 2 regras). Rode:
       GIT_OPTIONAL_LOCKS=0 git status --short
-      GIT_OPTIONAL_LOCKS=0 git branch --list "maquina/*"
-      GIT_OPTIONAL_LOCKS=0 git log --oneline origin/main..HEAD
-   a) Working tree sujo com .js/.mjs? → me avise e PARE (é resto de sessão manual minha;
-      .md e PAINEL.html sujos NÃO contam).
-   b) Já existem 3 branches `maquina/*`? → LEI 2: reporte "pilha cheia" e PARE.
-   c) A `main` andou por baixo da pilha? → LEI 3: reporte e PARE.
-   d) Existe `.git/index.lock`? → aplique a REGRA DO LOCK acima.
+      GIT_OPTIONAL_LOCKS=0 git log --oneline -5
+      ls estoque/ 2>/dev/null
+   a) Working tree sujo com `.js`/`.mjs` em `src/` ou `test/`? → é trabalho MANUAL do
+      Gabriel no meio do caminho. Avise e PARE. (`.md`, `PAINEL.html` e a própria pasta
+      `estoque/` NÃO contam — no regime novo isto quase nunca dispara.)
+   b) Já existem 4 levas em `estoque/`, ou o total passa de ~1200 linhas? → REGRA 2:
+      reporte "estoque cheio" e PARE.
+   c) Existe `.git/index.lock`? → algum comando rodou sem `GIT_OPTIONAL_LOCKS=0`. Tente
+      `rm .git/index.lock`; se falhar com "Operation not permitted", PARE e avise: só o
+      Gabriel resolve, com `del .git\index.lock` no Windows.
    Escreva o resultado no relatório.
 
 PASSO 2) Leia a AGENDA.md. Na "## 🌙 Fila pronta", selecione de cima pra baixo dentro do
    teto. **NÃO pegue tarefa cujo `depende-de` aponte pra algo que ainda não está na `main`**
-   (branch da pilha não conta como entregue). **NÃO pegue tarefa cujos critérios dependam
-   de como uma tarefa não-mergeada foi implementada** — reporte e siga adiante na fila.
+   (leva no estoque não conta como entregue). **NÃO pegue tarefa cujos critérios dependam
+   de como uma leva ainda no estoque foi implementada** — reporte e siga adiante na fila.
    Se nada for elegível, use a "## ⚓ Fila de lastro" (só testes/revisão/segurança).
-   Se nem o lastro tiver item, me diga e pare.
+   Se nem o lastro tiver item, avise e pare.
 
 PASSO 3) GATILHO DE SKILLS (obrigatório, antes de codar): carregue as skills do campo
    "skills:" de cada tarefa; se vazio, DERIVE pelo mapa tipo→skills da seção
-   "🧠 Gatilho de Skills". Com número/preço/promessa, o economizei-financial-firewall
-   é inegociável; todo código novo segue economizei-tdd (vem com teste).
+   "🧠 Gatilho de Skills". Com número/preço/promessa, o economizei-financial-firewall é
+   inegociável; todo código novo segue economizei-tdd (vem com teste).
 
-PASSO 4) CRIE A BRANCH — antes de escrever a primeira linha de código.
-   - Pilha vazia  → `git checkout main && git checkout -b maquina/cod-XXXX`
-   - Pilha existe → `git checkout <topo-da-pilha> && git checkout -b maquina/cod-XXXX`
-   (LEI 1). Se a run pegou várias tarefas, use o id da PRIMEIRA no nome da branch.
+PASSO 4) CRIE A PASTA DA LEVA — antes de escrever a primeira linha de código.
+   - Número: o maior número já existente em `estoque/` + 1, com 4 dígitos. Estoque vazio → `0001`.
+   - Nome: `estoque/NNNN_AAAA-MM-DD_cod-XXXX/` (se a run pegou várias tarefas, use o id da
+     PRIMEIRA no nome).
+   - Crie `arquivos/` dentro dela.
 
-PASSO 5) Implemente SÓ o que objetivo/arquivos-alvo/critérios-de-aceite pedem; respeite
-   "fora-de-escopo". Padrão: lógica pura separada de I/O; português nos
-   nomes/mensagens. Toda lógica nova vem com teste em `test/NOME.test.js`
-   (modelo: `test/insights.test.js`).
+PASSO 5) COPIE A BASE, DEPOIS EDITE A CÓPIA. Para cada arquivo que a tarefa vai mudar:
+   a) Ache a base pela REGRA 1 (leva de maior número que já tem esse arquivo; senão `src/`).
+   b) `cp <base> estoque/NNNN_.../arquivos/<mesmo-caminho-relativo>` (crie as subpastas).
+   c) **Edite a CÓPIA**, cirurgicamente, como você editaria o original.
+   Arquivo novo (ex.: um teste): crie direto dentro de `arquivos/`, no caminho final que
+   ele terá no repositório (`arquivos/test/NOME.test.js`).
+   ⚠️ **Copiar-e-editar, nunca reescrever o arquivo inteiro do zero.** O mount serve/grava
+   arquivo truncado (Regra 11 do CLAUDE.md); edição cirúrgica sobre uma cópia tem o mesmo
+   risco de sempre, reescrita completa tem risco muito maior.
 
-PASSO 6) AUTO-REVISÃO ADVERSARIAL: releia o diff como revisor hostil (edge cases, erro
-   engolido, LGPD em log, regressão de mensagem, teste frágil) e corrija ANTES de commitar.
+PASSO 6) Implemente SÓ o que objetivo/arquivos-alvo/critérios-de-aceite pedem; respeite
+   "fora-de-escopo". Padrão: lógica pura separada de I/O; português nos nomes/mensagens.
+   Toda lógica nova vem com teste (modelo: `test/insights.test.js`).
 
-PASSO 7) Rode e deixe verde: `npm run check` — se vermelho, corrija; NÃO commite vermelho.
+PASSO 7) AUTO-REVISÃO ADVERSARIAL: releia o diff (`diff <base> <sua-cópia>`) como revisor
+   hostil — edge cases, erro engolido, LGPD em log, regressão de mensagem, teste frágil —
+   e corrija ANTES de fechar a leva.
 
-PASSO 8) COMMITE NA BRANCH (um commit por tarefa, mensagem `tipo(escopo): descricao (cod-XXXX)`).
-   NUNCA `git add -A` nem `git add .` — estageie os arquivos explícitos.
-   **NUNCA `git push`. NUNCA `git checkout main` depois de commitar.** Termine a run
-   com a branch da leva em check-out.
+PASSO 8) VALIDE NUMA CÓPIA LIMPA (o `/tmp` do contêiner, onde apagar funciona):
+   a) `node --check` em cada `.js`/`.mjs` que você produziu. Qualquer SyntaxError → o
+      arquivo truncou: refaça a cópia e a edição. Não feche a leva vermelha.
+   b) Copie o repositório pro `/tmp`, aplique **todas** as levas do estoque em ordem
+      (as antigas e a sua) por cima da cópia, e rode os testes ali. Assim você valida a
+      pilha inteira integrada, não só a sua leva isolada.
+   c) Registre o resultado com honestidade. As falhas por `SIGBUS` são a limitação
+      conhecida do `sharp` (módulo nativo) neste ambiente — separe-as das falhas de
+      asserção. **O gate final continua sendo o `npm run check` na máquina do Gabriel.**
 
-PASSO 9) GRAVE O ESTADO — ANTES de me mostrar o diff (é a parte cara, e é onde runs morrem):
-   a) AGENDA.md → mova cada tarefa pra "## 🔧 Em revisão" (status: em-revisao + data +
-      branch + mapa tarefa→arquivos + migration necessária, se houver).
-   b) AGENDA.md → atualize a seção "## 📚 Pilha da máquina": acrescente a linha desta
-      leva (ordem, branch, tarefa, data, linhas, arquivos, migration s/n) e confira que
-      as anteriores continuam lá, na ordem certa.
+PASSO 9) ESCREVA O `LEVA.md` — o manifesto. É ele que o Gabriel lê no `/entregar`.
+   Use exatamente estes campos (o `scripts/estoque.mjs` lê alguns deles):
 
-PASSO 10) Me mostre: resumo por tarefa, MAPA TAREFA→ARQUIVOS, como testar, resultado do
-   check, O NOME DA BRANCH, a pilha atual em ordem de merge, e AS SKILLS QUE USOU.
+      # Leva NNNN · cod-XXXX · AAAA-MM-DD
+      tarefa: cod-XXXX — <título curto da AGENDA>
+      porte: P|M|G
+      base: main@<hash> | leva NNNN
+      migration: NAO | SIM — <qual arquivo .sql, o que rodar no Supabase ANTES do push>
+      env nova: NAO | SIM — <nome da variável, onde setar>
+      financeiro: NAO | SIM — <lista exata do que toca dinheiro>
+      coracao: NAO | SIM
+      skills: <as que você usou>
+      arquivos:
+        - src/... (novo | base leva NNNN, +X/-Y linhas)
+      integridade: node --check OK em N/N arquivos
+      testes (cópia /tmp): X/Y — Z SIGBUS conhecidos, W falhas de asserção
+      como testar: node --test test/NOME.test.js
+      resumo: <2 a 4 linhas: o que muda, por quê, o que NÃO muda>
+      pendências de ratificação: <decisões embutidas que o Gabriel deveria confirmar>
 
-PASSO 11) FECHE O RELATÓRIO: complete o RELATORIO_MATINAL.md aberto no PASSO 0 — diff,
-   métricas, pendências humanas, financeiro tocado (se houver), zona proibida, estado da
-   pilha. Troque "STATUS: run iniciada" por "STATUS: concluída". Confirme que nenhum
-   `.git/index.lock` ficou pra trás.
+PASSO 10) GRAVE O ESTADO NA AGENDA (é a parte cara, e é onde runs morrem — faça ANTES de
+   mostrar o resultado):
+   a) mova cada tarefa pra "## 🔧 Em revisão" (status `em-revisao` + data + **número da
+      leva** + mapa tarefa→arquivos + migration necessária, se houver);
+   b) atualize a seção "## 📦 Estoque" com a linha desta leva (número, data, tarefa,
+      linhas, migration s/n) e confira que as anteriores continuam lá, na ordem.
+
+PASSO 11) Mostre: resumo por tarefa, MAPA TAREFA→ARQUIVOS, como testar, resultado da
+   validação, **O NÚMERO DA LEVA**, o estoque atual em ordem, e AS SKILLS QUE USOU.
+
+PASSO 12) FECHE O RELATÓRIO: complete o RELATORIO_MATINAL.md aberto no PASSO 0 — leva
+   produzida, métricas, pendências humanas, financeiro tocado (se houver), zona proibida,
+   estado do estoque. Troque "STATUS: run iniciada" por "STATUS: concluída". Confirme que
+   nenhum `.git/index.lock` ficou pra trás.
 
 FINANCEIRO (modo ADVISORY, 2026-07-26): PODE tocar código de pagamento/cobrança se a
-tarefa pedir — o firewall só avisa. Ao tocar, DESTAQUE a lista exata do que é financeiro
-(meu merge é consciente). Nunca invente trabalho financeiro por conta.
+tarefa pedir — o firewall só avisa. Ao tocar, DESTAQUE no `LEVA.md` a lista exata do que é
+financeiro (o merge do Gabriel é consciente). Nunca invente trabalho financeiro por conta.
 
-ZONA PROIBIDA (continua absoluta — nunca toque): supabase/; .env*; .github/;
-package.json; package-lock.json; Dockerfile; Procfile; scripts/check-firewall.mjs;
-qualquer deploy. Se a tarefa exigir isso, NÃO faça: marque como "bloqueada-humano"
-na AGENDA e me explique.
+ZONA PROIBIDA (absoluta — nunca escreva nestes caminhos, nem dentro de `arquivos/`):
+supabase/; .env*; .github/; .claude/; package.json; package-lock.json; Dockerfile;
+Procfile; scripts/check-firewall.mjs; qualquer deploy. O `scripts/estoque.mjs` recusa
+mecanicamente qualquer leva que os contenha. Se a tarefa exigir isso, NÃO faça: marque como
+"bloqueada-humano" na AGENDA e explique.
 
 GIT — O QUE VOCÊ NUNCA FAZ, EM NENHUMA HIPÓTESE:
-git push · git merge (em qualquer direção) · git rebase · git reset --hard ·
-git checkout main seguido de commit · git branch -D · force-push · alterar tags/remotes.
-Se alguma dessas parecer necessária, PARE e me explique por quê.
+qualquer comando de ESCRITA. `add` · `commit` · `checkout` · `checkout -b` · `branch` ·
+`merge` · `rebase` · `reset` · `push` · `stash` · `tag`. Um único deles trava o repositório
+do Gabriel e ele precisa consertar à mão no Windows. Se algum parecer necessário, PARE e
+explique por quê.

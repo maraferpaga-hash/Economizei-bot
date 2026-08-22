@@ -77,15 +77,15 @@ A lista abaixo continua útil como **atenção extra na revisão** (não como mu
 Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 1. Lê este arquivo (e consulta `CLAUDE.md`/`CODE_GUIDE.md` só se a tarefa exigir).
-2. **Inspeciona a pilha (as 3 Leis da Máquina 3.0):** working tree sujo com `.js`/`.mjs` → para (é resto de sessão manual do Gabriel; `.md`/PAINEL não contam) · **3 branches `maquina/*` não-mergeadas → "pilha cheia", não produz** (LEI 2) · `main` andou por baixo da base da pilha → para e avisa (LEI 3, o Gabriel resolve o rebase).
-3. Vai em **`## 🌙 Fila pronta`** e seleciona trabalho de cima pra baixo (ordem = prioridade) respeitando o **TETO POR RUN (Máquina 3.0): até 3 tarefas porte P, OU 1 porte M, OU 1 lote (`lote:` igual) — sempre ≤ ~500 linhas de diff somadas.** Porte G / ambígua / coração / pré-req humano: não pega (relata o plano e segue adiante na fila). **Também não pega:** tarefa cujo `depende-de` aponte pra algo que está só na pilha (branch ≠ entregue), nem tarefa cujos critérios dependam de como uma leva não-mergeada foi implementada.
+2. **Inspeciona o estoque (as 2 Regras do regime ESTOQUE):** working tree sujo com `.js`/`.mjs` **em `src/` ou `test/`** → para (é resto de sessão manual do Gabriel; `.md`, `PAINEL.html` e a pasta `estoque/` não contam — no regime novo isto quase nunca dispara, porque a máquina não escreve em `src/`) · **4 levas em `estoque/`, ou ~1200 linhas de trabalho novo → "estoque cheio", não produz** (REGRA 2) · `.git/index.lock` presente → algum comando rodou sem `GIT_OPTIONAL_LOCKS=0`; se o `rm` falhar, só o Gabriel resolve (`del .git\index.lock` no Windows).
+3. Vai em **`## 🌙 Fila pronta`** e seleciona trabalho de cima pra baixo (ordem = prioridade) respeitando o **TETO POR RUN: até 3 tarefas porte P, OU 1 porte M, OU 1 lote (`lote:` igual) — sempre ≤ ~500 linhas de diff somadas.** Porte G / ambígua / coração / pré-req humano: não pega (relata o plano e segue adiante na fila). **Também não pega:** tarefa cujo `depende-de` aponte pra algo que está só no estoque (leva ≠ entregue), nem tarefa cujos critérios dependam de como uma leva ainda não entregue foi implementada.
 4. **Fallback:** se nada da Fila pronta for elegível, pega da **`## ⚓ Fila de lastro`** (só testes/revisão/segurança — mesmo teto). Se nem o lastro tiver item, não faz nada.
 5. **Carrega as skills de cada tarefa** (campo `skills:`). Se faltar, deriva do **mapa tipo→skills** da seção "🧠 Gatilho de Skills" e aplica durante todo o trabalho.
-6. **Cria a branch ANTES de codar (LEI 1 — pilha linear):** pilha vazia → `git checkout main && git checkout -b maquina/cod-XXXX`; pilha existente → `git checkout <topo-da-pilha> && git checkout -b maquina/cod-XXXX`. Cada leva nasce do topo da anterior, nunca da `main` — é isto que impede o problema cod-0043 × cod-0044 (levas vizinhas nos mesmos arquivos conflitando).
-7. Implementa **com teste** (TDD), faz **auto-revisão adversarial do diff**, roda a rede de segurança, **commita na branch** (1 commit por tarefa, `git add` explícito — nunca `-A`/`.`), move cada bloco pra **`## 🔧 Em revisão`** (status `em-revisao` + data + branch), **registra a leva na `## 📚 Pilha da máquina`**, e só então **mostra o diff** — com **mapa tarefa→arquivos** e **declarando quais skills usou**.
-8. **O Gabriel mergeia e pusha** via `/entregar` (a automação **nunca** toca a `main`, nunca dá `push`, nunca faz merge/rebase/force-push).
+6. **Cria a pasta da leva ANTES de codar, e copia a base (REGRA 1 — cadeia):** `estoque/NNNN_AAAA-MM-DD_cod-XXXX/arquivos/`, onde `NNNN` é o maior número já existente + 1. Antes de editar um arquivo, a base é a **cópia da leva de maior número que já o contém**; se nenhuma contém, é o arquivo em `src/`/`test/`. Copia a base pra dentro da leva e **edita a cópia** — nunca reescreve o arquivo inteiro do zero (Regra 11 do CLAUDE.md: o mount serve arquivo truncado). Cada leva nasce da anterior, nunca do repositório ignorando o estoque — é isto que impede o problema cod-0043 × cod-0044 (levas vizinhas nos mesmos arquivos se desfazendo).
+7. Implementa **com teste** (TDD), faz **auto-revisão adversarial do diff**, valida numa cópia limpa em `/tmp` com **todas** as levas do estoque aplicadas em ordem, escreve o **`LEVA.md`** (manifesto: tarefa, base, migration, env, financeiro, integridade, como testar, pendências), move cada bloco pra **`## 🔧 Em revisão`** (status `em-revisao` + data + **número da leva**), **registra a leva na `## 📦 Estoque`**, e só então **mostra o resultado** — com **mapa tarefa→arquivos** e **declarando quais skills usou**.
+8. **O Gabriel aplica e pusha** via `/entregar`, que usa o `scripts/estoque.mjs` pra copiar as levas de volta pro repositório, na ordem. A automação **nunca usa um comando de escrita do git** — nem `add`, nem `commit`, nem `checkout`. Comandos de leitura, sempre com `GIT_OPTIONAL_LOCKS=0`. Motivo medido em 2026-08-18: o disco montado não permite apagar, então a segunda escrita de git trava o repositório pra sempre (doc: `Economizei app/Veredito_Teste_Commit_Sandbox_2026-08-18.md`).
 
-**Rede de segurança (rode antes de commitar):** `npm run check` = `check-firewall.mjs --working` (financeiro) + `node --test` (testes) + `check-pages.mjs` (páginas).
+**Rede de segurança (o Gabriel roda antes de commitar, na máquina dele):** `npm run check` = `check-firewall.mjs --working` (financeiro) + `node --test` (testes) + `check-pages.mjs` (páginas).
 
 **🗄️ Regra do `/entregar` — checagem de migrations ANTES de qualquer commit/push (2026-07-13, decisão do Gabriel):** o comando `/entregar` (`.claude/commands/entregar.md`) tem uma etapa **bloqueante** de migrations: antes de pedir a aprovação humana, ele cruza o diff com os `supabase/migration_*.sql` pendentes e com as `CHECAGENS_CRITICAS` do `src/schemaGuard.js`, e **avisa explicitamente** qual migration precisa rodar antes do deploy (o push dispara deploy automático no Railway — código que lê coluna/tabela inexistente = incidente A9). Se houver migration pendente que o código do diff USA em runtime, a entrega só prossegue depois que o Gabriel confirmar que rodou a migration OU aceitar conscientemente o alerta da guarda de schema. Racional: o custo de checar é 1 minuto; o custo de não checar foi cupom perdido em silêncio (A9, 07-08→07-09).
 
@@ -169,7 +169,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ---
 
 ## 🌙 Fila pronta
-*(a máquina executa de cima pra baixo respeitando o teto por run da **Máquina 3.0** — até 3 tarefas porte P, OU 1 porte M, OU 1 lote, ≤ ~500 linhas somadas. Rotina automática às 8:02 AM Vancouver **ATIVA**, ou manual via `/tarefa`. **Desde 2026-08-05 a máquina COMMITA — só em branch `maquina/*`, nunca na `main`, nunca `git push`.** O que a trava agora não é mais o working tree sujo, é o **teto de pilha: 3 branches não-mergeadas** — ver "## 📚 Pilha da máquina".)*
+*(a máquina executa de cima pra baixo respeitando o teto por run — até 3 tarefas porte P, OU 1 porte M, OU 1 lote, ≤ ~500 linhas somadas. Rotina automática às 8:02 AM Vancouver **ATIVA**, ou manual via `/tarefa`. **Desde 2026-08-18 a máquina NÃO USA GIT: ela entrega cada leva numa pasta em `estoque/`**, sem tocar em `src/`/`test/`. O que a trava não é mais o working tree sujo, é o **teto de estoque: 4 levas ou ~1200 linhas** — ver "## 📦 Estoque".)*
 
 
 > **📍 Estado da fila (2026-08-07 — sessão de revisão da máquina, 2 rodadas).** A fila autônoma saiu de **1** tarefa elegível para **9**, sem inventar trabalho:
@@ -449,21 +449,26 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 ---
 
-## 📚 Pilha da máquina (Máquina 3.0 — branches `maquina/*` ainda NÃO mergeadas)
+## 📦 Estoque (regime ESTOQUE — levas em `estoque/` ainda NÃO entregues)
 
-> **Como funciona.** Cada leva vira uma branch, empilhada linearmente: `main` → `maquina/A` → `maquina/B` → `maquina/C`. Cada nova nasce do **topo** da anterior (LEI 1), então elas nunca conflitam entre si — e **a ordem de merge é sempre a ordem de criação. Nunca pular uma.**
+> **Como funciona.** Cada leva da máquina vira uma **pasta numerada** em `estoque/`, com o manifesto `LEVA.md` e as versões completas dos arquivos em `arquivos/`. A leva `NNNN+1` é construída **em cima** da `NNNN` (REGRA 1 — cadeia), então **a ordem de aplicação é a ordem do número. Nunca pular uma.** O `scripts/estoque.mjs` recusa mecanicamente aplicar fora de ordem.
 >
-> **Teto de pilha = 3.** Com 3 branches abertas a máquina para de produzir e reporta "pilha cheia". É o substituto da antiga Regra 0 (working tree sujo) e o que impede estoque não-revisado crescer sem controle.
+> **Por que pasta e não branch.** Medido em 2026-08-18: o disco montado onde a máquina roda **não permite apagar arquivo**, e todo comando de escrita do git cria um `.lock` que precisa ser apagado — resultado, a **segunda** escrita de git trava o repositório pra sempre (`commit #1: OK`, `commit #2: FALHOU`). A Máquina 3.0 (pilha de branches) era fisicamente impossível aqui. Doc: `Economizei app/Veredito_Teste_Commit_Sandbox_2026-08-18.md`.
 >
-> **Verdade é o git, não esta tabela.** Se divergirem, o `/entregar` avisa. A tabela existe pra o estoque ser *visível* — a crítica principal ao modelo de branches é que a dívida cresce escondida; esta seção é a defesa contra isso.
+> **Teto de estoque = 4 levas ou ~1200 linhas de trabalho novo.** Estourou, a máquina para de produzir e reporta "estoque cheio". É o que impede a dívida crescer escondida.
 >
-> **Sinal de idade:** branch com >7 dias = 🔴 (o `/entregar` está atrasado, não a máquina).
+> **Como a máquina NÃO suja mais o working tree**, entrega atrasada **não bloqueia mais a produção**. Era esse acoplamento que custou 6 dias (cod-0043) e 8 dias (cod-0062a).
+>
+> **Verdade é o disco, não esta tabela.** Rode `node scripts/estoque.mjs status` — ele lista as levas em ordem, mede o delta contra a base correta, roda `node --check` em cada arquivo, checa zona proibida e **verifica se a cadeia foi preservada**. Se divergir desta tabela, o `/entregar` avisa.
+>
+> **Sinal de idade:** leva com >5 dias = 🔴 (o `/entregar` está atrasado, não a máquina).
 
-| # | Branch | Tarefa(s) | Criada em | Linhas | Migration? | Idade |
+| # | Leva | Tarefa | Criada em | Linhas novas | Migration? | Idade |
 |---|---|---|---|---|---|---|
-| — | *(pilha vazia)* | — | — | — | — | — |
+| 1 | `0002_2026-08-21_cod-0062b` | cod-0062b — copy do comprovante de PIX | 2026-08-21 | ~274 | não | 1 dia |
+| 2 | `0003_2026-08-21_cod-0065b` | cod-0065b — `fmtMoeda` currency-aware | 2026-08-21 | ~164 | não | 1 dia |
 
-**Pilha: 0/3.** Última reconciliação: 2026-08-05 (`origin/main` = `b485ba8`, working tree limpo pros arquivos do plano).
+**Estoque: 2/4 · ~438 linhas de trabalho novo · cadeia verificada ✅** (`src/formatter.js` é compartilhado pelas duas: 52/52 linhas da leva 0002 preservadas na 0003). Última reconciliação: 2026-08-22 (`origin/main` = `103226a`).
 
 ---
 
@@ -613,7 +618,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
   - [ ] **Migration PIX** (`migration_2026-08-05_pix_direcao_id_transacao.sql`) — puramente aditiva, não quebra nada, e é o que **destrava a cod-0062**. Roda ANTES do push do código de PIX (anti-A9).
   - [ ] **S3 — a RPC `incrementar_compras_mes` existe?** Só leitura, query pronta no bloco 3 do roteiro.
   - [ ] **DROP das colunas MP** — irreversível e cosmético; a cod-0066 (limpeza do código) ainda não foi entregue, então a ordem preferida é código → deploy → banco.
-- [ ] **🧪 Teste do commit no sandbox (5 min, decide a Máquina 3.0 × TREE)** — deixar uma run tentar `git checkout -b maquina/teste` + commit vazio + `git branch -d`, com toda leitura prefixada por `GIT_OPTIONAL_LOCKS=0`. Funcionou → a variante TREE perde a razão de existir e fica um modo só. Falhou → o TREE está justificado por evidência, e a doc para de tratar a 3.0 como regime normal. Ver "🩺 Revisão da máquina" §2.
+- [x] ~~**🧪 Teste do commit no sandbox (5 min, decide a Máquina 3.0 × TREE)**~~ → ✅ **FEITO 2026-08-18 — resultado: NÃO COMMITA.** Rodado em repositórios descartáveis, sem risco pro repo real: `rm` → `Operation not permitted`; `commit #1: OK`; `commit #2: FALHOU` (o `HEAD.lock` órfão da primeira escrita não pode ser apagado). Vale pra `commit`, `checkout -b`, `merge`, `branch -d`. A Máquina 3.0 morreu por evidência e nasceu o **regime ESTOQUE**. Docs: `Veredito_Teste_Commit_Sandbox_2026-08-18.md` + `Plano_B_Estoque_2026-08-18.md`. ~~Texto original:~~ — deixar uma run tentar `git checkout -b maquina/teste` + commit vazio + `git branch -d`, com toda leitura prefixada por `GIT_OPTIONAL_LOCKS=0`. Funcionou → a variante TREE perde a razão de existir e fica um modo só. Falhou → o TREE está justificado por evidência, e a doc para de tratar a 3.0 como regime normal. Ver "🩺 Revisão da máquina" §2.
 - [ ] **⚙️ Setar `COMPARATIVO_MAX_PRO=10`** no Railway e no `.env.example` — pré-req do gate Pro (cod-0073). O default do código já é 10, então não quebra se atrasar; fica só invisível pra quem for configurar.
 - [ ] **⚖️ Resolver a contradição da cod-0066** (autorizada × revogada, ambas datadas 2026-07-27) — ver a nota na tarefa e em "⏳ Aguardando sua decisão".
 - [x] ~~**🔴 Limpar a sujeira de git que a rotina matinal de 2026-08-05 deixou**~~ — ✅ **FEITO na sessão Cowork de 2026-08-05 (noite)**, com permissão de deleção concedida pelo Gabriel: locks `.stale*` apagados, `_lixo_stale_locks/` removida, branch vazia `maquina/cod-0068-0067-0025` apagada (`git branch -d`), git saudável (`main`=`origin/main`=`aa6469c`, fsck limpo). *(Opcional que sobrou: `git gc --prune=now` pros `tmp_obj_*` órfãos.)* **Consequência de método DECIDIDA → regra HÍBRIDA:** rotina agendada (sandbox) = entrega em **working tree / modo TREE, git só-leitura** (nenhum comando git de escrita — é o que travava o repo); Máquina 3.0 completa (commit em branch `maquina/*`) vale nas runs locais via `/tarefa`.

@@ -25,7 +25,13 @@
       "Bash(set -e)",
       "Bash(echo \"COMMIT7_EXIT=$?\")",
       "Bash(echo \"COMMIT8_EXIT=$?\")",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(node --check src/supabase.js)",
+      "Bash(node --check test/filtro-gasto.test.js)",
+      "Bash(echo \"EXIT1=$?\")",
+      "Bash(echo \"EXIT2=$?\")",
+      "Bash(awk '/## 🔧 Em revisão/,/## /' AGENDA.md)",
+      "Bash(node --check test/comparativo-gate.test.js)"
     ]
   }
 }
