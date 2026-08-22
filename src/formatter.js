@@ -30,6 +30,58 @@ function brl(valor) {
   return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// ---------------------------------------------------------------
+// fmtMoeda — formatação de valor ciente de moeda (cod-0065b, 2026-08-21).
+//
+// Semente da internacionalização (Canadá primeiro — seção 7.2 do CLAUDE.md).
+// Existe pra que a cod-0065 (recibo canadense) não precise espalhar `if (moeda)`
+// por dentro das mensagens: quando o recibo em CAD chegar, troca-se o ponto de
+// formatação, não a copy.
+//
+// Contrato deliberado:
+//   • default BRL → `fmtMoeda(v)` é byte a byte `R$ ${brl(v)}` (travado por teste),
+//     então adotar a função em qualquer mensagem pt-BR existente não muda um caractere;
+//   • moeda DESCONHECIDA → `null`, nunca "chuta" o símbolo. Exibir R$ num valor em
+//     CAD (ou o contrário) é mentir sobre dinheiro — pior que não formatar;
+//   • valor não numérico → `null` (mesmo motivo: não existe "R$ NaN").
+//
+// Sem `toLocaleString` fora do pt-BR de propósito: a formatação en-CA dependeria
+// do ICU do runtime, que pode diferir entre este ambiente e o Railway. Aqui o
+// agrupamento é feito à mão — mesma saída em qualquer Node.
+// ---------------------------------------------------------------
+const MOEDAS = {
+  // BRL não tem regra própria: DELEGA pro `brl()` que já formata todas as
+  // mensagens de hoje. Byte a byte por construção, não por coincidência —
+  // adotar `fmtMoeda` numa mensagem pt-BR existente não pode mudar 1 caractere,
+  // nem no caso feio (`R$ -5,00`, com o sinal depois do símbolo).
+  BRL: { legado: true },
+  // CAD formata aqui, na convenção local: sinal ANTES do símbolo (`-$5.00`).
+  CAD: { simbolo: '$', milhar: ',', decimal: '.' },
+};
+
+function _agrupar(inteiro, separador) {
+  return inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, separador);
+}
+
+function fmtMoeda(valor, moeda = 'BRL') {
+  const cfg = MOEDAS[String(moeda || '').toUpperCase()];
+  if (!cfg) return null;
+  // Só número ou string numérica. `Number([])` e `Number(null)` são 0 — sem esta
+  // porta, um valor ausente vira "R$ 0,00", que é pior que não formatar.
+  if (typeof valor !== 'number' && typeof valor !== 'string') return null;
+  if (typeof valor === 'string' && valor.trim() === '') return null;
+  const n = Number(valor);
+  if (!Number.isFinite(n)) return null;
+
+  if (cfg.legado) return `R$ ${brl(n)}`;
+
+  const abs = Math.abs(n);
+  const [inteiro, centavos] = abs.toFixed(2).split('.');
+  // `-0.00` não existe como quantia: valor que arredonda pra zero perde o sinal.
+  const sinal = n < 0 && Number(abs.toFixed(2)) !== 0 ? '-' : '';
+  return `${sinal}${cfg.simbolo}${_agrupar(inteiro, cfg.milhar)}${cfg.decimal}${centavos}`;
+}
+
 // Converte "YYYY-MM-DD" para "DD/MM" — retorna "??/??" se data ausente ou inválida
 function dataCurta(dataIso) {
   if (!dataIso || typeof dataIso !== 'string') return '??/??';
@@ -1276,6 +1328,7 @@ function montarErroAgente() {
 module.exports = {
   nomeDoMes,
   brl,
+  fmtMoeda,
   montarConfirmacaoPix,
   montarConfirmacaoPixEntrada,
   montarPixValorIlegivel,
