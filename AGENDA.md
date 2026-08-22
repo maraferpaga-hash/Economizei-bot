@@ -15,7 +15,9 @@
 > Guia do sistema: `Economizei app/Automacao_Maquina_Noturna.md`.
 
 **Última curadoria:** 2026-07-16 (AGENDA enxugada ~68 KB→~37 KB — histórico integral no snapshot `Economizei app/arquivo-historico/AGENDA_arquivo_2026-07-15.md`; regra anti-inchaço no Protocolo). · **Modo:** execução local (GitHub Actions descontinuado).
-**🎯 Estado (2026-08-20, `/entregar` modo TREE):** `origin/main` = HEAD = `886cd1a`. **cod-0073 entregue** (`ba1c508`, gate Pro no `/comparar` — Free segue com teaser + upsell honesto, Pro vê até `COMPARATIVO_MAX_PRO` sem upsell; fecha o achado B10) + docs da sessão 08-18 reconciliados (`886cd1a`: RLS fechado/regra 14/veredito do teste de commit no sandbox/Plano B estoque). 563/563 testes verdes, `npm run check` verde na máquina real antes de cada commit e no pre-push. Working tree limpo pros arquivos do plano (exceto `.claude/settings.local.json`, artefato da própria sessão de entrega). **Segue aberto no banco:** S3 (RPC), S5 (views de métricas), migration PIX, DROP MP.
+**🎯 Estado (2026-08-22, `/entregar` modo TREE):** `origin/main` = HEAD = `933e855`. **cod-0074 entregue** (`933e855`, gate Pro nos comandos do Alerta Pro — mesmo padrão da cod-0073) + **regime ESTOQUE adotado** (`e6bc992`: `scripts/estoque.mjs` + docs de adoção — ferramenta que a rotina matinal já vinha produzindo levas para, agora versionada). 577/577 testes verdes, `npm run check` verde na máquina real antes de cada commit e no pre-push. Estoque passa de 3/4 pra **2/4** (levas 0002 `cod-0062b` e 0003 `cod-0065b` seguem esperando, nesta ordem). Working tree limpo pros arquivos do plano (exceto `.claude/settings.local.json`, artefato da própria sessão de entrega). **Pendências humanas:** Passo 4 da adoção ESTOQUE (trocar `.claude/commands/tarefa.md`/`entregar.md` — só o Gabriel escreve lá); decidir cod-0075 (devolvida pela rotina de 08-21 — premissa de vazamento não se sustenta). **Segue aberto no banco:** S3 (RPC), S5 (views de métricas), migration PIX, DROP MP.
+
+**🎯 Estado anterior (2026-08-20, `/entregar` modo TREE):** `origin/main` = HEAD = `886cd1a`. **cod-0073 entregue** (`ba1c508`, gate Pro no `/comparar` — Free segue com teaser + upsell honesto, Pro vê até `COMPARATIVO_MAX_PRO` sem upsell; fecha o achado B10) + docs da sessão 08-18 reconciliados (`886cd1a`: RLS fechado/regra 14/veredito do teste de commit no sandbox/Plano B estoque). 563/563 testes verdes, `npm run check` verde na máquina real antes de cada commit e no pre-push. **Segue aberto no banco:** S3 (RPC), S5 (views de métricas), migration PIX, DROP MP.
 
 **🔐 Estado anterior (2026-08-18, sessão de fechamento):** **S4 FECHADO — o RLS está ligado** (os 2 scripts rodados). Encerra a exposição dos dados via anon key e derruba o bloqueio das cod-0069/0070.
 
@@ -178,26 +180,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 >
 > **A ordem do arquivo É a prioridade** (protocolo): **cod-0073** → cod-0074 → cod-0075 → as P (0062b/0065b/0072a, agrupáveis) → cod-0065a → cod-0066 → cod-0071. **cod-0062a saiu daqui — entregue em `378e2be` (`/entregar` 2026-08-15, modo TREE), ver "✅ Concluído".** **cod-0049** segue gated pelo bloco Supabase. *(O `index.lock` de 06/08 foi limpo e a causa-raiz corrigida — ver "🩺 Revisão da máquina" no topo.)* Anterior (2026-08-05, `/entregar` modo TREE): cod-0068/0067/0025 entregues (`18a0b45`/`689c9ae`/`548468f`, `origin/main`; detalhe em "✅ Concluído"). **cod-0062/cod-0065** foram **destravadas** na 2ª parte desta sessão (corpus real chegou) mas continuam fora da "Fila pronta" — são porte G, rodam com o Gabriel presente. **cod-0071** (núcleo canal-agnóstico) está `pronta`; **cod-0069/cod-0070** (API/PWA) seguem `bloqueada-humano` pelo S2/RLS. **cod-0066 segue `pausada`** (autorização revogada). Docs: `Economizei app/Plano_Desentupimento_e_Supabase_2026-08-05.md` · `Economizei app/Frente1_Frente2_App_Desdobramento_2026-08-05.md`.
 
-### [P2] 💰 Gate Pro — comandos do Alerta Pro (Peça 3 do desdobramento)
-- id: cod-0074
-- tipo: feature-codigo
-- porte: M
-- skills: economizei-code-decisions, economizei-tdd, economizei-financial-firewall, economizei-copywriter, copy-review
-- objetivo: aplicar o recorte Free×Pro já decidido (2026-07-08, refinado em 07-27) aos comandos que hoje rodam **sem gate nenhum**.
-- recorte (JÁ DECIDIDO — não relitigar):
-  - **Pro:** `/acompanhar`, `/teto`, `/superfluo` (a **configuração**) → sem Pro, responde com upsell e retorna
-  - **Free:** o **bloco de supérfluo com baseline** no `/gastos`/resumo continua pra todos (é insight, sobe a escada — decisão de 07-27)
-  - **sem gate de propósito:** `/acompanhamentos` e `/parar` — quem teve Pro e voltou pro Free precisa **ver e desligar** o que configurou (decência + LGPD; evita acompanhamento zumbi disparando alerta pra quem não pode desligar)
-  - **alerta proativo de limite (cod-0035):** gate **silencioso** antes de enviar (`if (!temFeaturesProAtivas(usuario)) return;`) — mensagem proativa não faz upsell não solicitado
-- arquivos-alvo: `src/index.js` (gate nos handlers), `src/formatter.js` (`montarUpsellAcompanhamentos`), `test/`
-- criterios-de-aceite:
-  - cada comando gated testado nos dois estados (com e sem Pro); `/acompanhamentos` e `/parar` testados como **sempre acessíveis**
-  - o alerta proativo **não envia nada** pro Free e **não** manda upsell
-  - copy do upsell: valor primeiro ("acompanhe 'cerveja' e receba alerta quando passar do seu limite"), caminho depois (`/planos`), **sem preço**, sem gíria
-  - node --test verde; firewall acusa de propósito → commit consciente
-- depende-de: cod-0073 (mesmo padrão de gate; evita divergir a forma)
-- fora-de-escopo: mudar a lógica dos comandos; preço; cobrança
-- status: pronta
+> ✅ **cod-0074 saiu daqui — entregue em `933e855`** (`/entregar` 2026-08-22, modo TREE), ver "✅ Concluído".
 
 ### [P3] 💰 Gate Pro — intent `comparativo_mercados` do Agente (Peça 4)
 - id: cod-0075
@@ -208,9 +191,16 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - depende-de: cod-0073
 - criterios-de-aceite: intent respeita o mesmo teto do comando; teste cobre Free e Pro; node --test verde
 - fora-de-escopo: outras intents; upsell dentro da narração do Agente
-- status: pronta
+- status: **aguardando-decisao** (2026-08-21, rotina matinal — NÃO implementada)
+- 🛑 **A PREMISSA NÃO SE SUSTENTA (achado da rotina matinal de 2026-08-21 — verificado no código, não deduzido).** Não existe vazamento nenhum: a intent do Agente **narra só UM comparativo** (`fato.destaque` = a maior diferença), para Free e para Pro igualmente. O teto (`maxComparativos`) só governa `fato.mostrados` e `fato.temMais` — e **nenhum dos dois é usado no caminho do Agente**: `template()` não os lê, o firewall de fidelidade só olha `fato.fmt`, e `montarMensagemComparativo` (o único consumidor de `mostrados`/`temMais`, em `formatter.js:846`) é do comando `/comparar`. `totalComparaveis` é contado **antes** do corte, então nem a frase "tenho N produtos comparáveis" muda. **Consequência: implementar como está escrito não muda uma vírgula do que o usuário vê — é fiação morta.** Se algo está torto hoje, é o contrário do descrito: o Pro vê *menos* pelo Agente (1 item) do que pelo `/comparar` (até 10).
+- ⚖️ **Decisão sua (2 caminhos, nenhum é código puro):**
+  - **(a) Fechar a tarefa como resolvida-por-inspeção** — o B10 já foi fechado pela cod-0073 no `/comparar`; não há segunda porta. Custo: zero.
+  - **(b) Fazer o Agente listar mais de um comparativo pro Pro** (aí o teto passa a valer). Isso é **decisão de produto/UX**: muda a cara da resposta do Agente, que hoje é curta e de um fato só por design. Fora do que a máquina pode decidir sozinha.
+  - Se você escolher (b), a fiação técnica é a que a tarefa já descreve (3 linhas: `index.js` passa `ehPro`, `agent/index.js` repassa ao `executar`, `intents.js` escolhe o env) e volta pra fila como porte P.
 
-### [P2] PIX — guard do `precos_mercado` + copy da confirmação
+> ⏩ **cod-0062b SAIU DAQUI em 2026-08-21** — implementada pela rotina matinal e movida para "## 🔧 Em revisão". **NÃO está no working tree:** está em `estoque/0002_2026-08-21_cod-0062b/`. Ficha preservada abaixo como referência.
+
+### ~~[P2] PIX — guard do `precos_mercado` + copy da confirmação~~ → EM REVISÃO
 - id: cod-0062b
 - tipo: feature-codigo
 - porte: P — **fatia autônoma da cod-0062** (2026-08-07). Não toca `src/gemini.js`.
@@ -223,7 +213,8 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
   - a mensagem de entrada deixa claro que **nada foi gravado como gasto**
   - node --test verde; firewall acusa o token "pix" por design → commit consciente
 - fora-de-escopo: `gemini.js`, `tipo_documento`, gravar compra, `direcao` no banco
-- status: pronta
+- status: **em-revisao** (2026-08-21, rotina matinal — no ESTOQUE, leva 0002, sem commit)
+- desvio consciente (2 itens, ambos pra mais): (1) o guard virou `entraEmPrecosMercado(tipo)` lendo `TIPOS_MERCADO` em vez do literal `tipo === 'mercado'` — mesma semântica, uma fonte de verdade só, testável sem banco; (2) nasceu uma **terceira** mensagem, `montarPixValorIlegivel` (recusa honesta do caso `pix-03` do corpus) — o critério pedia duas, mas sem a terceira o valor ausente virava "R$ 0,00".
 
 ### [P2] Canadá — módulo puro de datas (4 formatos do corpus)
 - id: cod-0065a
@@ -240,7 +231,9 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - fora-de-escopo: usar o módulo em `gemini.js` (é a cod-0065); moeda; i18n de mensagem
 - status: pronta
 
-### [P3] Canadá — `fmtMoeda(valor, moeda)` no formatter
+> ⏩ **cod-0065b SAIU DAQUI em 2026-08-21** — implementada pela rotina matinal e movida para "## 🔧 Em revisão". **NÃO está no working tree:** está em `estoque/0003_2026-08-21_cod-0065b/`. Ficha preservada abaixo como referência.
+
+### ~~[P3] Canadá — `fmtMoeda(valor, moeda)` no formatter~~ → EM REVISÃO
 - id: cod-0065b
 - tipo: refino-codigo
 - porte: P — **fatia autônoma da cod-0065** (2026-08-07).
@@ -248,7 +241,9 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - objetivo: helper currency-aware (`R$ 99,90` / `$99.90`) usado só na formatação de mensagem, com **default BRL** — toda chamada atual sem o parâmetro devolve byte a byte o que devolve hoje.
 - criterios-de-aceite: nenhuma mensagem pt-BR existente muda (teste compara string a string); CAD formata com `$` e ponto decimal; valor negativo e zero cobertos
 - fora-de-escopo: gravar `moeda` no banco (precisa migration — proibido); `gemini.js`
-- status: pronta
+- status: **em-revisao** (2026-08-21, rotina matinal — no ESTOQUE, leva 0003, sem commit)
+- decisões tomadas na implementação (ambas travadas por teste): BRL **delega** pro `brl()` atual (byte a byte por construção, inclusive `R$ -5,00`); moeda desconhecida e valor não numérico devolvem **`null`**, nunca um símbolo ou número chutado. CAD formatado à mão, sem `toLocaleString` — não depender do ICU do runtime.
+- ⚠️ ressalva honesta: o helper **não tem chamador** (é o que o critério pede). Leva legítima pra recusar se você não quiser código inerte na `main` — está isolada na leva 0003.
 
 ### [P3] Fatura — parser puro de parcela (`03/12`)
 - id: cod-0072a
@@ -475,6 +470,32 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ## 🔧 Em revisão
 *(a máquina move pra cá ao commitar numa branch — esperando o Gabriel mergear via `/entregar`)*
 
+> **📦 Estoque: 2 levas · aplicar SEMPRE na ordem** (as duas tocam `src/formatter.js`; cada uma nasceu do topo da anterior).
+> `node scripts/estoque.mjs status` → `aplicar <n>` → `npm run check` → `/entregar` → depois do push, `limpar <n>`.
+> Teto = 4 levas. **2/4 ocupadas** — leva 0001 (cod-0074) foi entregue em `933e855` (2026-08-22) e removida daqui.
+
+### 📦 cod-0065b — `fmtMoeda(valor, moeda)` · **NO ESTOQUE, leva 0003** (2026-08-21)
+
+- **status:** em-revisao · **produzida por:** rotina matinal de 2026-08-21 · **base:** leva 0002
+- **⚠️ ONDE ESTÁ:** `estoque/0003_2026-08-21_cod-0065b/` — sem commit, fora do working tree.
+- **migration:** ❌ nenhuma · **💰 financeiro:** ❌ não
+- **mapa tarefa→arquivos:** `src/formatter.js` (+53: `MOEDAS`, `_agrupar`, `fmtMoeda` + export) · `test/fmt-moeda.test.js` (**novo**, 12 testes, 110 linhas)
+- **testes:** 604/604 com as 3 levas aplicadas (stub do `sharp` em `/tmp`, regra 11). Gate final é o seu `npm run check`.
+- **⚠️ o helper não tem chamador** — é o que o critério pede (nenhuma mensagem pt-BR pode mudar), mas é peça inerte até a cod-0065. Recusável sem prejuízo.
+
+### 📦 cod-0062b — PIX: guard do `precos_mercado` + copy · **NO ESTOQUE, leva 0002** (2026-08-21)
+
+- **status:** em-revisao · **produzida por:** rotina matinal de 2026-08-21 · **base:** leva 0001
+- **⚠️ ONDE ESTÁ:** `estoque/0002_2026-08-21_cod-0062b/` — sem commit, fora do working tree.
+- **migration:** ❌ nenhuma
+- **💰 financeiro: SIM, por token** — a palavra "PIX" em `formatter.js`, `supabase.js` e no teste. O firewall acusa por design (advisory). Nada cobra, precifica ou toca `is_pro`.
+- **mapa tarefa→arquivos:** `src/supabase.js` (+17: `entraEmPrecosMercado` + guard em `salvarCompra`) · `src/formatter.js` (+76: `_valorPix` + 3 mensagens) · `test/pix-comprovante-copy.test.js` (**novo**, 15 testes, 180 linhas)
+- **testes:** 592/592 com as levas 0001+0002 (stub do `sharp` em `/tmp`, regra 11). Gate final é o seu `npm run check`.
+- **comportamento hoje: idêntico** — `gemini.js:262` normaliza `tipo` pra exatamente `'mercado'`/`'outros'` antes de chegar no guard. A troca de lista negra → lista branca vale pro `'pix'` de amanhã.
+- **pendência que NÃO é desta leva:** o corpus fala `direcao: 'enviado'|'recebido'`, a coluna fala `'saida'|'entrada'`. O mapeamento é da cod-0062 — a leva entrega as duas mensagens separadas e não escolhe por você.
+
+> **✅ RECONCILIADO em 2026-08-22 (comando `/entregar`, modo TREE):** **cod-0074** entregue (`933e855`, gate Pro nos comandos do Alerta Pro) + adoção do regime ESTOQUE (`e6bc992`: `scripts/estoque.mjs` + docs, antes só no disco há 3 dias). `origin/main` sincronizado em `933e855`. 577/577 testes verdes, `npm run check` verde na máquina real antes de cada commit e no pre-push. Leva 0001 aplicada via `node scripts/estoque.mjs aplicar 1` e removida do estoque após o push. Detalhe em "✅ Concluído". Seção esvaziada (cod-0074).
+
 > **✅ RECONCILIADO em 2026-08-20 (comando `/entregar`, modo TREE):** **cod-0073** commitada e pushada (`origin/main` sincronizado em `886cd1a`, working tree limpo pros arquivos do plano — exceto `.claude/settings.local.json`, artefato da própria sessão de entrega —, 563/563 testes verdes, `npm run check` verde na máquina real antes de cada commit e no pre-push): código `feat(financeiro): gate Pro no /comparar (cod-0073)` `ba1c508` · docs (RLS fechado/regra 14/veredito do teste de commit no sandbox/Plano B estoque) `886cd1a`. **Pendência aberta:** `src/agent/intents.js:596` segue usando `COMPARATIVO_AMOSTRAS_FREE` pra todos (cod-0075 é quem fecha esse vazamento — Pro gated no `/comparar` mas destravado ao perguntar em texto livre). Pré-req humano não-bloqueante: setar `COMPARATIVO_MAX_PRO=10` no Railway/`.env.example` (default do código já é 10). Seção esvaziada.
 
 > **✅ RECONCILIADO em 2026-08-15 (comando `/entregar`, modo TREE):** **cod-0062a** commitada e pushada (`origin/main` sincronizado em `e10701f`, working tree limpo pros arquivos do plano — exceto `.claude/settings.local.json`, deixado de fora por ser artefato da própria sessão de entrega —, 552/552 testes verdes, `npm run check` verde na máquina real antes do commit e no pre-push): código `refino(supabase): filtro de gasto explicito em toda leitura agregada (cod-0062a)` `378e2be` · docs (reconciliação da sessão de revisão da máquina 08-07 + correção real do `.claude/commands/tarefa.md`) `e10701f`. A tarefa tinha ficado **8 dias no working tree** (produzida em 08-07, a esteira relatou "guarda (a) esteira entupida" em toda rotina matinal desde então). **Achado durante a entrega:** o `.claude/commands/tarefa.md` no working tree NÃO era a correção completa do lock que o CLAUDE.md registrava como feita — markdown quebrado + `git branch`/`git log` sem `GIT_OPTIONAL_LOCKS=0`. Substituído pelo conteúdo de `Economizei app/tarefa_CORRIGIDO_2026-08-07.md` antes de commitar (decisão do Gabriel); os 2 bilhetes de tarefa (`PATCH_comandos_lock_2026-08-07.md` + `tarefa_CORRIGIDO_2026-08-07.md`) foram apagados por já terem sido consumidos. Pendências de ratificação (não bloqueiam, seguem abertas): (a) `insights.js` não foi tocado de propósito; (b) `listarUsuariosAtivosNoMes`/`buscarElegiveisInativos` não filtram — medem atividade, não gasto. Migration: **nenhuma necessária** — o filtro de `direcao` fica atrás de um probe de existência. Seção esvaziada.
@@ -494,6 +515,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ## ✅ Concluído
 *(tarefas mergeadas — registro histórico, mais recente no topo)*
 
+- **cod-0074 · Gate Pro nos comandos do Alerta Pro** (commit `933e855`, 2026-08-22) — Peça 3 do desdobramento do gate Pro, mesmo padrão da cod-0073 no `/comparar`. Recorte decidido em 07-08, refinado em 07-27: Pro em `/acompanhar`, `/teto`, `/superfluo` (a configuração); `/acompanhamentos` e `/parar` sempre abertos de propósito (quem caiu do Pro precisa ver e desligar o que configurou); alerta proativo de teto (cod-0035) com **gate silencioso** (sem Pro, não envia e não faz upsell — mensagem não solicitada é o pior lugar pra vender); bloco de supérfluo com baseline no `/gastos` continua Free. `src/index.js` (`COMANDOS_PRO_ALERTA` + `comandoExigeProAlerta`/`comandoLiberadoParaUsuario` puras, test-only + `exigirProAlerta`; `verificarAlertasDeLimite` ganha `usuario`+`deps` injetáveis, padrão da cod-0052), `src/formatter.js` (`montarUpsellAcompanhamentos`). `test/gate-pro-alerta.test.js` (14 testes). Financeiro: firewall acusa `temFeaturesProAtivas`/`is_pro`/`features_pro_ate` de propósito — commit consciente. **Produzida pela rotina matinal de 2026-08-20 no regime ESTOQUE** (primeira leva do novo Plano B — `estoque/0001_2026-08-20_cod-0074/`, aplicada via `node scripts/estoque.mjs aplicar 1`); entregue junto com a adoção da própria ferramenta (`e6bc992`). **⚠️ mudança visível:** usuário Free que já tinha acompanhamento/teto configurado para de receber o alerta proativo (config fica salva, volta a alertar se o Pro voltar). **Destrava:** cod-0075 (`depende-de` satisfeito; segue `aguardando-decisao`, achado da rotina de 08-21 diz que a premissa dela não se sustenta). *(skills: code-decisions, tdd, financial-firewall, copywriter, copy-review)*
 - **cod-0073 · Gate Pro no `/comparar`** (commit `ba1c508`, 2026-08-20) — fecha o achado **B10 🔴** do Checkpoint N2 de 01/08 (o comparativo entre mercados era idêntico pra Free e Pro; na prática R$9,90/mês comprava só "cupons ilimitados"). Free: teaser de `COMPARATIVO_AMOSTRAS_FREE` (default 3) + upsell honesto, só quando há mais comparativo pra ver (`resultado.temMais`). Pro (`temFeaturesProAtivas` — assinante OU janela de recompensa de indicação): até `COMPARATIVO_MAX_PRO` (default 10), sem upsell. `montarMensagemComparativo(resultado, opts = {})` retrocompatível byte a byte com a chamada de 1 argumento. `src/index.js`, `src/formatter.js`, `src/supabase.js` (só comentário). `test/comparativo-gate.test.js` (11 testes). Financeiro: firewall acusa `temFeaturesProAtivas`/`ehPro`/`COMPARATIVO_MAX_PRO`/`is_pro`/`features_pro_ate` de propósito — commit consciente. Pré-req humano não-bloqueante: `COMPARATIVO_MAX_PRO=10` no Railway/`.env.example` (default no código já é 10). **Pendência aberta:** cod-0075 é quem fecha o vazamento equivalente na intent do Agente (`intents.js:596` ainda usa o teto Free pra todos). *(skills: code-decisions, tdd, financial-firewall, copywriter, copy-review, product-principles)*
 - **cod-0062a · Blindagem de agregação — `tipo`/`direcao` explícitos em toda leitura de gasto** (commit `378e2be`, 2026-08-15) — `filtroGasto()`/`aplicarFiltroGasto()` centralizam o filtro que 5 leituras aplicavam na mão (`.eq('tipo','mercado')`) e 5 outras (`buscarComprasDoMes`, `buscarHistorico` — as que alimentam `/gastos` e o resumo mensal) **não aplicavam nenhum**; sem isso, um comprovante de PIX (`tipo='pix'`, quando a cod-0062 gravar) entraria no total do mês como se fosse compra. `TIPOS_GASTO`/`TIPOS_MERCADO` cobrem 100% do que existe hoje — nenhum número muda. Filtro de `direcao` fica atrás de um probe de existência da coluna (ainda não existe — migration da cod-0062 pendente), padrão anti-A9. Cada `.from('compras')` ganhou marcador `// filtro-gasto: aplicado | nao-se-aplica` + teste de guarda que reprova leitura nova sem marcador. `src/supabase.js`. `test/filtro-gasto.test.js` (18 testes). Fatiada autonomamente da cod-0062 em 08-07 (achado de varredura, não do desenho); ficou 8 dias no working tree entupindo a rotina matinal antes desta entrega. Financeiro: firewall acusa só a palavra "PIX" em comentário — zero lógica de pagamento. Pendências de ratificação: (a) `insights.js` não tocado de propósito; (b) `listarUsuariosAtivosNoMes`/`buscarElegiveisInativos` não filtram (medem atividade, não gasto). *(skills: code-decisions, tdd, product-principles, financial-firewall)*
 - **cod-0025 · Bugfix — onboarding tranca os comandos de pagamento [A3]** (commit `548468f`, 2026-08-05) — `/planos` e `/pix` (+ `/ajuda`, `/privacidade`) agora respondem mesmo nos steps 0–1 do onboarding, roteados ANTES do gate (mesmo padrão do `/apagar`); onboarding não é abortado, retoma no passo em que estava. `src/index.js`. `test/onboarding-comandos.test.js` (11 testes). Financeiro: roteia comandos de pagamento — commit consciente. *(skills: debugging, code-decisions, tdd, automation-triage, financial-firewall)*
