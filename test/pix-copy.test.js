@@ -90,42 +90,35 @@ test('copy de pagamento: sem gíria informal no texto do bot', () => {
   }
 });
 
-// ── O bloco de código morto do MP continua rotulado ─────────────────────────
-// Se alguém religar uma daquelas funções sem meio de pagamento por trás, a
-// promessa falsa volta em produção. O rótulo é o aviso; este teste o protege.
+// ── O código morto do MP foi REMOVIDO (cod-0066) ────────────────────────────
+// Até 2026-08-24, 8 mensagens de assinatura por cartão continuavam vivas no
+// formatter.js (desligadas, mas prontas pra alguém religar sem meio de
+// pagamento por trás) e 7 funções irmãs no supabase.js. A cod-0066 apagou as
+// 15. Os testes abaixo trocam de papel: antes protegiam o RÓTULO do código
+// morto, agora protegem a AUSÊNCIA dele.
 
-test('formatter: as mensagens órfãs do MP seguem marcadas como código morto', () => {
-  const fonte = require('node:fs').readFileSync(
-    require.resolve('../src/formatter.js'),
-    'utf8'
-  );
-  assert.match(fonte, /⚠️ CÓDIGO MORTO — fluxo de assinatura por cartão via Mercado Pago/);
+const ORFAS_FORMATTER = [
+  'montarMensagemPedirEmail',
+  'montarMensagemLinkAssinatura',
+  'montarMensagemAssinaturaAtivada',
+  'montarMensagemAssinaturaCancelada',
+  'montarMensagemEmailInvalido',
+  'montarMensagemErroAssinatura',
+  'montarMensagemPagamentoFalhou',
+  'montarMensagemJaAssinante',
+];
 
-  const orfas = [
-    'montarMensagemPedirEmail',
-    'montarMensagemLinkAssinatura',
-    'montarMensagemAssinaturaAtivada',
-    'montarMensagemAssinaturaCancelada',
-    'montarMensagemEmailInvalido',
-    'montarMensagemErroAssinatura',
-    'montarMensagemPagamentoFalhou',
-    'montarMensagemJaAssinante',
-  ];
-  const linhas = fonte.split('\n');
-  for (const nome of orfas) {
-    const i = linhas.findIndex((l) => l.startsWith(`function ${nome}(`));
-    assert.ok(i > 0, `função órfã ${nome} sumiu (remoção é a cod-0066, hoje pausada)`);
-    assert.match(
-      linhas[i - 1],
-      /\[MORTA — MP\]/,
-      `${nome} perdeu o rótulo [MORTA — MP] — sem ele ninguém sabe que a copy promete cartão`
-    );
-  }
-});
+const ORFAS_SUPABASE = [
+  'setPendentePlano',
+  'limparPendentePlano',
+  'salvarAssinaturaPreapproval',
+  'atualizarStatusAssinatura',
+  'buscarPorPreapprovalId',
+  'registrarEventoAssinatura',
+  'buscarDadosAssinatura',
+];
 
-// ── Nenhuma órfã do MP é chamada em produção ────────────────────────────────
-
-test('nenhuma mensagem órfã do MP é usada por src/ (continuam desligadas)', () => {
+test('nenhum arquivo de src/ declara ou usa as órfãs do Mercado Pago', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const dir = path.dirname(require.resolve('../src/formatter.js'));
@@ -135,28 +128,46 @@ test('nenhuma mensagem órfã do MP é usada por src/ (continuam desligadas)', (
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
       if (e.isDirectory()) varrer(p);
-      else if (e.name.endsWith('.js') && e.name !== 'formatter.js') arquivos.push(p);
+      else if (e.name.endsWith('.js')) arquivos.push(p);
     }
   })(dir);
 
-  const orfas = [
-    'montarMensagemPedirEmail',
-    'montarMensagemLinkAssinatura',
-    'montarMensagemAssinaturaAtivada',
-    'montarMensagemAssinaturaCancelada',
-    'montarMensagemEmailInvalido',
-    'montarMensagemErroAssinatura',
-    'montarMensagemPagamentoFalhou',
-    'montarMensagemJaAssinante',
-  ];
+  // Guarda contra o teste virar vácuo se a varredura parar de achar arquivos.
+  assert.ok(
+    arquivos.length > 5,
+    `a varredura de src/ achou só ${arquivos.length} arquivo(s) — o teste não está testando nada`
+  );
+  assert.ok(
+    arquivos.some((a) => path.basename(a) === 'formatter.js'),
+    'formatter.js ficou de fora da varredura — era justamente onde o código morto morava'
+  );
 
   for (const arq of arquivos) {
     const src = fs.readFileSync(arq, 'utf8');
-    for (const nome of orfas) {
+    for (const nome of [...ORFAS_FORMATTER, ...ORFAS_SUPABASE]) {
       assert.ok(
         !src.includes(nome),
-        `${path.basename(arq)} voltou a usar ${nome} — copy de cartão sem meio de pagamento por trás`
+        `${path.basename(arq)} voltou a declarar/usar ${nome} — o fluxo de cartão do MP foi removido na cod-0066 e não tem meio de pagamento por trás`
       );
     }
+  }
+});
+
+test('formatter não exporta mais nenhuma mensagem do fluxo de cartão do MP', () => {
+  const formatter = require('../src/formatter');
+  for (const nome of ORFAS_FORMATTER) {
+    assert.equal(
+      formatter[nome],
+      undefined,
+      `formatter.${nome} voltou a ser exportada — copy de cartão sem cartão por trás`
+    );
+  }
+});
+
+// As funções vivas de pagamento continuam de pé (nenhuma foi levada junto).
+test('as mensagens vivas de pagamento continuam exportadas', () => {
+  const formatter = require('../src/formatter');
+  for (const nome of ['montarMensagemPix', 'montarMensagemPlanos', 'montarMensagemLimite']) {
+    assert.equal(typeof formatter[nome], 'function', `formatter.${nome} sumiu junto com a limpeza do MP`);
   }
 });

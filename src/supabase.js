@@ -1410,147 +1410,6 @@ async function registrarLembreteEnviado(phoneNumber, lembreteId, mesReferencia =
 }
 
 // ---------------------------------------------------------------
-// Assinaturas recorrentes (Mercado Pago)
-// ---------------------------------------------------------------
-
-// Marca o plano escolhido como "pendente de e-mail" — a próxima mensagem
-// do usuário será interpretada como o e-mail da assinatura.
-async function setPendentePlano(phoneNumber, plano) {
-  try {
-    const { error } = await supabase
-      .from('usuarios')
-      .update({ assinatura_pendente_plano: plano })
-      .eq('phone_number', phoneNumber);
-    if (error) throw error;
-  } catch (err) {
-    log('supabase_erro', { fn: 'setPendentePlano', erro: err.message });
-    throw err;
-  }
-}
-
-async function limparPendentePlano(phoneNumber) {
-  try {
-    const { error } = await supabase
-      .from('usuarios')
-      .update({ assinatura_pendente_plano: null })
-      .eq('phone_number', phoneNumber);
-    if (error) throw error;
-  } catch (err) {
-    log('supabase_erro', { fn: 'limparPendentePlano', erro: err.message });
-    throw err;
-  }
-}
-
-// Persiste a assinatura recém-criada (status inicial 'pending') e limpa o
-// estado conversacional de "aguardando e-mail".
-async function salvarAssinaturaPreapproval(phoneNumber, { preapprovalId, plano, email, status = 'pending' }) {
-  try {
-    const { error } = await supabase
-      .from('usuarios')
-      .update({
-        mp_preapproval_id: preapprovalId,
-        plano,
-        assinatura_email: email,
-        assinatura_status: status,
-        assinatura_pendente_plano: null,
-        assinatura_atualizada_em: new Date().toISOString(),
-      })
-      .eq('phone_number', phoneNumber);
-    if (error) throw error;
-  } catch (err) {
-    log('supabase_erro', { fn: 'salvarAssinaturaPreapproval', erro: err.message });
-    throw err;
-  }
-}
-
-// Atualiza o status da assinatura e liga/desliga is_pro de acordo.
-// is_pro = TRUE apenas quando authorized. Retorna { statusAnterior, isProAnterior }.
-async function atualizarStatusAssinatura(phoneNumber, status, extras = {}) {
-  try {
-    const { data: atual } = await supabase
-      .from('usuarios')
-      .select('assinatura_status, is_pro')
-      .eq('phone_number', phoneNumber)
-      .single();
-
-    const isPro = status === 'authorized';
-    const update = {
-      assinatura_status: status,
-      is_pro: isPro,
-      assinatura_atualizada_em: new Date().toISOString(),
-    };
-    if (extras.preapprovalId) update.mp_preapproval_id = extras.preapprovalId;
-    if (extras.plano) update.plano = extras.plano;
-
-    const { error } = await supabase
-      .from('usuarios')
-      .update(update)
-      .eq('phone_number', phoneNumber);
-    if (error) throw error;
-
-    log('assinatura_status_atualizado', {
-      phone: maskPhone(phoneNumber),
-      de: atual?.assinatura_status ?? null,
-      para: status,
-      is_pro: isPro,
-    });
-
-    return {
-      statusAnterior: atual?.assinatura_status ?? null,
-      isProAnterior: atual?.is_pro ?? false,
-    };
-  } catch (err) {
-    log('supabase_erro', { fn: 'atualizarStatusAssinatura', erro: err.message });
-    throw err;
-  }
-}
-
-// Conciliação reversa: do preapproval_id (vindo no webhook) para o usuário.
-async function buscarPorPreapprovalId(preapprovalId) {
-  try {
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('phone_number, plano, assinatura_status, is_pro, mp_preapproval_id')
-      .eq('mp_preapproval_id', preapprovalId)
-      .maybeSingle();
-    if (error) throw error;
-    return data;
-  } catch (err) {
-    log('supabase_erro', { fn: 'buscarPorPreapprovalId', erro: err.message });
-    throw err;
-  }
-}
-
-// Registra o evento de webhook. Retorna { ok, duplicado } — duplicado=true
-// quando o mesmo (topico, recurso_id) já foi gravado (idempotência via índice
-// único uq_assinatura_eventos_topico_recurso).
-async function registrarEventoAssinatura({ phone = null, preapprovalId = null, topico, recursoId, acao = null, status = null, payload = null }) {
-  try {
-    const { error } = await supabase
-      .from('assinatura_eventos')
-      .insert({
-        phone_number: phone,
-        preapproval_id: preapprovalId,
-        topico,
-        recurso_id: String(recursoId),
-        acao,
-        status,
-        payload,
-      });
-
-    if (error) {
-      // 23505 = unique_violation → evento já processado
-      if (error.code === '23505') return { ok: true, duplicado: true };
-      throw error;
-    }
-    return { ok: true, duplicado: false };
-  } catch (err) {
-    log('supabase_erro', { fn: 'registrarEventoAssinatura', erro: err.message });
-    return { ok: false, duplicado: false, error: err.message };
-  }
-}
-
-// ---------------------------------------------------------------
 // Idempotência do webhook Z-API (lei 5 do CODE_GUIDE)
 // ---------------------------------------------------------------
 
@@ -1703,22 +1562,6 @@ async function purgarPerguntasLog(dias = 90) {
     log('perguntas_log_purgado', { antes_de: corte });
   } catch (err) {
     log('supabase_erro', { fn: 'purgarPerguntasLog', erro: err.message });
-  }
-}
-
-// Dados da assinatura do usuário — usado em /cancelar-assinatura e status.
-async function buscarDadosAssinatura(phoneNumber) {
-  try {
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('mp_preapproval_id, plano, assinatura_status, assinatura_email, is_pro')
-      .eq('phone_number', phoneNumber)
-      .single();
-    if (error) throw error;
-    return data;
-  } catch (err) {
-    log('supabase_erro', { fn: 'buscarDadosAssinatura', erro: err.message });
-    throw err;
   }
 }
 
@@ -2042,13 +1885,6 @@ module.exports = {
   marcarProAtivo,
   buscarStatusIndicacoes,
   temFeaturesProAtivas,
-  setPendentePlano,
-  limparPendentePlano,
-  salvarAssinaturaPreapproval,
-  atualizarStatusAssinatura,
-  buscarPorPreapprovalId,
-  registrarEventoAssinatura,
-  buscarDadosAssinatura,
   registrarMensagemProcessada,
   purgarMensagensProcessadas,
   verificarLimitePerguntas,

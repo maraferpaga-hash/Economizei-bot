@@ -675,91 +675,6 @@ function montarMensagemPix() {
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// ⚠️ CÓDIGO MORTO — fluxo de assinatura por cartão via Mercado Pago.
-// O MP foi aposentado em 2026-07-26 (commit 4f49ae7) e NENHUMA das funções
-// abaixo é chamada por src/ desde então (confirmado por grep em 2026-08-05).
-// Elas descrevem cartão, checkout e cobrança automática — coisas que o produto
-// NÃO faz hoje. Ficam aqui porque a remoção é a cod-0066, que o Gabriel
-// pausou ("não quero que nada como apagar os dados do MP seja feito").
-// Regra até lá: NÃO religar nenhuma delas sem um meio de pagamento real por trás.
-// ────────────────────────────────────────────────────────────────────────────
-
-// [MORTA — MP] Pedia o e-mail após o usuário escolher um plano no cartão.
-function montarMensagemPedirEmail(planoLabel) {
-  return (
-    `Ótimo! Você escolheu o plano *${planoLabel}*. 💳\n\n` +
-    `Me passa o seu *e-mail*? Preciso dele para gerar a sua assinatura no Mercado Pago e te enviar o link de pagamento.\n\n` +
-    `_É só responder com o e-mail. Para cancelar, mande */cancelar*._`
-  );
-}
-
-// [MORTA — MP] Enviava o link de checkout do Mercado Pago.
-function montarMensagemLinkAssinatura(planoLabel, valorTexto, initPoint) {
-  return (
-    `Pronto! Aqui está o link para assinar o plano *${planoLabel}* (R$ ${valorTexto}/mês): 👇\n\n` +
-    `${initPoint}\n\n` +
-    `No link você cadastra o cartão com segurança pelo *Mercado Pago* (eu não tenho acesso aos dados do seu cartão). A partir daí, a cobrança é *automática todo mês* — sem repetir nada.\n\n` +
-    `Assim que o pagamento for aprovado, eu ativo seu plano aqui e te aviso. ✅`
-  );
-}
-
-// [MORTA — MP] Confirmava a assinatura aprovada (webhook authorized).
-function montarMensagemAssinaturaAtivada(planoLabel) {
-  return (
-    `🎉 *Plano ${planoLabel} ativado!*\n\n` +
-    `Sua assinatura está confirmada e a renovação será automática todo mês. Agora você tem:\n` +
-    `✓ Cupons *ilimitados*\n` +
-    `✓ Comparativo entre mercados\n` +
-    `✓ Alerta inteligente\n\n` +
-    `Obrigado por apoiar o Economizei! 💚\n` +
-    `_Para gerenciar ou cancelar a qualquer momento: */cancelar*._`
-  );
-}
-
-// [MORTA — MP] Confirmava o cancelamento da assinatura no cartão.
-function montarMensagemAssinaturaCancelada() {
-  return (
-    `Sua assinatura foi *cancelada*. Não haverá novas cobranças. ✅\n\n` +
-    `Você volta para o plano *Grátis* (10 cupons/mês) e seu histórico continua salvo normalmente.\n\n` +
-    `Se mudar de ideia, é só mandar */planos*. 👍`
-  );
-}
-
-// [MORTA — MP] E-mail inválido durante o fluxo de assinatura no cartão.
-function montarMensagemEmailInvalido() {
-  return (
-    `Hmm, esse e-mail não parece válido. 🤔\n\n` +
-    `Me manda de novo no formato *nome@email.com*, por favor.\n\n` +
-    `_Para desistir, mande */cancelar*._`
-  );
-}
-
-// [MORTA — MP] Falha ao gerar o link de assinatura (erro técnico no MP).
-function montarMensagemErroAssinatura() {
-  return (
-    `Ops, não consegui gerar seu link de assinatura agora. 😕\n\n` +
-    `Pode tentar de novo em alguns minutos mandando */planos*. Se preferir, dá para pagar via PIX: */pix*.`
-  );
-}
-
-// [MORTA — MP] Cobrança recorrente recusada (cartão sem saldo/expirado etc.).
-function montarMensagemPagamentoFalhou() {
-  return (
-    `⚠️ *Não consegui renovar sua assinatura*\n\n` +
-    `A cobrança no seu cartão foi recusada. O Mercado Pago vai tentar de novo automaticamente nos próximos dias.\n\n` +
-    `Se quiser, verifique o cartão cadastrado ou troque a forma de pagamento. Seu plano segue ativo enquanto as tentativas continuam.`
-  );
-}
-
-// [MORTA — MP] Usuário já era assinante ativo no cartão.
-function montarMensagemJaAssinante(planoLabel) {
-  return (
-    `Você já tem o plano *${planoLabel}* ativo. 💚\n\n` +
-    `Cupons ilimitados liberados. Para gerenciar ou cancelar: */cancelar*.`
-  );
-}
-
 /**
  * Texto de breakdown de gastos por categoria (enviado junto ou após o gráfico).
  * @param {Array<{categoria: string, total: number}>} dados - Ordenado por total desc
@@ -1341,14 +1256,6 @@ module.exports = {
   montarMensagemStatusLimite,
   montarMensagemPlanos,
   montarMensagemPix,
-  montarMensagemPedirEmail,
-  montarMensagemLinkAssinatura,
-  montarMensagemAssinaturaAtivada,
-  montarMensagemAssinaturaCancelada,
-  montarMensagemEmailInvalido,
-  montarMensagemErroAssinatura,
-  montarMensagemPagamentoFalhou,
-  montarMensagemJaAssinante,
   montarMensagemAlerta,
   montarOnboarding1,
   montarOnboarding2,
