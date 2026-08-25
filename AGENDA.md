@@ -15,7 +15,7 @@
 > Guia do sistema: `Economizei app/Automacao_Maquina_Noturna.md`.
 
 **Última curadoria:** 2026-07-16 (AGENDA enxugada ~68 KB→~37 KB — histórico integral no snapshot `Economizei app/arquivo-historico/AGENDA_arquivo_2026-07-15.md`; regra anti-inchaço no Protocolo). · **Modo:** execução local (GitHub Actions descontinuado).
-**🎯 Estado (2026-08-25, rotina matinal — SEM produção):** `origin/main` = `7f38bbf`, HEAD local = `2082cca` (inalterado). **Estoque 3/4, ~1048 de ~1200 linhas — a máquina PAROU de produzir pela REGRA 2** (folga de ~152 linhas não comporta nenhuma tarefa elegível; as 3 últimas levas custaram 321–455 linhas cada). Nada da Fila pronta é elegível por outros motivos também: cod-0075 `aguardando-decisao`, cod-0062/0072/0065 porte G (coração), cod-0049 gated pelo bloco Supabase, e cod-0071 (única `pronta` de porte M) não cabe. **O que a run fez em vez de produzir:** revalidou as 3 levas contra o HEAD atual — `estoque.mjs status` diz **íntegro** (sintaxe, zona proibida e cadeia), e a suíte com as 3 aplicadas em cópia limpa dá **544 testes · 535 verdes · 9 SIGBUS**, exatamente as mesmas 9 do baseline sem leva nenhuma (medido nesta run, não assumido) — ou seja **+47 testes novos, zero regressão**. 👉 **A ação que destrava tudo é sua: rodar `/entregar`.** Enquanto as 3 levas não subirem, toda run futura vai bater na mesma parede. As pendências de 24/08 seguem abertas (auditoria de 08-23: `/apagar` LGPD quebrado; DROP MP liberado após deploy da cod-0066).
+**🎯 Estado (2026-08-25, `/entregar`):** `origin/main` = HEAD = `31781d2`. **Estoque esvaziado (0/4):** cod-0065a (módulo de datas Canadá), cod-0072a (parser de parcela) e cod-0066 (limpeza das 15 funções órfãs do Mercado Pago — financeiro consciente) entregues em 4 commits: `042e156` · `f9987be` · `c604fe8` · `31781d2` (docs). 651/651 testes verdes **nesta máquina** (sem SIGBUS — o `sharp` funciona local), `npm run check` verde antes de cada commit e no pre-push. **cod-0066 no ar destrava o DROP das colunas MP no Supabase** (pendência em "Ações do Gabriel"). **Achado (3ª vez seguida):** a TRAVA 1 do `estoque.mjs` continua exigindo a leva anterior já `limpar`-ada antes de aplicar a próxima, contornado de novo limpando cada leva logo após o commit — script/doc ainda sem ajuste. ⚠️ **"✅ Concluído" está em 17 entradas, bem acima do teto de 10** — pede curadoria/arquivo numa próxima sessão de memória. As pendências de 24/08 seguem abertas (auditoria de 08-23: `/apagar` LGPD quebrado — 🔴 mais grave; `sharp@0.34.5` com CVEs; landing ainda cita Mercado Pago/cartão).
 
 **🎯 Estado anterior (2026-08-24, rotina matinal):** `origin/main` = `7f38bbf`, HEAD local = `2082cca` (o commit de docs `2082cca` ainda não foi pushado). **Estoque 3/4** (~1048 de ~1200 linhas — **1 leva de folga**): leva 0001 = cod-0065a (`src/datas.js`) · leva 0002 = cod-0072a (`src/parcelas.js`) · leva 0003 = **cod-0066** (remoção das 15 funções MP órfãs — 🆕 hoje). As três esperando `/entregar`, nenhuma no working tree. Working tree sujo só com `.md`. ⚠️ **Duas coisas pedem sua atenção antes da fila:** (1) a auditoria integral de 2026-08-23 achou 4 🔴 que a fila NÃO cobre — o mais grave é o `/apagar` (LGPD) quebrar no passo 3 e nunca apagar `usuarios` (`src/supabase.js:1762`); (2) com a cod-0066 entregue **e no ar**, o DROP das colunas MP no Supabase fica liberado (ordem código→deploy→banco cumprida). Ver `RELATORIO_MATINAL.md` e `Economizei app/Auditoria_Integral_2026-08-23.md`.
 
@@ -204,99 +204,17 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
   - **(b) Fazer o Agente listar mais de um comparativo pro Pro** (aí o teto passa a valer). Isso é **decisão de produto/UX**: muda a cara da resposta do Agente, que hoje é curta e de um fato só por design. Fora do que a máquina pode decidir sozinha.
   - Se você escolher (b), a fiação técnica é a que a tarefa já descreve (3 linhas: `index.js` passa `ehPro`, `agent/index.js` repassa ao `executar`, `intents.js` escolhe o env) e volta pra fila como porte P.
 
-> ⏩ **cod-0062b SAIU DAQUI em 2026-08-21** — implementada pela rotina matinal e movida para "## 🔧 Em revisão". **NÃO está no working tree:** está em `estoque/0002_2026-08-21_cod-0062b/`. Ficha preservada abaixo como referência.
+> ✅ **cod-0062b saiu daqui — entregue em `65913a2`** (`/entregar` 2026-08-22, 2ª sessão), ver "✅ Concluído".
 
-### ~~[P2] PIX — guard do `precos_mercado` + copy da confirmação~~ → EM REVISÃO
-- id: cod-0062b
-- tipo: feature-codigo
-- porte: P — **fatia autônoma da cod-0062** (2026-08-07). Não toca `src/gemini.js`.
-- skills: economizei-code-decisions, economizei-tdd, economizei-copywriter, copy-review, economizei-financial-firewall
-- objetivo: duas peças da cod-0062 que não dependem da extração: (1) trocar o guard de `registrarPrecosMercado` em `supabase.js:78` de `if (tipo !== 'outros')` para `if (tipo === 'mercado')` — senão PIX polui o histórico de preços; (2) escrever `montarConfirmacaoPix` (saída) e a mensagem de **entrada** ("isso é uma entrada, não registro como gasto") no `formatter.js`, prontas pra cod-0062 plugar.
-- arquivos-alvo: `src/supabase.js` (só a linha do guard), `src/formatter.js`, `test/`
-- criterios-de-aceite:
-  - `tipo='mercado'` continua registrando preço; `'outros'` e `'pix'` não. Teste cobre os três
-  - as duas mensagens: valor com R$ no topo, sem gíria (regra 4 §11), sem prometer o que o bot não faz
-  - a mensagem de entrada deixa claro que **nada foi gravado como gasto**
-  - node --test verde; firewall acusa o token "pix" por design → commit consciente
-- fora-de-escopo: `gemini.js`, `tipo_documento`, gravar compra, `direcao` no banco
-- status: **em-revisao** (2026-08-21, rotina matinal — no ESTOQUE, leva 0002, sem commit)
-- desvio consciente (2 itens, ambos pra mais): (1) o guard virou `entraEmPrecosMercado(tipo)` lendo `TIPOS_MERCADO` em vez do literal `tipo === 'mercado'` — mesma semântica, uma fonte de verdade só, testável sem banco; (2) nasceu uma **terceira** mensagem, `montarPixValorIlegivel` (recusa honesta do caso `pix-03` do corpus) — o critério pedia duas, mas sem a terceira o valor ausente virava "R$ 0,00".
+> ✅ **cod-0065a saiu daqui — entregue em `042e156`** (`/entregar` 2026-08-25), ver "✅ Concluído".
 
-> ⏩ **cod-0065a SAIU DAQUI em 2026-08-22** — implementada pela rotina matinal e movida para "## 🔧 Em revisão". **NÃO está no working tree:** está em `estoque/0001_2026-08-22_cod-0065a/`. Ficha preservada abaixo como referência.
+> ✅ **cod-0065b saiu daqui — entregue em `7f38bbf`** (`/entregar` 2026-08-22, 2ª sessão), ver "✅ Concluído".
 
-### ~~[P2] Canadá — módulo puro de datas (4 formatos do corpus)~~ → EM REVISÃO
-- id: cod-0065a
-- tipo: feature-codigo
-- porte: M — **fatia autônoma da cod-0065** (2026-08-07). Módulo NOVO e puro; não toca `src/gemini.js`.
-- skills: economizei-code-decisions, economizei-tdd, economizei-product-principles
-- objetivo: `src/datas.js` — função pura que recebe a string de data crua e devolve ISO ou `null`, cobrindo os 4 formatos que o corpus real trouxe: `26/07/29` (**AA/MM/DD** — lido como DD/MM/AA vira 2029), `Jul 29, 2026`, `2026-07-29`, `27-JUL-26`. Sem tocar em nada que já funciona: a cod-0065 pluga depois.
-- corpus: `test/corpus/canada/recibos.json` — ler antes de codar.
-- criterios-de-aceite:
-  - os 4 formatos verdes + o formato pt-BR atual (`DD/MM/AAAA`) inalterado
-  - 🔴 **ambiguidade não vira chute:** entrada que case com mais de um formato com resultados diferentes → devolve `null` + motivo, nunca escolhe. `CODE_GUIDE` §0.4 (saída segura > erro confiante)
-  - data futura implausível e ano de 2 dígitos ambíguo tratados explicitamente no teste
-  - função pura, sem I/O, sem dependência de locale do sistema
-- fora-de-escopo: usar o módulo em `gemini.js` (é a cod-0065); moeda; i18n de mensagem
-- status: **em-revisao** (2026-08-22, rotina matinal — no ESTOQUE, leva 0001, sem commit)
-- achado da auto-revisão (bug real, corrigido antes de reportar): a 1ª versão tratava ISO como passe livre — `2029-07-26` é sintaticamente perfeito e passava sem checar plausibilidade. A janela agora vale também no caminho ISO, travada por teste.
-- decisões de desenho (todas por teste): (1) desempate é **plausibilidade**, não ordem de formato — é o que resolve `26/07/29` sem chutar; (2) a **origem** governa só o numérico puro, e `origem:'BR'` (default) lê dia-primeiro sem hesitar, pra não quebrar cupom brasileiro; (3) ambiguidade real → `null` + lista de candidatos.
-- ⚠️ ressalva honesta: o módulo **não tem chamador** (é o que o `fora-de-escopo` pede) — mesma situação da cod-0065b. Leva legítima pra recusar se você não quiser código inerte na `main`; está isolada na leva 0001.
-- ⚠️ única fonte de não-determinismo: `opts.hoje` (default `new Date()`). Sem referência temporal não há como desempatar ano de 2 dígitos, e a alternativa (pivô fixo "< 50 é 20xx") é chute proibido pelo §0.4. Todos os testes injetam `hoje`.
-
-> ⏩ **cod-0065b SAIU DAQUI em 2026-08-21** — implementada pela rotina matinal e movida para "## 🔧 Em revisão". **NÃO está no working tree:** está em `estoque/0003_2026-08-21_cod-0065b/`. Ficha preservada abaixo como referência.
-
-### ~~[P3] Canadá — `fmtMoeda(valor, moeda)` no formatter~~ → EM REVISÃO
-- id: cod-0065b
-- tipo: refino-codigo
-- porte: P — **fatia autônoma da cod-0065** (2026-08-07).
-- skills: economizei-code-decisions, economizei-tdd, economizei-copywriter, copy-review
-- objetivo: helper currency-aware (`R$ 99,90` / `$99.90`) usado só na formatação de mensagem, com **default BRL** — toda chamada atual sem o parâmetro devolve byte a byte o que devolve hoje.
-- criterios-de-aceite: nenhuma mensagem pt-BR existente muda (teste compara string a string); CAD formata com `$` e ponto decimal; valor negativo e zero cobertos
-- fora-de-escopo: gravar `moeda` no banco (precisa migration — proibido); `gemini.js`
-- status: **em-revisao** (2026-08-21, rotina matinal — no ESTOQUE, leva 0003, sem commit)
-- decisões tomadas na implementação (ambas travadas por teste): BRL **delega** pro `brl()` atual (byte a byte por construção, inclusive `R$ -5,00`); moeda desconhecida e valor não numérico devolvem **`null`**, nunca um símbolo ou número chutado. CAD formatado à mão, sem `toLocaleString` — não depender do ICU do runtime.
-- ⚠️ ressalva honesta: o helper **não tem chamador** (é o que o critério pede). Leva legítima pra recusar se você não quiser código inerte na `main` — está isolada na leva 0003.
-
-> ⏩ **cod-0072a SAIU DAQUI em 2026-08-23** — implementada pela rotina matinal e movida para "## 🔧 Em revisão". **NÃO está no working tree:** está em `estoque/0002_2026-08-23_cod-0072a/`. Ficha preservada abaixo como referência.
-
-### ~~[P3] Fatura — parser puro de parcela (`03/12`)~~ → EM REVISÃO
-- id: cod-0072a
-- tipo: feature-codigo
-- porte: P — **fatia autônoma da cod-0072** (2026-08-07). Não toca `src/gemini.js` nem depende da fatura real.
-- skills: economizei-code-decisions, economizei-tdd, economizei-product-principles
-- objetivo: função pura que extrai `{parcelaAtual, parcelaTotal}` das formas usuais em fatura brasileira (`03/12`, `PARC 3/12`, `3 DE 12`) e devolve `null` quando não há parcelamento — para que o gasto do mês seja **a parcela, não o valor cheio**.
-- criterios-de-aceite: formas cobertas + negativos (`12/2026` é data, não parcela — não pode virar parcela); ambiguidade → `null`; função pura
-- fora-de-escopo: ler fatura, prompt, gravar; detectar assinatura recorrente
-- status: **em-revisao** (2026-08-23, rotina matinal — no ESTOQUE, leva 0002, sem commit)
-- achado da auto-revisão (bug no TESTE, não no código): escrevi `28/02` como exemplo de "data que sai com confiança média" e o teste reprovou — o módulo estava certo: `28/02` seria "parcela 28 de 2", recusada por `atual > total` antes de qualquer avaliação de confiança. Rendeu a constatação de que **a faixa de ambiguidade real é estreita** (só sobrevive data com dia ≤ mês), travada em teste próprio pra ninguém achar que a checagem de intervalo é redundante.
-- decisões de desenho (todas por teste): (1) **marcador explícito vence a coluna de data** — `05/07 NETFLIX PARC 03/12` lê 3/12, não 5/7; (2) data nunca vira parcela, garantido por duas âncoras negativas no regex (`12/12/2026` não cede nem um pedaço); (3) a ambiguidade que sobra sai **rotulada** em `confianca` (`alta`/`media`) + `opts.exigirMarcador`, em vez de escondida.
-- ⚠️ ressalva honesta: o módulo **não tem chamador** — é o **terceiro seguido** (cod-0065a, cod-0065b, agora cod-0072a). Está isolado na leva 0002 e é legítimo recusar; ver a nota sobre esse padrão no `RELATORIO_MATINAL.md` de 2026-08-23.
-- desvio consciente (1 item, pra mais): nasceu o campo `confianca` + `opts.exigirMarcador`, que o critério não pedia. Motivo: o critério manda "ambiguidade → `null`", mas manda também ler `03/12` — e `03/12` **é** ambíguo com 3 de dezembro. Sem o rótulo, os dois critérios se contradizem; com ele, quem decide é a cod-0072, que tem o contexto da linha.
+> ✅ **cod-0072a saiu daqui — entregue em `f9987be`** (`/entregar` 2026-08-25), ver "✅ Concluído".
 
 ---
 
-> ⏩ **cod-0066 SAIU DAQUI em 2026-08-24** — implementada pela rotina matinal e movida para "## 🔧 Em revisão". **NÃO está no working tree:** está em `estoque/0003_2026-08-24_cod-0066/`. Ficha preservada abaixo como referência.
-
-### ~~[P2] Limpeza — remover funções MP órfãs (código morto)~~ → EM REVISÃO
-- id: cod-0066
-- tipo: refino-codigo
-- porte: P (diff grande porém quase só deleção — revisão mecânica)
-- skills: economizei-code-decisions, economizei-tdd, economizei-financial-firewall
-- objetivo: apagar as funções MP órfãs (ninguém chama desde `4f49ae7`) e seus exports — `supabase.js`: `setPendentePlano`, `limparPendentePlano`, `salvarAssinaturaPreapproval`, `atualizarStatusAssinatura`, `buscarPorPreapprovalId`, `registrarEventoAssinatura`, `buscarDadosAssinatura`; `formatter.js`: `montarMensagemPedirEmail`, `montarMensagemLinkAssinatura`, `montarMensagemAssinaturaAtivada`, `montarMensagemAssinaturaCancelada`, `montarMensagemEmailInvalido`, `montarMensagemErroAssinatura`, `montarMensagemPagamentoFalhou`, `montarMensagemJaAssinante`.
-- nota-de-autorizacao: ✅ **CONTRADIÇÃO ARBITRADA pelo Gabriel em 2026-08-07: vale a AUTORIZAÇÃO.** A restrição *"nada de apagar MP"* vale **só pro lastro**; esta tarefa está liberada e volta pra Fila pronta. *(Histórico: duas anotações opostas da mesma data 2026-07-27 deixaram a tarefa 11 dias em limbo — a máquina obedeceu a mais conservadora e nunca a pegou.)*
-- 🔗 **sequência com o banco:** as 15 funções não têm chamador desde `4f49ae7`, então o DROP das colunas MP no Supabase é seguro mesmo antes desta tarefa. A ordem preferida continua sendo **código → deploy → banco** (esta tarefa entregue e no ar, e só então o DROP).
-- arquivos-alvo: `src/supabase.js`, `src/formatter.js`, `test/`
-- criterios-de-aceite:
-  - `grep` sem nenhuma referência restante às funções removidas (código e testes)
-  - NENHUMA função viva alterada (`montarMensagemPix`, `montarMensagemPlanos`, `is_pro` etc. intocados)
-  - node --test verde (remover/ajustar testes que cobriam só o código morto)
-- fora-de-escopo: `/pix`, `/planos`, qualquer lógica viva de pagamento; comentários históricos no `zapi.js`
-- status: **em-revisao** (2026-08-24, rotina matinal — no ESTOQUE, leva 0003, sem commit)
-- 💰 **financeiro: SIM — commit consciente.** Diff 100% remoção, mas é o caminho do dinheiro. Nada que cobra/precifica/liga `is_pro` saiu: `atualizarStatusAssinatura` era a única removida que escrevia `is_pro`, e escrevia a partir do webhook do MP, morto desde `4f49ae7`. `marcarProAtivo`/`concederFeaturesPro`/`temFeaturesProAtivas` intactas.
-- 🔓 **destrava o DROP das colunas MP no Supabase:** depois desta leva **entregue e no ar**, nenhuma linha de `src/` lê `mp_preapproval_id`, `assinatura_status`, `assinatura_email`, `assinatura_pendente_plano`, `assinatura_atualizada_em` nem a tabela `assinatura_eventos` (verificado por grep). É o pré-req da ordem código→deploy→banco.
-- teste trocou de papel, não sumiu: os 2 testes de `pix-copy.test.js` que **protegiam** o código morto (exigiam o rótulo `[MORTA — MP]` e varriam `src/` **menos** o `formatter.js`) viraram 3 que protegem a **ausência** — varredura dos 15 nomes em todo o `src/` (agora incluindo `formatter.js`/`supabase.js`), com 2 guardas anti-vácuo, + checagem funcional dos exports, + rede contra levar função viva junto.
-- desvio consciente (1, cosmético): colapsadas 3 linhas em branco duplicadas nas emendas. Regex global, mas conferido antes — os 2 arquivos originais tinham **zero** ocorrências de 2+ linhas em branco, então só as emendas foram atingidas.
-- não tocado de propósito: `scripts/check-firewall.mjs` (zona proibida) mantém `/salvarAssinaturaPreapproval/i` nos MONEY_PATTERNS — vira detector sem alvo, inofensivo; podar quando for mexer no firewall. E o comentário do `/apagar` que cita "a tabela de eventos de pagamento" ficou como está (descreve FK, não a função removida).
+> ✅ **cod-0066 saiu daqui — entregue em `c604fe8`** (`/entregar` 2026-08-25), ver "✅ Concluído".
 
 ### [P2] Frente 1 — ler comprovante de PIX (foto/PDF) ✅ **DESTRAVADA 2026-08-05 (corpus entregue)**
 - id: cod-0062
@@ -490,32 +408,20 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 | # | Leva | Tarefa | Criada em | Linhas novas | Migration? | Idade |
 |---|---|---|---|---|---|---|
-| 0001 | `0001_2026-08-22_cod-0065a` | cod-0065a — módulo puro de datas (`src/datas.js`) | 2026-08-22 | ~457 (2 arquivos NOVOS) | não | 🟡 3 dias |
-| 0002 | `0002_2026-08-23_cod-0072a` | cod-0072a — parser puro de parcela (`src/parcelas.js`) | 2026-08-23 | ~321 (2 arquivos NOVOS) | não | 🟢 2 dias |
-| 0003 | `0003_2026-08-24_cod-0066` | cod-0066 — remoção das 15 funções MP órfãs (`supabase.js`/`formatter.js`) | 2026-08-24 | ~257 **removidas** + 59 escritas | não (mas **destrava** o DROP MP) | 🟢 1 dia |
+| — | *(estoque vazio)* | — | — | — | — | — |
 
-**Estoque: 3/4** (~1048 de ~1200 linhas — **folga de ~152 linhas**). As levas 0001 e 0002 só CRIAM arquivos; a 0003 edita `src/supabase.js`, `src/formatter.js` e `test/pix-copy.test.js`, que nenhuma das outras toca — zero interseção, mas a ordem canônica continua 0001 → 0002 → 0003. Última reconciliação: **2026-08-25, rotina matinal** (`origin/main` = `7f38bbf`, HEAD local = `2082cca` — inalterado desde 22/08).
+**Estoque: 0/4.** As 3 levas (0001 cod-0065a, 0002 cod-0072a, 0003 cod-0066) foram aplicadas, commitadas e pushadas — ver "✅ Concluído". Última reconciliação: **2026-08-25 (`/entregar`)**, `origin/main` = `31781d2`.
 
-> 🛑 **A run de 2026-08-25 NÃO produziu leva nova — guarda REGRA 2 (teto de estoque).** Restavam ~152 linhas de folga, e nenhuma tarefa elegível cabe nisso: as três últimas levas custaram 321, 360 e 455 linhas. Produzir a 4ª estouraria o teto que existe justamente pra impedir a dívida crescer escondida. **O gargalo hoje é a ENTREGA, não a produção** — a run usou o tempo pra revalidar as 3 levas contra o `HEAD` atual (íntegras; 544 testes, 535 verdes, as mesmas 9 falhas SIGBUS do baseline). Detalhe: `RELATORIO_MATINAL.md`.
-
-> ⚠️ **Sobre o número do teto:** o `estoque.mjs status` conta **deleção** como "linha de trabalho novo", então a 0003 soma ~257 embora seja quase toda remoção (revisão mecânica, muito mais rápida de ler que 257 linhas escritas). O painel diz 1048/1200; o esforço real de revisão é bem menor que isso sugere.
-
-> ⚠️ **Achado nesta entrega:** `node scripts/estoque.mjs aplicar <n>` (TRAVA 1) exige que a leva `<n-1>` já não esteja mais em `estoque/` — mas o `/entregar` (Etapa 6, passo 17) só manda `limpar` DEPOIS do push, pra manter as pastas como rede de segurança do `reset --hard` caso o `npm run check` venha vermelho. Com 2+ levas na mesma sessão, isso trava: o `aplicar` da 2ª recusa enquanto a 1ª não for limpa, mas limpar antes do push cedo demais tira a rede de segurança. Contornado nesta sessão limpando a leva 0002 assim que commitada (seguro porque o conteúdo já estava no git). **Script ou doc precisam de ajuste** antes da próxima sessão com 2+ levas.
+> ⚠️ **Achado ainda sem correção (recorrente):** `node scripts/estoque.mjs aplicar <n>` (TRAVA 1) exige que a leva `<n-1>` já não esteja mais em `estoque/` — mas o `/entregar` (Etapa 6, passo 17) só manda `limpar` DEPOIS do push, pra manter as pastas como rede de segurança do `reset --hard` caso o `npm run check` venha vermelho. Com 2+ levas na mesma sessão, isso trava: o `aplicar` da leva seguinte recusa enquanto a anterior não for limpa. Contornado de novo nesta sessão (3ª vez seguida) limpando cada leva assim que commitada — seguro porque o conteúdo já está no git, mas **script ou doc precisam de ajuste** antes da próxima sessão com 2+ levas, senão o mesmo contorno manual se repete pra sempre.
 
 ---
 
 ## 🔧 Em revisão
 *(a máquina move pra cá ao commitar numa branch — esperando o Gabriel mergear via `/entregar`)*
 
-> **📦 Estoque: 3/4** — três levas esperando `/entregar`, **nenhuma no working tree** (aplicar com `node scripts/estoque.mjs aplicar 1`, depois `2`, depois `3`):
->
-> - **cod-0065a** — leva `0001_2026-08-22_cod-0065a` (rotina matinal de 2026-08-22). Sem migration, sem env, não toca financeiro nem o coração; 2 arquivos NOVOS (`src/datas.js` + `test/datas.test.js`), nada existente editado. Manifesto: `estoque/0001_.../LEVA.md`.
-> - **cod-0072a** — leva `0002_2026-08-23_cod-0072a` (rotina matinal de 2026-08-23). Sem migration, sem env, não toca financeiro nem o coração; 2 arquivos NOVOS (`src/parcelas.js` + `test/parcelas.test.js`), nada existente editado. 21/21 testes novos verdes. Manifesto: `estoque/0002_.../LEVA.md`.
-> - 🆕 💰 **cod-0066** — leva `0003_2026-08-24_cod-0066` (rotina matinal de 2026-08-24). Sem migration, sem env, **não toca o coração**, mas **É FINANCEIRA** (remoção de 15 funções do fluxo de assinatura por cartão do MP) → **commit consciente**. 3 arquivos EDITADOS, diff 100% remoção fora do teste: `src/supabase.js` (−164), `src/formatter.js` (−93), `test/pix-copy.test.js` (+59/−48). **Destrava o DROP das colunas MP no banco** depois do deploy. Manifesto: `estoque/0003_.../LEVA.md`.
->
-> ✅ **Validação das 3 levas juntas (2026-08-24):** cópia limpa em `/tmp` com 0001+0002+0003 aplicadas em ordem → **544 testes, 535 verdes, 9 falhas**, as mesmas 9 do baseline SIGBUS do `sharp` (regra 11). O baseline foi **conferido nesta run**, não assumido: os mesmos 9 arquivos numa cópia SEM leva nenhuma falham igual. `check-pages` OK, firewall selftest 19/19 OK.
->
-> ⚠️ **0001 e 0002 são módulos puros SEM CHAMADOR** (é o que os respectivos `fora-de-escopo` mandam). Somadas à cod-0065b, já entregue, são **3 peças inertes seguidas** — vale uma decisão sua sobre esse padrão (nota no `RELATORIO_MATINAL.md` de 2026-08-23). A 0003 **não** cai nesse padrão: ela só tira coisa do repositório.
+> **📦 Estoque: vazio (0/4)** — as levas pendentes foram todas aplicadas/commitadas/pushadas nesta sessão. Ver "📦 Estoque" acima e "✅ Concluído" abaixo.
+
+> **✅ RECONCILIADO em 2026-08-25 (comando `/entregar`):** **cod-0065a + cod-0072a + cod-0066** commitadas e pushadas em 4 commits (`origin/main` sincronizado em `31781d2`, 651/651 testes verdes nesta máquina — sem SIGBUS, `sharp` funciona local —, `npm run check` verde antes de cada commit e no pre-push): cod-0065a `042e156` · cod-0072a `f9987be` · cod-0066 `c604fe8` (financeiro, commit consciente) · docs (sentinela+matinal+auditoria integral+roadmap micro-cohort) `31781d2`. **Achado:** a mesma contradição da TRAVA 1 do `estoque.mjs` (leva anterior precisa estar limpa antes de aplicar a próxima) se repetiu pela 3ª vez — contornada limpando cada leva logo após o commit dela. Ainda sem correção no script/doc. **cod-0066 destrava o DROP das colunas MP no Supabase** — seguro a partir do deploy desta entrega. Detalhe em "✅ Concluído". Seção esvaziada.
 
 > **✅ RECONCILIADO em 2026-08-22, 2ª sessão (comando `/entregar`):** **cod-0062b** (guard lista-branca do `precos_mercado` + copy do comprovante PIX) + **cod-0065b** (`fmtMoeda` currency-aware) commitadas e pushadas (`origin/main` sincronizado em `7f38bbf`, 604/604 testes verdes, `npm run check` verde na máquina real antes de cada commit e no pre-push): mesa/"Passo 4" (Gabriel refinou `scripts/estoque.mjs` + `.claude/commands/entregar.md`/`tarefa.md`) `98ec5d5` · cod-0062b `65913a2` · cod-0065b `7f38bbf`. Levas 0002 e 0003 aplicadas via `node scripts/estoque.mjs aplicar 2`/`3` e removidas do estoque após o push. **Achado:** o `estoque.mjs` (TRAVA 1) exige a leva anterior já limpa antes de aplicar a próxima, mas o `/entregar` só manda limpar depois do push — contradição a corrigir antes da próxima sessão com 2+ levas (nota completa em "📦 Estoque" acima). Detalhe em "✅ Concluído". Seção esvaziada.
 
@@ -540,6 +446,9 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ## ✅ Concluído
 *(tarefas mergeadas — registro histórico, mais recente no topo)*
 
+- **cod-0066 · Limpeza — remove as 15 funções órfãs do Mercado Pago** (commit `c604fe8`, 2026-08-25) — o fluxo de assinatura por cartão via MP saiu do ar em `4f49ae7` (2026-07-26); sem chamador desde então. Remove 7 funções de `src/supabase.js` (bloco "Assinaturas recorrentes") e 8 mensagens de `src/formatter.js` (bloco `[MORTA — MP]`), com seus exports — `-164`/`-93` linhas. Nenhuma função viva tocada (`marcarProAtivo`/`concederFeaturesPro`/`temFeaturesProAtivas`/`montarMensagemPix`/`montarMensagemPlanos` intactas). `test/pix-copy.test.js` trocou de papel: os 2 testes que protegiam o código morto viraram 3 que protegem a ausência (varredura dos 15 nomes em todo `src/`, checagem funcional dos exports, rede contra levar função viva junto). Financeiro: **commit consciente** — diff 100% remoção de código de pagamento, autorização arbitrada pelo Gabriel em 2026-08-07. **Destrava o DROP das colunas MP no Supabase** (`mp_preapproval_id`, `assinatura_status`, `assinatura_email`, `assinatura_pendente_plano`, `assinatura_atualizada_em`, tabela `assinatura_eventos`) — seguro a partir do deploy desta entrega, ordem código→deploy→banco cumprida. Produzida pela rotina matinal de 2026-08-24 (leva 0003). *(skills: code-decisions, tdd, financial-firewall)*
+- **cod-0072a · Fatura — parser puro de parcela (`03/12`)** (commit `f9987be`, 2026-08-25) — fatia autônoma da cod-0072 (2026-08-07). `analisarParcela(texto, opts)`/`extrairParcela` reconhecem `03/12`, `PARC 3/12`, `3 DE 12` etc.; marcador explícito vence coluna de data; duas âncoras negativas no regex garantem que data nunca vira parcela (`12/12/2026` continua sendo data); ambiguidade residual sai rotulada em `confianca` (`alta`/`media`) + `opts.exigirMarcador`, nunca escondida. `src/parcelas.js` (novo, 121 linhas), `test/parcelas.test.js` (novo, 200 linhas, 21/21 verdes). Financeiro: não toca (não lê valor, não formata moeda, não decide preço). **Módulo sem chamador ainda** — plugar é a cod-0072 (ler fatura real, pré-req humano: 1 fatura pro corpus). Produzida pela rotina matinal de 2026-08-23 (leva 0002, base 0001/cod-0065a). *(skills: code-decisions, tdd, product-principles)*
+- **cod-0065a · Canadá — módulo puro de datas (4 formatos do corpus)** (commit `042e156`, 2026-08-25) — fatia autônoma da cod-0065 (2026-08-07). `src/datas.js` recebe a data crua do recibo e devolve ISO ou `null`, cobrindo ISO / mês por extenso (en+pt) / DD-MES-AA / numérico com ano de 2 ou 4 dígitos. Desempate por **plausibilidade** (janela de 10 anos), nunca por ordem de formato — resolve `26/07/29` (AA/MM/DD do No Frills) sem confundir com DD/MM/AA; `origem:'BR'` (default) lê dia-primeiro sem hesitar, não quebra cupom brasileiro. Ambiguidade real → `null` + candidatos. `src/datas.js` (novo, 265 linhas), `test/datas.test.js` (novo, 190 linhas, 25/25 verdes). Financeiro: não toca. **Módulo sem chamador ainda** — plugar é a cod-0065 (recibo de Vancouver). Produzida pela rotina matinal de 2026-08-22 (leva 0001, primeira da cadeia). *(skills: code-decisions, tdd, product-principles)*
 - **cod-0065b · `fmtMoeda(valor, moeda)` — helper currency-aware, semente da internacionalização** (commit `7f38bbf`, 2026-08-22) — formata BRL delegando pro `brl()` atual (byte a byte, zero mudança em copy existente) e CAD com sinal antes do símbolo (`-$5.00`); moeda desconhecida ou valor não-numérico devolve `null` — nunca chuta o símbolo (CODE_GUIDE §0.4). `src/formatter.js` (+53: `MOEDAS`, `_agrupar`, `fmtMoeda` + export). `test/fmt-moeda.test.js` (12 testes). Financeiro: não toca (formata número, não decide preço/plano). **Ainda sem chamador** — peça inerte até a cod-0065 (recibo de Vancouver) plugar. Produzida pela rotina matinal de 2026-08-21 (leva 0003, empilhada sobre a 0002). *(skills: code-decisions, tdd)*
 - **cod-0062b · PIX — guard lista-branca do `precos_mercado` + copy do comprovante** (commit `65913a2`, 2026-08-22) — fatia autônoma da cod-0062 que não depende da extração (`gemini.js`). `entraEmPrecosMercado` (função pura, testável sem banco) troca o guard de lista negra por lista branca — comportamento idêntico hoje (só existem `'mercado'`/`'outros'`), vale pro `'pix'` de amanhã. 3 mensagens novas prontas pra cod-0062 plugar: `montarConfirmacaoPix` (PIX enviado = gasto), `montarConfirmacaoPixEntrada` (PIX recebido, explicita que NÃO soma como gasto) e `montarPixValorIlegivel` (recusa honesta quando o valor não é legível — caso do corpus `pix-03`). `src/supabase.js` (+17), `src/formatter.js` (+76: `_valorPix` + 3 mensagens + exports). `test/pix-comprovante-copy.test.js` (15 testes). Financeiro: firewall acusa o token "pix" por design (advisory) — nenhuma linha cobra, precifica ou toca `is_pro`; `montarConfirmacaoPix` (comprovante recebido) é função distinta de `montarMensagemPix` (pagamento da assinatura). LGPD: as 3 funções só recebem contraparte/valor/data — sem CPF/chave PIX/agência/conta, travado por teste. **Pendência que NÃO é desta leva:** mapear `direcao: 'enviado'|'recebido'` (vocabulário do Gemini) para `'saida'|'entrada'` (coluna) é da cod-0062. Produzida pela rotina matinal de 2026-08-21 (leva 0002, base da 0001/cod-0074). *(skills: code-decisions, tdd, financial-firewall, security-lgpd)*
 - **Passo 4 da adoção ESTOQUE — `estoque.mjs` ganha verificação de cadeia + `/entregar`/`/tarefa` refinados** (commit `98ec5d5`, 2026-08-22) — editado à mão pelo Gabriel (só ele escreve em `.claude/commands/`). `scripts/estoque.mjs`: `node scripts/estoque.mjs status` agora mede o delta de cada arquivo contra a BASE correta (a leva anterior que o contém, não `src/` direto — cadeia linear) e verifica se a contribuição da leva anterior sobreviveu na atual (`cadeiaIntacta`, limiar 34%), sinalizando 🔴 se uma leva parecer ter nascido do repo em vez da anterior (jogando fora trabalho encadeado). `.claude/commands/entregar.md`/`tarefa.md`: protocolo do regime ESTOQUE detalhado (teto 4 levas/~1200 linhas, sinal de idade >5 dias, "verdade é o disco"). `.claude/settings.local.json`: permissões de sessão. **Achado na entrega seguinte (mesma sessão):** a TRAVA 1 do `aplicar` exige a leva anterior já `limpar`-ada, mas o protocolo só manda limpar depois do push — contradição real com 2+ levas, ainda sem correção. *(skills: code-decisions, automation-triage)*
@@ -641,7 +550,7 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - [~] **🗄️ SENTADA NO SQL EDITOR** (`Economizei app/Roteiro_SQL_Editor_2026-08-07.md`) — **PARCIAL em 2026-08-18: o RLS foi feito** (bloco 2, o crítico). **Faltam os 3 blocos baratos**, todos independentes entre si:
   - [ ] **Migration PIX** (`migration_2026-08-05_pix_direcao_id_transacao.sql`) — puramente aditiva, não quebra nada, e é o que **destrava a cod-0062**. Roda ANTES do push do código de PIX (anti-A9).
   - [ ] **S3 — a RPC `incrementar_compras_mes` existe?** Só leitura, query pronta no bloco 3 do roteiro.
-  - [ ] **DROP das colunas MP** — irreversível e cosmético. ⏳ **A cod-0066 saiu da fila em 2026-08-24 e está na leva 0003 do estoque**: assim que ela for entregue **e deployada**, nenhuma linha de `src/` lê as colunas MP e a ordem código → deploy → banco fica cumprida. Antes disso, não rodar.
+  - [ ] **DROP das colunas MP** — irreversível e cosmético. ✅ **cod-0066 entregue e no `origin/main` em 2026-08-25** (`c604fe8`), Railway deploya automaticamente no push. Assim que o deploy confirmar no ar, nenhuma linha de `src/` lê as colunas MP e a ordem código → deploy → banco fica cumprida — aí sim rodar o DROP.
 - [x] ~~**🧪 Teste do commit no sandbox (5 min, decide a Máquina 3.0 × TREE)**~~ → ✅ **FEITO 2026-08-18 — resultado: NÃO COMMITA.** Rodado em repositórios descartáveis, sem risco pro repo real: `rm` → `Operation not permitted`; `commit #1: OK`; `commit #2: FALHOU` (o `HEAD.lock` órfão da primeira escrita não pode ser apagado). Vale pra `commit`, `checkout -b`, `merge`, `branch -d`. A Máquina 3.0 morreu por evidência e nasceu o **regime ESTOQUE**. Docs: `Veredito_Teste_Commit_Sandbox_2026-08-18.md` + `Plano_B_Estoque_2026-08-18.md`. ~~Texto original:~~ — deixar uma run tentar `git checkout -b maquina/teste` + commit vazio + `git branch -d`, com toda leitura prefixada por `GIT_OPTIONAL_LOCKS=0`. Funcionou → a variante TREE perde a razão de existir e fica um modo só. Falhou → o TREE está justificado por evidência, e a doc para de tratar a 3.0 como regime normal. Ver "🩺 Revisão da máquina" §2.
 - [ ] **⚙️ Setar `COMPARATIVO_MAX_PRO=10`** no Railway e no `.env.example` — pré-req do gate Pro (cod-0073). O default do código já é 10, então não quebra se atrasar; fica só invisível pra quem for configurar.
 - [ ] **⚖️ Resolver a contradição da cod-0066** (autorizada × revogada, ambas datadas 2026-07-27) — ver a nota na tarefa e em "⏳ Aguardando sua decisão".
