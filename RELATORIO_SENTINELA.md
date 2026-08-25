@@ -1,43 +1,39 @@
-# 🛰️ Relatório da Sentinela Semanal — 2026-08-16 (dom, 20h51 PDT)
+# 🛰️ Relatório da Sentinela Semanal — 2026-08-23
 
-**Veredito geral: 🟡 AMARELO** — repositório saudável e sincronizado (a esteira que travou 8 dias foi destravada em 15/08), mas **duas rotinas agendadas rodaram ao mesmo tempo** e as pendências humanas de banco/gate Pro seguem paradas.
+**Veredito geral: 🟡 AMARELO.** A máquina e a memória estão saudáveis (git e AGENDA batem, firewall verde, zero regressão de teste). O amarelo vem de fora da esteira: a auditoria integral de hoje de madrugada achou **4 🔴 que ninguém enfileirou ainda**, e o mais grave — o `/apagar` (LGPD) apagando pela metade — **confirmei no código nesta run**.
 
 ---
-
-## 🔴 Achado do dia — colisão de rotinas
-
-- **A `economizei-rotina-matinal` estava rodando NESTE MESMO minuto** (`RELATORIO_MATINAL.md` = "run iniciada, 2026-08-16 20:51 PDT", guardas passadas, indo pra seleção de tarefa). A rotina é das **8:02**, não das 20:51 — ou ela disparou atrasada/em catch-up, ou o agendamento saiu do horário.
-- **Por que importa:** as duas leem e escrevem a mesma pasta. Tudo que esta sentinela reporta sobre working tree é um retrato de um alvo em movimento — se a matinal produzir código nos próximos minutos, a linha "tree limpo" abaixo fica desatualizada na hora. **Nenhuma ação minha:** não interrompi nem toquei em nada.
 
 ## Achados por check
 
 | # | Check | Resultado |
 |---|---|---|
-| 1 | Memória (CLAUDE.md × AGENDA) | 🟡 quase — o estado da AGENDA diz `HEAD = e10701f`; o real é **`97e861f`** (o commit de reconciliação seguinte). Diferença cosmética, mas é o mesmo tipo de drift que já produziu decisão errada. |
-| 2 | AGENDA × git | 🟢 **"Em revisão" vazia e verdadeira.** `main` = `origin/main` = `97e861f`. Nada commitado sendo chamado de pendente. |
-| 2b | Working tree | 🟢 limpo — só `.claude/settings.local.json` (artefato de sessão) e 1 doc novo de hoje (`Economizei app/Revisao_Entregar_Camadas_2026-08-16.md`, untracked, **não é sujeira**: é o relatório da revisão do `/entregar`). |
-| 2c | Pilha da máquina | 🟢 0/3 branches `maquina/*` — mas continua sendo 0 **desde que a Máquina 3.0 foi criada em 05/08**: o modo nunca rodou uma vez. |
-| 3 | Firewall | 🟢 `--selftest` 19/19 OK · `--working` sem detecção financeira (3 arquivos alterados). Modo advisory (exit 0 por design). |
-| 4 | Testes (cópia limpa /tmp) | 🟢 **450 passam, 8 falham — todas ⚠️ ambientais** (`SIGBUS`, dependência `sharp`): `classificacao-corpus`, `erro-copy`, `gemini-canonico`, `gemini-extracao`, `onboarding-comandos`, `webhook-auth`, `webhook-dedup`, `webhook-documento`. Passam no Windows. |
-| 5 | Anti-A9 (migrations) | 🟢 **sem exposição.** O código lê `compras.direcao` **atrás de um probe de existência** (`src/supabase.js`) — padrão anti-A9 correto. ⚠️ `supabase/migration_2026-08-05_pix_direcao_id_transacao.sql` **continua não executada** e é pré-requisito do push da cod-0062. |
-| 6a | Copy de indicação | 🔴 **ainda promete "alerta inteligente"** (`formatter.js:1076/1088/1097`) como recompensa Pro — e o Checkpoint de 01/08 mostrou que **não há gate Pro ligado**, logo os "7 dias Pro" não destrancam nada. Zona humana; não corrigi. |
-| 6b | `/assinar` × Mercado Pago | 🟢 **fechado** — handler removido, `/planos` aponta pro PIX. Restam funções órfãs em `supabase.js` (é a cod-0066, já `pronta` na fila). |
-| 7 | Contexto do Projeto Claude | 🔄 **regenerado** — o de 09/08 abre com "🔴 esteira entupida, cod-0062a não commitada" como item nº 1, e isso foi resolvido em 15/08. Novo arquivo gerado (ver abaixo). |
-
-## Fila da máquina
-
-🟢 **9 tarefas `pronta`**, sendo 6 de porte P/M autônomas (gate Pro ×3, PIX guard, datas Canadá, `fmtMoeda`, parser de parcela, limpeza MP). A seca de composição de 08/08 foi resolvida pelo fatiamento. A matinal de hoje tinha material.
+| 1 | **Memória (CLAUDE.md × AGENDA)** | 🟢 Coerentes. Última atualização = 2026-08-22 (2ª sessão), bate com o git. |
+| 2a | **AGENDA × git — tarefas "em revisão" já commitadas** | 🟢 Nenhuma. A seção "Em revisão" está esvaziada e o estoque (2 levas) não tem nada commitado. |
+| 2b | **Working tree parado >7 dias** | 🟢 Nada. Só `.md` sujo (`AGENDA.md`, `RELATORIO_MATINAL.md`), de hoje. |
+| 2c | **Untracked suspeito** | 🟡 2 docs novos de hoje: `Economizei app/Auditoria_Integral_2026-08-23.md` e `Roadmap_Micro_Cohort_2026-08-23.md`. Legítimos (produzidos pela sessão de madrugada) — **só precisam ser commitados**. |
+| 2d | **Memória stale (1 achado)** | 🟡 O topo da AGENDA diz *"HEAD local = `2082cca` (ainda não pushado)"* — **está pushado**: `origin/main` = `2082cca`. Corrigir na próxima reconciliação. |
+| 3 | **Firewall** | 🟢 `--selftest` 19/19 OK · `--working` verde (4 arquivos alterados, nenhum financeiro). |
+| 4 | **Testes (cópia limpa `/tmp`)** | 🟢 497 testes · **488 verdes · 9 falhas ⚠️ ambientais** (SIGBUS do `sharp`) — exatamente as mesmas 9 da rotina matinal. Sem regressão. |
+| 5 | **Anti-A9 (migrations)** | 🟡 **`migration_2026-08-05_pix_direcao_id_transacao.sql` continua não executada.** Hoje é seguro: `src/supabase.js` esconde o filtro de `direcao` atrás de um probe de existência da coluna (cod-0062a). **Vira 🔴 no dia do push da cod-0062** — rodar a migration ANTES. Também aberto: **S5**, as 7 views de `metrics_views.sql` nunca executadas por inteiro, com `src/metrics.js` lendo `v_dashboard`/`v_retencao_w2`/`v_cupons_por_mes`/`v_funil_conversao`. |
+| 6a | **Copy — indicação promete "alerta inteligente"** | 🟢 **Deixou de ser promessa falsa.** A cadeia do Alerta Pro fechou (cod-0030..0035) e o gate Pro foi ligado (cod-0073 `/comparar`, cod-0074 comandos) — agora a recompensa de 7 dias destranca algo real. Resta 🟡 **B9**: o `/planos` (`formatter.js:648`) ainda diz "preditivo", que é a cod-0049 e não existe. |
+| 6b | **`/assinar` gera checkout Mercado Pago?** | 🟢 **Não.** O handler foi removido (`4f49ae7`); o que sobrou em `formatter.js` está marcado `[MORTA — MP]` e sem chamador. **Mas a landing ficou pra trás** (achado 🔴 N4) — `landing/index.html:9,13,22,2037,2183` ainda vende "cartão" e cita "Mercado Pago". |
+| 7 | **Contexto do Projeto** | 🟡 O de 2026-08-16 ficou **materialmente defasado**: descreve "Máquina 3.0 / pilha de branches" (morta em 18/08) e "gate Pro nunca ligado" (ligado em 20 e 22/08); não tem RLS fechado, regime ESTOQUE, nem a auditoria de hoje. **Gerado o substituto.** |
 
 ---
 
-## 🙋 Ações do Gabriel (ordem de urgência)
+## 🙋 Ações do Gabriel (ordenadas por urgência)
 
-1. **🔴 Conferir por que a rotina matinal disparou às 20:51** (e se ela colidiu com esta sentinela). Se rodaram juntas, revisar o diff que ela produziu com atenção extra.
-2. **🔴 Sentada no SQL Editor** — `Economizei app/Roteiro_SQL_Editor_2026-08-07.md` (~25 min). Passo 0 (provar `service_role` no WhatsApp) → migration PIX → RLS (os 2 scripts) → S3 → DROP MP. **É o caminho crítico**: destrava cod-0062, cod-0069 e cod-0070. Parado há 9 dias.
-3. **🔴 Teste dos 5 minutos** (o sandbox consegue commitar?) — parado há 10 dias; decide Máquina 3.0 × TREE e é pré-requisito da proposta de camadas de ontem.
-4. **🟡 Trocar o arquivo no Projeto do Claude:** remova `Projeto_Claude_CONTEXTO_2026-08-09.md`, suba **`Projeto_Claude_CONTEXTO_2026-08-16.md`** (gerado nesta run).
-5. **🟡 Decidir sobre o relatório de ontem** (`Revisao_Entregar_Camadas_2026-08-16.md`): 7 decisões na tabela §11, sendo as 3 primeiras baratas. O doc está **untracked** — entra no próximo commit ou fica de fora?
-6. **🟡 Corrigir a data do "Estado" no topo da AGENDA** (`e10701f` → `97e861f`).
-7. **🟢 `COMPARATIVO_MAX_PRO=10`** no Railway/`.env.example` (pré-req da cod-0073; default do código já é 10).
+1. **🔴 Enfileirar o conserto do `/apagar` (LGPD).** `src/supabase.js:1762` faz `DELETE FROM lembretes_enviados` com `throw` — tabela que nunca existiu (removida do schema guard na cod-0068). Ele apaga `compras`/`itens_compra`/`indicacoes`, lança no passo 3 e **nunca chega em `usuarios`**: o usuário perde o histórico, **mantém a identidade** e recebe "deu erro", contra uma política que promete exclusão total em 48h. Conserto = porte P, código puro (tolerar ausência, padrão `CODIGOS_AUSENCIA`). **É a única pendência com exposição jurídica ativa.**
+2. **🔴 Decidir sobre o `sharp@0.34.5`** (4 CVEs altos em libvips) — é a lib que processa **toda foto que um estranho manda no bot**. `npm audit fix --force` sobe pra 0.35.3 (breaking) + smoke de 1 cupom. Zona sua (`package.json`).
+3. **🔴 Landing × produto** — tirar "cartão"/"Mercado Pago" dos 5 pontos de `landing/index.html`, e decidir o que fazer com **Família / Família+**, vendidos no `/planos` e na landing sem uma linha de implementação (receber por algo que não há como entregar).
+4. **🟡 `/entregar` das 2 levas do estoque** — `node scripts/estoque.mjs aplicar 1` (cod-0065a) e depois `aplicar 2` (cod-0072a). Ambas 🟢 (0–1 dia, 2 arquivos NOVOS cada, sem migration/env/financeiro). ⚠️ Lembrar da contradição da TRAVA 1: limpar cada leva logo após o commit dela.
+5. **🟡 Commitar os 2 docs untracked** de hoje (auditoria integral + roadmap da micro-cohort) e corrigir a linha stale do topo da AGENDA (`2082cca` **está** no `origin/main`).
+6. **🟡 Trocar o arquivo no Projeto do Claude:** remova o `Projeto_Claude_CONTEXTO_2026-08-16.md` e suba o **`Projeto_Claude_CONTEXTO_2026-08-23.md`** (gerado agora).
+7. **🟡 Sentada curta no SQL Editor** (3 blocos independentes que sobraram): **migration PIX** (destrava cod-0062) · **S3** (a RPC existe?) · **S5** (rodar `metrics_views.sql` ou remover as referências mortas). O DROP das colunas MP fica depois da cod-0066.
+8. **🟢 Atualizar o prompt da tarefa agendada `economizei-rotina-matinal`** — ainda descreve Máquina 3.0/TREE. Enquanto não muda, toda run decide o regime de novo.
+9. **🟢 Decisões paradas:** cod-0075 (a rotina de 08-21 diz que a premissa não se sustenta) · o padrão das **3 peças inertes** seguidas (estocar / plugar numa sessão sua / parar de fatiar porte-G) · o desenho da micro-cohort.
 
-*(Sentinela: só leitura e testes. Nenhum commit, nenhum arquivo de produto tocado.)*
+---
+
+*Sentinela roda aos domingos 20h. Só lê, testa e reporta — nunca commita, nunca toca dinheiro. Anterior: 2026-08-16.*
