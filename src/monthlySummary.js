@@ -7,37 +7,74 @@ const { gerarUrlGraficoCategorias } = require('./charts');
 const { calcularEconomia, buscarGastoSuperfluo } = require('./insights');
 const { log, maskPhone } = require('./logger');
 
+// ---------------------------------------------------------------------------
+// Dependências injetáveis (las-03 — cobertura de testes do resumo mensal).
+//
+// O resumo de fim de mês é hoje a ÚNICA mensagem proativa do produto (o
+// reengajamento foi desligado na cod-0068), e não tinha um único teste. Ele
+// fala com banco, Z-API e relógio — nada disso pode ser exercitado em teste
+// unitário sem uma costura.
+//
+// A costura escolhida é a mesma já usada no núcleo do recibo: um 3º parâmetro
+// OPCIONAL com as dependências. Em produção ninguém passa nada e o
+// comportamento é byte a byte o mesmo de antes (os dois call sites —
+// scheduler.js e index.js — continuam chamando com 1 e 2 argumentos).
+//
+// `dormir` está aqui porque os dois `setTimeout` (800ms do gráfico, 1000ms de
+// throttle entre usuários) tornariam a suíte lenta e não-determinística; o
+// teste injeta um dormir instantâneo E confere que os dois delays acontecem.
+// ---------------------------------------------------------------------------
+const DEPS_PADRAO = {
+  listarUsuariosAtivosNoMes,
+  buscarComprasDoMes,
+  verificarResumoJaEnviado,
+  marcarResumoEnviado,
+  buscarGastosPorCategoria,
+  buscarTotaisMensais,
+  buscarCategoriasSuperfluas,
+  enviarMensagem,
+  enviarImagem,
+  montarResumoMensal,
+  nomeDoMes,
+  gerarUrlGraficoCategorias,
+  calcularEconomia,
+  buscarGastoSuperfluo,
+  dormir: (ms) => new Promise((r) => setTimeout(r, ms)),
+};
+
 function calcularMesAnterior(mesRef) {
   const [ano, mes] = mesRef.split('-').map(Number);
   if (mes === 1) return `${ano - 1}-12`;
   return `${ano}-${String(mes - 1).padStart(2, '0')}`;
 }
 
-async function executarResumoMensal(mesReferencia, phoneEspecifico = null) {
+async function executarResumoMensal(mesReferencia, phoneEspecifico = null, deps = {}) {
+  const d = { ...DEPS_PADRAO, ...deps };
+
   log('resumo_mensal_iniciando', { mes: mesReferencia, phone_especifico: phoneEspecifico ? 'sim' : 'nao' });
 
   const phones = phoneEspecifico
     ? [phoneEspecifico]
-    : await listarUsuariosAtivosNoMes(mesReferencia);
+    : await d.listarUsuariosAtivosNoMes(mesReferencia);
 
   let enviados = 0, pulados = 0, erros = 0;
   const mesAnterior = calcularMesAnterior(mesReferencia);
 
   for (const phone of phones) {
     try {
-      const jaEnviado = await verificarResumoJaEnviado(phone, mesReferencia);
+      const jaEnviado = await d.verificarResumoJaEnviado(phone, mesReferencia);
       if (jaEnviado) { pulados++; continue; }
 
-      const dadosAtual = await buscarComprasDoMes(phone, mesReferencia);
+      const dadosAtual = await d.buscarComprasDoMes(phone, mesReferencia);
       if (!dadosAtual) { pulados++; continue; }
 
-      const dadosAnterior = await buscarComprasDoMes(phone, mesAnterior);
+      const dadosAnterior = await d.buscarComprasDoMes(phone, mesAnterior);
 
       // F4 — economia anual pro reforço no resumo (degrada pra null em erro).
       let economia = null;
       try {
-        const totais = await buscarTotaisMensais(phone, 12);
-        economia = calcularEconomia(totais, { mesAlvo: mesReferencia });
+        const totais = await d.buscarTotaisMensais(phone, 12);
+        economia = d.calcularEconomia(totais, { mesAlvo: mesReferencia });
       } catch (errEco) {
         log('resumo_economia_erro', { phone: maskPhone(phone), erro: errEco.message });
       }
@@ -50,28 +87,28 @@ async function executarResumoMensal(mesReferencia, phoneEspecifico = null) {
       let dadosCat = null;
       let superfluo = null;
       try {
-        dadosCat = await buscarGastosPorCategoria(phone, mesReferencia);
+        dadosCat = await d.buscarGastosPorCategoria(phone, mesReferencia);
         if (dadosCat && dadosCat.length > 0) {
-          const categoriasSup = await buscarCategoriasSuperfluas(phone);
-          superfluo = buscarGastoSuperfluo(dadosCat, categoriasSup);
+          const categoriasSup = await d.buscarCategoriasSuperfluas(phone);
+          superfluo = d.buscarGastoSuperfluo(dadosCat, categoriasSup);
         }
       } catch (errSup) {
         log('resumo_superfluo_erro', { phone: maskPhone(phone), erro: errSup.message });
       }
 
-      const texto = montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia, superfluo);
+      const texto = d.montarResumoMensal(dadosAtual, dadosAnterior, mesReferencia, economia, superfluo);
 
-      await enviarMensagem(phone, texto);
-      await marcarResumoEnviado(phone, mesReferencia, dadosAtual.qtdCompras, dadosAtual.totalGasto);
+      await d.enviarMensagem(phone, texto);
+      await d.marcarResumoEnviado(phone, mesReferencia, dadosAtual.qtdCompras, dadosAtual.totalGasto);
 
       // Tenta enviar gráfico de categorias logo após o texto do resumo
       try {
         if (dadosCat && dadosCat.length > 0) {
-          const titulo   = nomeDoMes(mesReferencia);
-          const chartUrl = gerarUrlGraficoCategorias(dadosCat, titulo);
+          const titulo   = d.nomeDoMes(mesReferencia);
+          const chartUrl = d.gerarUrlGraficoCategorias(dadosCat, titulo);
           if (chartUrl) {
-            await new Promise(r => setTimeout(r, 800));
-            await enviarImagem(phone, chartUrl, `📊 Gastos por categoria — ${titulo}`);
+            await d.dormir(800);
+            await d.enviarImagem(phone, chartUrl, `📊 Gastos por categoria — ${titulo}`);
           }
         }
       } catch (errCat) {
@@ -80,7 +117,7 @@ async function executarResumoMensal(mesReferencia, phoneEspecifico = null) {
       }
 
       // throttle: 1 segundo entre usuários pra não estourar rate-limit do Z-API
-      await new Promise(r => setTimeout(r, 1000));
+      await d.dormir(1000);
       enviados++;
     } catch (err) {
       log('resumo_mensal_erro', { phone: maskPhone(phone), erro: err.message });

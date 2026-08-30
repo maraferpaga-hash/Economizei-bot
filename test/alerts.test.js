@@ -136,6 +136,63 @@ test("deveEnviarMensagem: modo é case-insensitive", () => {
   });
 });
 
+// ── avaliarCompra — entradas degeneradas (las-01, 2026-08-26) ───────────────
+// O total vem de `dados.total`, que nasce da leitura do cupom. Se a extração
+// devolver algo que não é número, o alerta não pode inventar um veredito.
+test("avaliarCompra: média NaN/undefined é tratada como 'sem base' (null)", () => {
+  assert.equal(avaliarCompra(100, NaN), null);
+  assert.equal(avaliarCompra(100, undefined), null);
+});
+
+test("avaliarCompra: total NaN não produz veredito falso", () => {
+  comEnv({ ALERTA_LIM_ACIMA: undefined, ALERTA_LIM_ABAIXO: undefined }, () => {
+    const r = avaliarCompra(NaN, 100);
+    // Há média, então há retorno — mas nenhuma comparação com NaN é
+    // verdadeira, logo o veredito cai em 'normal' (o silencioso no modo
+    // default). O que NÃO pode acontecer é acusar 'acima' e alarmar à toa.
+    assert.equal(r.nivel, "normal");
+    assert.notEqual(r.nivel, "acima");
+  });
+});
+
+test("avaliarCompra: compra de valor zero é 'abaixo', não erro", () => {
+  comEnv({ ALERTA_LIM_ACIMA: undefined, ALERTA_LIM_ABAIXO: undefined }, () => {
+    const r = avaliarCompra(0, 100);
+    assert.equal(r.nivel, "abaixo");
+    pctPerto(r.percentual, -100);
+  });
+});
+
+test("avaliarCompra: limiar zero é respeitado (env '0' não cai no default)", () => {
+  // `0` é falsy — se a validação da env usasse `||` em vez de checar
+  // Number.isFinite, o zero viraria 0.20 silenciosamente.
+  comEnv({ ALERTA_LIM_ACIMA: "0", ALERTA_LIM_ABAIXO: undefined }, () => {
+    // Com limiar 0, qualquer coisa igual ou acima da média é 'acima'.
+    assert.equal(avaliarCompra(100, 100).nivel, "acima");
+    assert.equal(avaliarCompra(100.01, 100).nivel, "acima");
+  });
+});
+
+// ── deveEnviarMensagem — entradas fora do vocabulário ───────────────────────
+test("deveEnviarMensagem: modo desconhecido cai no 'relevante' (default seguro)", () => {
+  comEnv({ ALERTA_MODO: "modo-que-nao-existe" }, () => {
+    assert.equal(deveEnviarMensagem("acima"), true);
+    assert.equal(deveEnviarMensagem("abaixo"), true);
+    assert.equal(deveEnviarMensagem("normal"), false);
+  });
+});
+
+test("deveEnviarMensagem: nível desconhecido nunca vira mensagem", () => {
+  // Se um nível novo for adicionado ao avaliarCompra sem atualizar aqui, o
+  // padrão tem que ser o silêncio — nunca mandar mensagem que ninguém redigiu.
+  for (const modo of [undefined, "sempre", "so_acima"]) {
+    comEnv({ ALERTA_MODO: modo }, () => {
+      assert.equal(deveEnviarMensagem("inexistente"), false);
+      assert.equal(deveEnviarMensagem(undefined), false);
+    });
+  }
+});
+
 // ── verificarAlerta — wrapper de compatibilidade ────────────────────────────
 test("verificarAlerta: só retorna objeto quando 'acima', null caso contrário", () => {
   comEnv({ ALERTA_LIM_ACIMA: undefined, ALERTA_LIM_ABAIXO: undefined }, () => {
