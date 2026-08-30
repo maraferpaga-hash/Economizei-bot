@@ -80,6 +80,7 @@ const {
   montarMensagemPix,
   nomeDoMes,
 } = require('./formatter');
+const { processarRecibo } = require('./core/recibo');
 const { gerarUrlGraficoCategorias } = require('./charts');
 const { analisarRaioXCategorias, analisarInflacaoPessoal, calcularEconomia, analisarOndeCortar, compararPrecosMercado, buscarGastoSuperfluo, buscarGastoPorAlvo, interpretarAcompanhamento, interpretarSuperfluo, interpretarTeto, verificarTetosEstourados } = require('./insights');
 const { avaliarCompra, deveEnviarMensagem } = require('./alerts');
@@ -707,119 +708,90 @@ async function processarDocumento(phone, documentUrl, mimeType) {
 }
 
 // ---------------------------------------------------------------
-// Núcleo compartilhado imagem/documento: recebe o phone e uma função que baixa
-// o buffer (baixarImagem OU baixarDocumento). A partir do buffer tudo é igual:
-// gate de onboarding/limite, leitura no Gemini, gravação e resposta. Extraído
-// de processarImagem (cod-0061) sem mudar o comportamento do fluxo de imagem.
+// ADAPTADOR WhatsApp do recebimento de recibo (cod-0071).
+//
+// A regra de negócio saiu daqui e virou `src/core/recibo.js`, que devolve uma
+// LISTA DE AÇÕES em ordem. O que sobrou nesta função é a tradução dessas ações
+// em mensagem Z-API — ou seja, a parte que só o WhatsApp entende. O app (2º
+// canal) vai chamar o mesmo núcleo e escrever o seu próprio adaptador.
+//
+// O try/catch continua AQUI, envolvendo núcleo + execução, exatamente como
+// antes: uma falha no download, na leitura, na gravação OU no envio cai na
+// mesma mensagem de erro interno e interrompe as ações seguintes.
 // ---------------------------------------------------------------
 async function processarReciboRecebido(phone, baixar) {
   try {
-    const usuario = await upsertUsuario(phone);
-    const step = usuario.onboarding_step ?? 0;
-
-    // Step 0: enviar boas-vindas e não processar a imagem ainda
-    if (step === 0) {
-      await gerenciarOnboarding(phone, step, 'imagem', null);
-      return;
-    }
-
-    const { atingido, cuponsUsados } = await verificarLimiteGratuito(phone);
-    if (atingido) {
-      log('limite_atingido', { phone: maskPhone(phone), cupons_usados: cuponsUsados });
-      await enviarMensagem(phone, montarMensagemLimite());
-      return;
-    }
-
-    log('cupom_iniciando', { phone: maskPhone(phone) });
-    const buffer = await baixar();
-    const dados = await lerRecibo(buffer);
-
-    if (!dados.sucesso) {
-      log('cupom_erro_leitura', {
-        phone: maskPhone(phone),
-        categoria: dados.categoria_erro,
-        motivo: dados.motivo,
-      });
-      await enviarMensagem(phone, montarMensagemErro(dados.motivo, dados.categoria_erro));
-      // Borrado mesmo após pré-processamento: orienta a reenviar como documento
-      if (dados.categoria_erro === 'borrado') {
-        await new Promise(r => setTimeout(r, 800));
-        await enviarMensagem(phone, montarMensagemEnviarComoArquivo());
-      }
-      return;
-    }
-
-    // Calcula média ANTES de salvar a compra atual — assim o alerta compara
-    // com o histórico real e não com uma média já influenciada pela compra de agora.
-    const media = await calcularMedia(phone);
-
-    await salvarCompra(phone, {
-      loja: dados.loja,
-      total: dados.total,
-      data_compra: dados.data_compra,
-      itens: dados.itens,
-      cnpj: dados.cnpj,
-      tipo: dados.tipo,
-    });
-
-    // Após salvar, busca totalMes (já inclui a compra atual) e o contador atualizado do usuário
-    const [historico, usuarioAtualizado] = await Promise.all([
-      buscarHistorico(phone, 1),
-      upsertUsuario(phone),
-    ]);
-
-    const resposta = montarResposta(dados, {
-      totalMes: historico.totalMes,
-      // Fallback: 0 em vez de historico.compras.length (que é sempre 1 com limit=1)
-      qtdComprasMes: usuarioAtualizado.compras_mes_atual ?? 0,
-    });
-    await enviarMensagem(phone, resposta);
-
-    if (dados.itens.length === 0) {
-      log('cupom_sucesso_parcial', { phone: maskPhone(phone), total: dados.total });
-      await new Promise((r) => setTimeout(r, 600));
-      await enviarMensagem(phone, montarAvisoSucessoParcial());
-    }
-
-    // Mensagem de onboarding adicional após a resposta normal (steps 1 e 2)
-    if (step === 1 || step === 2) {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      await gerenciarOnboarding(phone, step, 'imagem', { dados, totalMes: historico.totalMes });
-    }
-
-    // Comparação com a média histórica — só para compras de mercado.
-    // Cupom não-mercado (farmácia/posto) não tem padrão de gasto comparável.
-    if (dados.tipo !== 'outros') {
-      const avaliacao = avaliarCompra(dados.total, media);
-      if (avaliacao && deveEnviarMensagem(avaliacao.nivel)) {
-        log('alerta_disparado', {
-          phone: maskPhone(phone),
-          nivel: avaliacao.nivel,
-          percentual: Math.round(avaliacao.percentual),
-        });
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        await enviarMensagem(phone, montarMensagemAlerta(avaliacao));
-      }
-    }
-
-    log('cupom_registrado', { phone: maskPhone(phone), loja: dados.loja, total: dados.total });
-
-    // Alerta proativo de teto (cod-0035): esta compra pode ter feito um alvo
-    // acompanhado cruzar o limite do mês. Self-contained — nunca derruba o fluxo.
-    // Passa o usuário porque o alerta é Pro (gate silencioso, cod-0074).
-    // `usuarioAtualizado` é a leitura mais fresca; `usuario` é o fallback.
-    await verificarAlertasDeLimite(phone, usuarioAtualizado || usuario);
-
-    // Marco de ativação de indicação: se este usuário veio por indicação e ainda
-    // estava pendente, este 1º cupom libera a recompensa pros dois lados.
-    // Self-contained (nunca lança) — não pode derrubar o fluxo do cupom já salvo.
-    await processarAtivacaoIndicacao(phone);
+    const { acoes } = await processarRecibo(phone, baixar);
+    await executarAcoesDoRecibo(phone, acoes);
   } catch (err) {
     log('cupom_erro_interno', { phone: maskPhone(phone), erro: err.message });
     // Best-effort: tentar avisar o usuário, mas não deixar o erro do envio derrubar o handler
     try {
       await enviarMensagem(phone, montarMensagemErro('Erro interno ao processar imagem'));
     } catch (_) { /* já logado em zapi_erro */ }
+  }
+}
+
+// ---------------------------------------------------------------
+// Traduz cada ação do núcleo em efeito no WhatsApp, na ordem recebida.
+// `delayMs` é a pausa ANTES da ação e `log` é emitido imediatamente antes dela
+// — as duas coisas existem para que a sequência observável (mensagens, pausas
+// e linhas de log) fique idêntica à de antes do refactor.
+// Deliberadamente NÃO captura erro: quem trata é o `processarReciboRecebido`.
+// ---------------------------------------------------------------
+async function executarAcoesDoRecibo(phone, acoes) {
+  for (const acao of acoes) {
+    if (acao.log) log(acao.log.evento, acao.log.dados);
+    if (acao.delayMs) await new Promise((resolve) => setTimeout(resolve, acao.delayMs));
+
+    switch (acao.tipo) {
+      case 'onboarding':
+        await gerenciarOnboarding(phone, acao.step, acao.tipoEntrada, acao.dadosProcessados);
+        break;
+
+      case 'limite':
+        await enviarMensagem(phone, montarMensagemLimite());
+        break;
+
+      case 'erro_leitura':
+        await enviarMensagem(phone, montarMensagemErro(acao.motivo, acao.categoriaErro));
+        break;
+
+      case 'enviar_como_arquivo':
+        await enviarMensagem(phone, montarMensagemEnviarComoArquivo());
+        break;
+
+      case 'resposta':
+        await enviarMensagem(phone, montarResposta(acao.dados, {
+          totalMes: acao.totalMes,
+          qtdComprasMes: acao.qtdComprasMes,
+        }));
+        break;
+
+      case 'aviso_sucesso_parcial':
+        await enviarMensagem(phone, montarAvisoSucessoParcial());
+        break;
+
+      case 'alerta':
+        await enviarMensagem(phone, montarMensagemAlerta(acao.avaliacao));
+        break;
+
+      case 'pos_compra':
+        // Alerta proativo de teto (cod-0035): esta compra pode ter feito um alvo
+        // acompanhado cruzar o limite do mês. Self-contained — nunca derruba o fluxo.
+        // Passa o usuário porque o alerta é Pro (gate silencioso, cod-0074).
+        await verificarAlertasDeLimite(phone, acao.usuario);
+        // Marco de ativação de indicação: se este usuário veio por indicação e ainda
+        // estava pendente, este 1º cupom libera a recompensa pros dois lados.
+        // Self-contained (nunca lança) — não pode derrubar o fluxo do cupom já salvo.
+        await processarAtivacaoIndicacao(phone);
+        break;
+
+      default:
+        // Ação desconhecida nunca deve chegar aqui; se chegar, é bug de contrato
+        // entre núcleo e adaptador — registra e segue, sem derrubar o fluxo.
+        log('recibo_acao_desconhecida', { phone: maskPhone(phone), tipo: acao.tipo });
+    }
   }
 }
 
@@ -1330,5 +1302,8 @@ module.exports = {
   comandoExigeProAlerta,
   comandoLiberadoParaUsuario,
   verificarAlertasDeLimite,
+  // cod-0071: o adaptador de canal (traduz as ações do núcleo em mensagem Z-API).
+  // Exportado para teste — prova que o contrato núcleo↔canal é respeitado.
+  executarAcoesDoRecibo,
 };
 // fim do arquivo
