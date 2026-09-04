@@ -1,0 +1,18 @@
+{
+  "_doc": "Uma entrada por peça produzida, em ordem. A rotação anti-template (seção 11.3 do prompt) lê daqui: nunca a mesma abertura em 2 seguidas, o mesmo tipo de pauta em 3, o mesmo modo visual em 4, a mesma duração ±3s em 3. 'Você sabia que…' nunca.",
+  "pecas": [
+    {
+      "leva": "0001",
+      "peca": "peca-1-cafe-cenoura",
+      "data": "2026-09-03",
+      "tipo_pauta": "comparacao-chocante",
+      "abertura": "dois-numeros-em-contraste",
+      "duracao_s": 30,
+      "modo_visual": "dado-animado",
+      "rota_voz": "B-gravacao-real",
+      "tema": "ipca-itens-vs-media",
+      "ancora_local": false,
+      "status": "em-revisao"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "_doc": "Registro de toda fonte usada pela Máquina de Conteúdo. Cada peça aponta pra cá pelo `id` no seu fontes.md. Regra: dado sem entrada aqui não vira peça.",
+  "fontes": [
+    {
+      "id": "ibge-ipca-7060-jul2026",
+      "nome": "IBGE — IPCA julho/2026, subitens de Alimentação no domicílio (SIDRA t/7060)",
+      "url": "https://sidra.ibge.gov.br/tabela/7060",
+      "url_api": "https://apisidra.ibge.gov.br/values/t/7060/n1/all/v/63,2265/p/last%201/c315/all/d/v63%202,v2265%202",
+      "arquivo_local": "conteudo/dados/2026-09-03_ipca_jul2026_alimentacao_domicilio.json",
+      "coletado_em": "2026-09-03",
+      "periodo_referencia": "julho/2026 (variação mensal e acumulada em 12 meses)",
+      "validade": "2026-09-11 — data em que o IPCA de agosto/2026 sai e o 'último mês' muda"
+    },
+    {
+      "id": "calendario-ipca-2026",
+      "nome": "Calendário de divulgação — IPCA ago/2026 em 11/09/2026 · IPCA-15 set/2026 em 25/09/2026",
+      "url": "https://www.ibge.gov.br/calendario/mensal.html",
+      "url_confirmacao": "https://brasilindicadores.com.br/indicadores-economicos/calendario-divulgacao/",
+      "coletado_em": "2026-09-03",
+      "nota": "Confirmar na página do IBGE antes de usar a data numa peça (o portal é renderizado por JS; a confirmação de 03/09 veio do agregador Brasil Indicadores)."
+    },
+    {
+      "id": "bot-comando-inflacao",
+      "nome": "Feature do produto: comando /inflacao (inflação pessoal por item)",
+      "url": "src/index.js:578 · src/formatter.js:744 (montarMensagemInflacao) · src/insights.js (analisarInflacaoPessoal)",
+      "coletado_em": "2026-09-03",
+      "nota": "Existe e está no ar (não é o 'alerta preditivo' do achado B9). Precisa de compras repetidas do mesmo item pra ter o que comparar — a copy não pode prometer resultado no 1º cupom."
+    }
+  ]
+}
