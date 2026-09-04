@@ -24,8 +24,15 @@
  *       arquivos/test/canal.test.js
  *
  * TRAVAS (o script recusa, não avisa)
- *   1. Ordem: só aplica a leva de MENOR número que ainda existe. Pular quebra a
- *      cadeia, porque a leva N foi construída em cima da N-1.
+ *   1. Ordem: só aplica a leva N depois que TODA leva anterior já estiver no
+ *      repositório (working tree ou histórico de HEAD). Pular quebra a cadeia,
+ *      porque a leva N foi construída em cima da N-1.
+ *      Até 2026-09-03 esta trava perguntava outra coisa: "a PASTA da leva
+ *      anterior ainda existe?". Isso confundia ciclo de vida com estado — o
+ *      `/entregar` só chama `limpar` depois do push, de propósito (a pasta
+ *      intacta é a rede de segurança do `reset --hard`), então a 2ª leva de uma
+ *      mesma sessão era recusada mesmo com a 1ª já aplicada e commitada. Foi
+ *      contornado à mão 4 vezes seguidas antes de virar correção.
  *   2. Zona proibida: recusa qualquer caminho em supabase/, .env*, .github/,
  *      package.json, package-lock.json, Dockerfile, Procfile, .claude/ e
  *      scripts/check-firewall.mjs.
@@ -202,6 +209,53 @@ function cadeiaIntacta(levas, indice, rel) {
   };
 }
 
+// ---------------------------------------------------------------- entrega
+// "O conteúdo desta leva já está no repositório?" — a pergunta que a TRAVA 1 e o
+// `limpar` precisam responder. Duas formas de sim, as duas seguras:
+//
+//   (a) o arquivo no disco é idêntico ao da leva → aplicada (commitada ou não);
+//   (b) o conteúdo exato aparece no HISTÓRICO de HEAD para aquele caminho → foi
+//       commitado, e pode já ter sido SUPERADO por uma leva posterior que toca o
+//       mesmo arquivo. É esse o caso de cadeia (REGRA 1) que a checagem de pasta
+//       não sabia enxergar — e que também travaria o `limpar` da leva anterior.
+//
+// Exigir alcançabilidade a partir de HEAD é deliberado: blob solto no banco de
+// objetos (resto de um `reset --hard`) NÃO conta, senão a trava deixaria passar
+// uma leva cujo commit foi desfeito. Medido em 2026-09-03: a 1ª versão desta
+// função usava `cat-file -e` e passava exatamente nesse caso.
+function conteudoJaEntregue(leva, rel) {
+  const origem = path.join(leva.dir, "arquivos", rel);
+  const destino = path.join(RAIZ, rel);
+
+  try {
+    if (
+      fs.existsSync(destino) &&
+      fs.readFileSync(origem, "utf8") === fs.readFileSync(destino, "utf8")
+    ) {
+      return true;
+    }
+  } catch {
+    // ilegível de um lado: cai no caminho do git abaixo
+  }
+
+  try {
+    const env = { ...process.env, GIT_OPTIONAL_LOCKS: "0" };
+    const opts = { cwd: RAIZ, encoding: "utf8", env, maxBuffer: 64 * 1024 * 1024 };
+    const sha = execFileSync("git", ["hash-object", "--", origem], opts).trim();
+    if (!/^[0-9a-f]{40}$/.test(sha)) return false;
+    const objetos = execFileSync("git", ["rev-list", "--objects", "HEAD", "--", rel], opts);
+    return objetos.split("\n").some((l) => l.startsWith(sha));
+  } catch {
+    return false; // sem git, ou caminho nunca commitado
+  }
+}
+
+function levaEntregue(leva) {
+  const arqs = arquivosDaLeva(leva);
+  if (arqs.length === 0) return false; // leva vazia nunca conta como entregue
+  return arqs.every((rel) => conteudoJaEntregue(leva, rel));
+}
+
 // ---------------------------------------------------------------- status
 function comandoStatus() {
   const levas = listarLevas();
@@ -300,11 +354,18 @@ function comandoAplicar(alvoStr) {
   const leva = levas.find((l) => l.numero === alvo);
   if (!leva) morrer(`Leva ${alvo} não existe. Levas presentes: ${levas.map((l) => l.numero).join(", ")}`);
 
-  // TRAVA 1 — ordem
-  if (levas[0].numero !== alvo) {
+  // TRAVA 1 — ordem/cadeia.
+  // A pergunta NÃO é "a pasta anterior já sumiu?" (isso é ciclo de vida da pasta,
+  // que o /entregar só encerra depois do push, de propósito), e sim "o conteúdo
+  // da leva anterior já está no repositório?".
+  const pendentes = levas.filter((l) => l.numero < alvo && !levaEntregue(l));
+  if (pendentes.length > 0) {
+    const lista = pendentes.map((l) => String(l.numero).padStart(4, "0")).join(", ");
     morrer(
-      `Ordem violada. A leva ${levas[0].numero} ainda está no estoque e precisa ser aplicada e entregue antes da ${alvo}.\n` +
-        `   A leva ${alvo} foi construída EM CIMA da ${levas[0].numero} — aplicar fora de ordem desfaz mudanças.`
+      `Ordem violada. Leva(s) anterior(es) ainda NÃO aplicada(s): ${lista}.\n` +
+        `   A leva ${alvo} foi construída EM CIMA delas — aplicar fora de ordem desfaz mudanças.\n` +
+        `   Aplique e commite a leva ${pendentes[0].numero} primeiro.\n` +
+        `   (Se você aplicou e o arquivo foi editado à mão depois, a TRAVA 5 abaixo explica melhor.)`
     );
   }
 
@@ -378,15 +439,12 @@ function comandoLimpar(alvoStr) {
   const leva = listarLevas().find((l) => l.numero === alvo);
   if (!leva) morrer(`Leva ${alvo} não existe (já foi limpa?).`);
 
-  // Confere que o que está no disco bate com o que a leva entregou — se bater,
-  // o conteúdo já está no repositório e a pasta virou lixo seguro.
+  // Confere que o conteúdo da leva já está no repositório — se está, a pasta
+  // virou lixo seguro. Comparar SÓ com o disco não serve: numa cadeia, a leva
+  // seguinte já sobrescreveu o arquivo, e a leva anterior (perfeitamente
+  // commitada) pareceria "não aplicada". Por isso o histórico de HEAD também vale.
   const arquivos = arquivosDaLeva(leva);
-  const divergentes = arquivos.filter((rel) => {
-    const a = path.join(leva.dir, "arquivos", rel);
-    const b = path.join(RAIZ, rel);
-    if (!fs.existsSync(b)) return true;
-    return fs.readFileSync(a, "utf8") !== fs.readFileSync(b, "utf8");
-  });
+  const divergentes = arquivos.filter((rel) => !conteudoJaEntregue(leva, rel));
 
   if (divergentes.length > 0) {
     morrer(
