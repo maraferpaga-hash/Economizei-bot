@@ -15,7 +15,9 @@
 > Guia do sistema: `Economizei app/Automacao_Maquina_Noturna.md`.
 
 **Última curadoria:** 2026-07-16 (AGENDA enxugada ~68 KB→~37 KB — histórico integral no snapshot `Economizei app/arquivo-historico/AGENDA_arquivo_2026-07-15.md`; regra anti-inchaço no Protocolo). · **Modo:** execução local (GitHub Actions descontinuado).
-**🎯 Estado (2026-08-30, `/entregar`):** `origin/main` = HEAD = `7ec39a6`. **Estoque esvaziado (0/4):** cod-0071 (núcleo canal-agnóstico do recibo), lote `cobertura-jobs` (las-03+las-01) e las-04 parcial (`charts.js`) entregues em 4 commits: `dcc0be1` · `646460b` · `656d3fc` · `7ec39a6` (docs/skills). 712/713 testes verdes **nesta máquina** (o 713º é um `todo` documentando um defeito, não uma falha), `npm run check` verde antes de cada commit e no pre-push. Estoque parado **5 dias** (desde 08-25) antes desta entrega. **Achado (4ª vez seguida):** a TRAVA 1 do `estoque.mjs` continua exigindo a leva anterior já `limpar`-ada antes de aplicar a próxima, contornado de novo — script/doc ainda sem ajuste. **2 pendências não-bloqueantes abertas:** padrão `deps` opcional sem ratificação (usado 2x) · defeito "Total: R$ 1,00" em `src/charts.js:56` não corrigido (teste `todo`). **"✅ Concluído" curado nesta sessão** — 10 tarefas antigas (cod-0073 até cod-0033) migradas pro snapshot, teto de 10 restaurado. As pendências de 24/08 seguem abertas (auditoria de 08-23: `/apagar` LGPD quebrado — 🔴 mais grave; `sharp@0.34.5` com CVEs; landing ainda cita Mercado Pago/cartão).
+**🎯 Estado (2026-09-03, sessão Cowork — destravamento):** `origin/main` = HEAD = `a4589ea`, estoque **2/4** íntegro (levas 0001/0002, 697 linhas de teste puro, **41/41 verdes**, zero `src/` tocado). **A fila saiu de 0 para 5 tarefas elegíveis** — a máquina estava há 5 runs sem produzir por falta de entrada, não por capacidade. **TRAVA 1 do `estoque.mjs` corrigida** (proxy "a pasta sumiu?" → "o conteúdo está no repo?"; 5 cenários + a sessão do `/entregar` validados num clone; conserta junto o `limpar` em cadeia) — **o contorno manual das 4 vezes anteriores acabou e o doc do `/entregar` não muda**. **4 decisões suas registradas:** cod-0075 vira o caminho (b) e fica `pronta` · cod-0049 destravada com a migration `insights_enviados` **escrita e autorizada** (rodar no Supabase ANTES do push) · os 3 achados do las-06 aprovados e promovidos a **cod-0077/cod-0078** · TRAVA 1 corrigida no script. **🔴 Achado novo desta sessão, verificado no código: o `/apagar` (LGPD) não apaga NADA** — `apagarDadosUsuario` aborta no passo 3 (`lembretes_enviados` nunca existiu), então `usuarios` nunca é apagado e nem o CASCADE dispara → nasce **cod-0076 [P0]**, que **bloqueia** a cod-0049. **Pendências suas:** `/entregar` das 2 levas · rodar a migration · ratificar/recusar o padrão `deps` · defeito "Total: R$ 1,00" no `charts.js:56` · o topo desta AGENDA passou do teto de ~5 linhas de estado (pede curadoria).
+
+**🎯 Estado anterior (2026-08-30, `/entregar`):** `origin/main` = HEAD = `7ec39a6`. **Estoque esvaziado (0/4):** cod-0071 (núcleo canal-agnóstico do recibo), lote `cobertura-jobs` (las-03+las-01) e las-04 parcial (`charts.js`) entregues em 4 commits: `dcc0be1` · `646460b` · `656d3fc` · `7ec39a6` (docs/skills). 712/713 testes verdes **nesta máquina** (o 713º é um `todo` documentando um defeito, não uma falha), `npm run check` verde antes de cada commit e no pre-push. Estoque parado **5 dias** (desde 08-25) antes desta entrega. **Achado (4ª vez seguida):** a TRAVA 1 do `estoque.mjs` continua exigindo a leva anterior já `limpar`-ada antes de aplicar a próxima, contornado de novo — script/doc ainda sem ajuste. **2 pendências não-bloqueantes abertas:** padrão `deps` opcional sem ratificação (usado 2x) · defeito "Total: R$ 1,00" em `src/charts.js:56` não corrigido (teste `todo`). **"✅ Concluído" curado nesta sessão** — 10 tarefas antigas (cod-0073 até cod-0033) migradas pro snapshot, teto de 10 restaurado. As pendências de 24/08 seguem abertas (auditoria de 08-23: `/apagar` LGPD quebrado — 🔴 mais grave; `sharp@0.34.5` com CVEs; landing ainda cita Mercado Pago/cartão).
 
 **🎯 Estado anterior (2026-08-24, rotina matinal):** `origin/main` = `7f38bbf`, HEAD local = `2082cca` (o commit de docs `2082cca` ainda não foi pushado). **Estoque 3/4** (~1048 de ~1200 linhas — **1 leva de folga**): leva 0001 = cod-0065a (`src/datas.js`) · leva 0002 = cod-0072a (`src/parcelas.js`) · leva 0003 = **cod-0066** (remoção das 15 funções MP órfãs — 🆕 hoje). As três esperando `/entregar`, nenhuma no working tree. Working tree sujo só com `.md`. ⚠️ **Duas coisas pedem sua atenção antes da fila:** (1) a auditoria integral de 2026-08-23 achou 4 🔴 que a fila NÃO cobre — o mais grave é o `/apagar` (LGPD) quebrar no passo 3 e nunca apagar `usuarios` (`src/supabase.js:1762`); (2) com a cod-0066 entregue **e no ar**, o DROP das colunas MP no Supabase fica liberado (ordem código→deploy→banco cumprida). Ver `RELATORIO_MATINAL.md` e `Economizei app/Auditoria_Integral_2026-08-23.md`.
 
@@ -188,21 +190,77 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 > ✅ **cod-0074 saiu daqui — entregue em `933e855`** (`/entregar` 2026-08-22, modo TREE), ver "✅ Concluído".
 
-### [P3] 💰 Gate Pro — intent `comparativo_mercados` do Agente (Peça 4)
+### [P0] 🔴 LGPD — consertar o `/apagar`, que hoje não apaga nada
+- id: cod-0076
+- tipo: bugfix
+- porte: P
+- skills: economizei-security-lgpd, economizei-debugging, economizei-code-decisions, economizei-tdd
+- 🔴 **VERIFICADO NO CÓDIGO em 2026-09-03** (não copiado do relatório da auditoria de 08-23): `apagarDadosUsuario` (`src/supabase.js:1582`) tem 6 passos. O **passo 3** apaga de `lembretes_enviados` — tabela que **nunca foi criada** (o reengajamento foi desligado na cod-0068 e a linha saiu até do `schemaGuard`). O DELETE devolve `42P01`, o `if (error) throw error` aborta a função, e os passos **4, 5 e 6 nunca rodam**. Consequência: `resumos_mensais_enviados`, `mensagens_processadas` e **`usuarios`** ficam intactos — e como `usuarios` não é apagado, o `ON DELETE CASCADE` de `acompanhamentos` e `perguntas_log` **também não dispara**. O comando responde erro ao usuário, mas o efeito prático é que **um pedido de exclusão LGPD não apaga nada**.
+- 🔎 **Segundo defeito, independente do primeiro:** `acompanhamentos` e `perguntas_log` **não estão na lista** de DELETEs explícitos (confirmado: zero ocorrências entre as linhas 1582–1645). Hoje elas só cairiam por cascata — o que é frágil pra dado pessoal e some se alguém mexer na FK.
+- objetivo: `/apagar` volta a apagar **tudo** que tem o telefone da pessoa, e falha alto se não conseguir.
+- arquivos-alvo: `src/supabase.js` (`apagarDadosUsuario`), `test/`
+- criterios-de-aceite:
+  - passo do `lembretes_enviados` **removido** (a tabela não existe e não vai voltar; se o reengajamento voltar, a linha volta junto com o cron, como já está escrito no `schemaGuard`)
+  - DELETE explícito em `acompanhamentos` e `perguntas_log`, além dos que já existem
+  - 🔴 **um passo que falha não aborta os outros:** acumular os erros, tentar TODOS os DELETEs, e só então lançar se algum falhou. Exclusão parcial silenciosa é pior que erro — o usuário não pode ouvir "apagado" sobre dado que ficou
+  - `usuarios` continua por último (FK de `compras`)
+  - teste com duplo do cliente cobrindo: caminho feliz apaga as N tabelas na ordem · uma tabela falhando não impede as demais · a função lança no fim quando houve falha · `usuarios` é sempre o último
+  - node --test verde
+- fora-de-escopo: `precos_mercado` (dado agregado, sai do escopo do `/apagar` por decisão de 2026-06-27) · a copy do comando · `insights_enviados` (só depois desta, ver cod-0049)
+- 🔗 **bloqueia:** cod-0049 (a tabela de cooldown só entra no `/apagar` depois que ele funcionar)
+- status: pronta
+
+### [P1] 💰 Agente — Pro vê mais de um comparativo (fecha a assimetria com o `/comparar`)
 - id: cod-0075
 - tipo: refino-codigo
 - porte: P
 - skills: economizei-code-decisions, economizei-tdd, economizei-financial-firewall
-- objetivo: a intent do Agente (cod-0041) usa `COMPARATIVO_AMOSTRAS_FREE` pra todo mundo — passar `ehPro` ao executor pra usar `COMPARATIVO_MAX_PRO` no Pro. **Mesma decisão, mesmo env, zero decisão nova.** Sem isso, o Pro é gated no `/comparar` e destravado ao perguntar em texto livre — o gate vaza pela porta do lado.
-- depende-de: cod-0073
-- criterios-de-aceite: intent respeita o mesmo teto do comando; teste cobre Free e Pro; node --test verde
-- fora-de-escopo: outras intents; upsell dentro da narração do Agente
-- status: **aguardando-decisao** (2026-08-21, rotina matinal — NÃO implementada)
-- 🛑 **A PREMISSA NÃO SE SUSTENTA (achado da rotina matinal de 2026-08-21 — verificado no código, não deduzido).** Não existe vazamento nenhum: a intent do Agente **narra só UM comparativo** (`fato.destaque` = a maior diferença), para Free e para Pro igualmente. O teto (`maxComparativos`) só governa `fato.mostrados` e `fato.temMais` — e **nenhum dos dois é usado no caminho do Agente**: `template()` não os lê, o firewall de fidelidade só olha `fato.fmt`, e `montarMensagemComparativo` (o único consumidor de `mostrados`/`temMais`, em `formatter.js:846`) é do comando `/comparar`. `totalComparaveis` é contado **antes** do corte, então nem a frase "tenho N produtos comparáveis" muda. **Consequência: implementar como está escrito não muda uma vírgula do que o usuário vê — é fiação morta.** Se algo está torto hoje, é o contrário do descrito: o Pro vê *menos* pelo Agente (1 item) do que pelo `/comparar` (até 10).
-- ⚖️ **Decisão sua (2 caminhos, nenhum é código puro):**
-  - **(a) Fechar a tarefa como resolvida-por-inspeção** — o B10 já foi fechado pela cod-0073 no `/comparar`; não há segunda porta. Custo: zero.
-  - **(b) Fazer o Agente listar mais de um comparativo pro Pro** (aí o teto passa a valer). Isso é **decisão de produto/UX**: muda a cara da resposta do Agente, que hoje é curta e de um fato só por design. Fora do que a máquina pode decidir sozinha.
-  - Se você escolher (b), a fiação técnica é a que a tarefa já descreve (3 linhas: `index.js` passa `ehPro`, `agent/index.js` repassa ao `executar`, `intents.js` escolhe o env) e volta pra fila como porte P.
+- ✅ **DECISÃO DO GABRIEL 2026-09-03 — caminho (b): o Agente passa a mostrar MAIS DE UM comparativo pro Pro.** Isso resolve o que a rotina de 2026-08-21 tinha achado (verificado de novo hoje no código, `src/agent/intents.js:589-647`): **não havia vazamento nenhum** — `template()` narra só `fato.destaque`, para Free e Pro igualmente, e `mostrados`/`temMais` voltam do executor **sem nenhum consumidor** no caminho do Agente. O torto era o contrário do descrito na tarefa original: o Pro via *menos* pelo Agente (1 item) do que pelo `/comparar` (até 10). A tarefa deixa de ser fiação morta e vira mudança real de comportamento.
+- objetivo: o Agente responde a "onde tá mais barato" com **1 comparativo no Free** (como hoje) e **até `COMPARATIVO_MAX_PRO` no Pro** (default 10, mesmo env e mesmo teto do `/comparar`), fechando a assimetria em que o comando entrega mais que a pergunta em texto livre.
+- depende-de: cod-0073 (✅ `ba1c508`)
+- 🔌 **A costura já existe — não invente outra.** `executar()` já aceita `deps.maxComparativos` (`intents.js:594`), criado exatamente pra este wiring. `src/index.js:846-849` já calcula o teto por perfil pro `/comparar`; reusar essa mesma expressão, não duplicar a regra de plano dentro do `intents.js` (a intent não decide plano — recebe o número pronto).
+- criterios-de-aceite:
+  - `src/index.js` calcula `maxComparativos` pelo perfil (Pro → `COMPARATIVO_MAX_PRO` ‖ 10 · Free → `COMPARATIVO_AMOSTRAS_FREE` ‖ 3) e passa adiante; `src/agent/index.js` repassa em `deps` até o `executar`
+  - `template()` do `comparativoMercados` lista o destaque **+ os demais comparativos até o teto**, um por linha, e **só no Pro**. Free continua exatamente com o texto de hoje (destaque + "pra lista completa: /comparar")
+  - 🔴 **todo número novo no texto tem de existir em `fato.fmt`.** O firewall de fidelidade (Camada 5) monta a allowlist a partir de `fato.fmt` + do texto do template (`render.js:47`); número formatado fora do `fmt` faz a narração do LLM cair no airbag sem motivo. Formate a lista extra em `fmt` (ex.: `fmt.extras[]`) usando o **mesmo `brl()`** do destaque
+  - teste cobre: Free vê 1 · Pro vê N · Pro com menos comparativos que o teto não inventa linha · a allowlist aceita todos os números do texto do Pro (fidelidade não reprova)
+  - node --test verde; firewall financeiro verde (`is_pro` acusa de propósito — commit consciente)
+- fora-de-escopo: outras intents; upsell dentro da narração do Agente; mudar o `/comparar`; mudar a ordenação dos comparativos
+- status: pronta
+
+### [P1] 🔒 LGPD — parar de logar conteúdo de cupom no caminho de sucesso
+- id: cod-0077
+- tipo: bugfix
+- porte: P
+- skills: economizei-security-lgpd, economizei-code-decisions, economizei-tdd
+- origem: achado (1) do **las-06** (revisão de segurança de 2026-08-31), aprovado pelo Gabriel em 2026-09-03.
+- objetivo: `src/gemini.js:394` loga 120 caracteres da resposta bruta do Gemini **em toda leitura bem-sucedida** — ou seja, conteúdo de cupom fiscal (itens, valores, possivelmente o CPF impresso) indo pro log do Railway a cada foto. Minimização de dados: log de sucesso não precisa do conteúdo.
+- arquivos-alvo: `src/gemini.js`, `test/`
+- criterios-de-aceite:
+  - o caminho de **sucesso** deixa de logar o texto bruto; loga só o que serve pra diagnóstico (ex.: tamanho da resposta, nº de itens, se o parse foi limpo)
+  - o caminho de **erro/parse falho** pode continuar logando um trecho — é onde o log ganha o pão. Se ficar, **truncar e deixar explícito no comentário por que ali vale o risco**
+  - teste cobre: sucesso não emite o conteúdo · erro ainda emite o suficiente pra depurar
+  - 🔴 **não mexer no prompt, no `validarSchema` nem em nada que altere extração/categoria/`nome_canonico`** — é o coração (regra 1 do CLAUDE.md). Só o `log()`
+  - node --test verde; corpus de cupom continua verde
+- fora-de-escopo: outros logs; o formato do logger; rotação/retenção no Railway
+- status: pronta
+
+### [P2] 🔒 `/cron/monthly-summary` — validar entrada e mascarar o telefone na resposta
+- id: cod-0078
+- tipo: bugfix
+- porte: P
+- skills: economizei-security-lgpd, economizei-code-decisions, economizei-tdd
+- origem: achados (2) e (3) do **las-06**, aprovados em 2026-09-03. **Foram unidos numa tarefa só** porque são o mesmo endpoint no mesmo arquivo (`src/index.js:416-417`) — separar criaria dois diffs brigando pelas mesmas linhas, contra o critério de agrupamento da Máquina 2.0.
+- objetivo: o endpoint aceita `phone`/`mes` sem validar nenhum dos dois (o `/admin/ativar-pro`, 50 linhas acima, valida com regex) e devolve o telefone **sem `maskPhone`** no corpo da resposta.
+- arquivos-alvo: `src/index.js`, `test/`
+- criterios-de-aceite:
+  - `phone` e `mes` validados **no mesmo padrão do `/admin/ativar-pro`** (reusar a regra que já existe, não inventar outra); entrada inválida → 400 com mensagem honesta, sem tocar o banco
+  - `mes` no formato `AAAA-MM`; mês fora do formato não chega ao `executarResumoMensal`
+  - resposta passa o telefone por `maskPhone`
+  - teste cobre: phone inválido → 400 · mes inválido → 400 · caminho feliz inalterado · resposta mascarada
+  - node --test verde
+- fora-de-escopo: autenticação do endpoint (já resolvida na cod-0053) · outros endpoints · a lógica do resumo mensal
+- status: pronta
 
 > ✅ **cod-0062b saiu daqui — entregue em `65913a2`** (`/entregar` 2026-08-22, 2ª sessão), ver "✅ Concluído".
 
@@ -295,12 +353,15 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 - tipo: feature-codigo
 - porte: M
 - skills: economizei-code-decisions, economizei-tdd, economizei-product-principles, economizei-copywriter, copy-review, economizei-financial-firewall
-- depende-de: ✅ **cod-0035 já está no `origin/main`** (`df18b53`, 2026-07-28) — gate original SATISFEITO. ⚠️ **CONDIÇÃO NOVA (2026-08-05):** só é elegível **depois do bloco Supabase S0–S4** do `Plano_Desentupimento_e_Supabase_2026-08-05.md`. Motivo: o cooldown desta tarefa provavelmente pede coluna/tabela nova, e o banco está hoje com migration atrasada (`lembretes_enviados` inexistente) — implementar antes de arrumar o banco é convite ao A9.
+- depende-de: ✅ **cod-0035 já está no `origin/main`** (`df18b53`, 2026-07-28) — gate original SATISFEITO. ⚠️ **A condição "depois do bloco Supabase S0–S4" (2026-08-05) VENCEU:** S1 cancelado (reengajamento desligado, cod-0068), S2 fechado em 07/08, S4 fechado em 18/08; o S3 é uma RPC de contagem de cupons e nada tem a ver com insights.
+- 🔎 **ACHADO 2026-09-03 (rotina matinal, verificado no código):** o gate real era o **cooldown** — não existia onde gravá-lo. Nenhuma das 11 tabelas em uso serve (`acompanhamentos.alertado_em` é por alvo do teto · `resumos_mensais_enviados` é do fim de mês · `mensagens_processadas` é dedup com TTL de 7 dias, que mataria um cooldown mensal) e `usuarios` não tem coluna de data de insight.
+- 🗄️ **RESOLVIDO — depende-de MIGRATION (anti-A9): `supabase/migration_2026-09-03_insights_enviados.sql`.** ✅ **Tabela autorizada pelo Gabriel em 2026-09-03** e o `.sql` já está escrito (tabela `insights_enviados` = phone_number + gatilho + enviado_em, 1 índice, RLS fechado no mesmo padrão das outras). **Precisa rodar no Supabase ANTES do push desta tarefa** — a checagem bloqueante do `/entregar` vai cobrar. A tarefa também tem de acrescentar `{ tabela: 'insights_enviados' }` às `CHECAGENS_CRITICAS` do `src/schemaGuard.js` e a purga de 90 dias ao job das 7h (junto das duas que já existem).
+- ⛔ **NÃO incluir `insights_enviados` no `/apagar` ainda — depende de cod-0076.** `apagarDadosUsuario` (`src/supabase.js:1582`) está quebrado: o passo 3 apaga de `lembretes_enviados`, tabela que nunca existiu, o erro é relançado e os passos 4–6 nunca rodam — `usuarios` nunca é apagado, então **nem o `ON DELETE CASCADE` dispara**. Ligar a tabela nova numa função que não chega ao fim aumenta o vazamento. Ordem: cod-0076 primeiro, depois esta.
 - objetivo: base de insights proativos com **gatilhos determinísticos pré-programados** + cooldown (decisão do Gabriel 2026-07-27: começar pré-programado pra testar a estrutura; aprimorar depois com o que os usuários falarem/`perguntas_log`). 2–3 gatilhos iniciais, ex.: (a) gasto do mês cruzou a média histórica antes do dia 20; (b) categoria ≥50% acima da média dela; (c) economia acumulada atingiu marco redondo (insight positivo).
 - arquivos-alvo: `src/insights.js` (gatilhos puros, testáveis), wiring pós-`salvarCompra` (junto ao do cod-0035), `src/formatter.js` (mensagens — número no topo, sem moralizar, tom honesto), `test/`
 - criterios-de-aceite:
   - gatilhos 100% determinísticos (número nasce no `insights.js`, zero LLM); cooldown **máx. 1 insight proativo/usuário/semana** e 1×/gatilho/mês
-  - **anti-A9:** se o cooldown precisar de coluna/tabela nova → PARAR, escrever o `.sql` e deixar pro Gabriel rodar ANTES (+ `schemaGuard`)
+  - **anti-A9 ✅ já resolvido:** o `.sql` do cooldown está escrito (`migration_2026-09-03_insights_enviados.sql`) e autorizado. A tarefa NÃO escreve SQL novo — se descobrir que precisa de mais alguma coluna, **PARA** e devolve pro Gabriel. Acrescentar a linha no `schemaGuard` + a purga de 90 dias no job das 7h
   - não duplicar o reengajamento D3/D10 nem o alerta de limite do cod-0035 (fronteiras claras); node --test verde
   - sem gate Pro nesta base (gate entra na aplicação do desdobramento `Gate_Pro_Desdobramento_2026-07-10.md`)
 - fora-de-escopo: insights derivados de `perguntas_log` (fase 2, pós-lançamento); LLM escolhendo insight; configuração pelo usuário
@@ -356,7 +417,11 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ### [las-04] Cobertura de testes — `metrics.js` (a parte `charts.js` já foi entregue)
 - tipo: teste · porte: P · lote: cobertura-obs
 - objetivo: testes da coleta de métricas (`metrics.js`) — a parte da URL do QuickChart (`charts.js`) já está feita.
-- status: pronta
+- status: **em-revisao** (2026-09-02, rotina matinal) — **leva 0002 em `estoque/0002_2026-09-02_las-04/`**, sem commit → aplicar com `node scripts/estoque.mjs aplicar 1` (las-05) e depois `aplicar 2`, e subir via `/entregar`
+- arquivos: `test/metrics.test.js` (novo, 371 linhas) — **zero arquivo de `src/` tocado**
+- migration: **não** · env nova: **não** · financeiro: **não** (varrido contra os 21 `MONEY_PATTERNS`: zero linhas acusadas)
+- 📌 **19 testes**: as 4 consultas de view (tabela/`single`/`limit` + prefixo do erro), `limite=0` não virando 6, os 12 campos do log diário com os **3 renomes** (`cupons_mes`/`usuarios_w2`/`cohort_w2`), linha incompleta → `undefined` e **nunca `0`**, o **rethrow** de `logarMetricasDiarias` (o outro lado do contrato que o `scheduler.test.js` da leva 0001 já testa), a degradação view-a-view do `buscarTodasMetricas` e o **fallback silencioso service_role→anon (S2)**. **5 mutações em `src/metrics.js` foram detectadas.**
+- 🧪 **técnica de teste declarada:** duplos semeados no `require.cache` — **de propósito NÃO usa o padrão `deps`**, que a própria nota abaixo marcava como decisão sua. A AGENDA listava as duas alternativas; a máquina pegou a que não cria uma 3ª ocorrência do padrão pendente e não toca `src/`.
 - ✅ **`charts.js` saiu daqui — entregue em `656d3fc`** (`/entregar` 2026-08-30), ver "✅ Concluído". 16 testes (15 pass + 1 `todo`), zero arquivo de `src/` tocado.
 - 🐞 **DEFEITO ACHADO nessa entrega, ainda sem correção (decisão sua, 1 linha):** `src/charts.js:56` faz `totalGeral = soma || 1` pra proteger a divisão do percentual, **mas imprime a mesma variável no título** (`:88`). Num mês de total zero o usuário lê **"Total: R$ 1,00"** — número que não existe. O teste `todo` (`test/charts.test.js:198`) deixa o defeito registrado em código sem derrubar o `npm run check`.
 - ⚠️ **`metrics.js` cria o client do Supabase no `require`** (`src/metrics.js:15`) — testar as 6 funções exige o 3º parâmetro `deps` (mesmo padrão da cod-0071/las-03, ainda **sem ratificação sua**) ou injeção via `require.cache`. Decisão de convenção, não de execução — não escolha sozinho.
@@ -365,12 +430,19 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ### [las-05] Cobertura de testes — `scheduler.js`
 - tipo: teste · porte: P · lote: cobertura-obs
 - objetivo: testes do wiring dos jobs com cron mockado (nenhum job dispara de verdade em teste).
-- status: pronta
+- status: **em-revisao** (2026-08-31, rotina matinal) — **leva 0001 em `estoque/0001_2026-08-31_las-05/`**, sem commit → aplicar com `node scripts/estoque.mjs aplicar 1` e subir via `/entregar`
+- arquivos: `test/scheduler.test.js` (novo, 325 linhas) — **zero arquivo de `src/` tocado**
+- migration: **não** · env nova: **não** · financeiro: **não** (firewall ✓ verde)
+- 📌 **o wiring pedido já estava coberto** pelo `scheduler-reengajamento-off.test.js` (cod-0068); a leva foi para o que faltava: **o corpo dos 4 callbacks** — gate do último dia do mês, degradação independente dos 3 sub-jobs das 7h (TTLs 7/90 dias), caminho de alerta do health Z-API, engolimento de erro job a job. 22 testes, 22 verdes; **3 mutações no `src/scheduler.js` foram detectadas** (TTL de 90→30, unir os 3 `try` das 7h, remover o gate do último dia).
+- 🧪 **técnica de teste declarada:** duplos semeados no `require.cache` — **de propósito NÃO usa o padrão `deps`** (3º parâmetro), que segue pendente de ratificação sua. Esta leva não cria uma 3ª ocorrência dele.
 
 ### [las-06] Revisão de segurança só-leitura (relatório, sem diff)
 - tipo: teste · porte: M
 - objetivo: varrer `src/` e REPORTAR (sem alterar código): dado sensível em log (LGPD — CPF/telefone/conteúdo de cupom), input não validado no webhook, erro engolido em silêncio. Saída = seção no RELATORIO_MATINAL com arquivo+linha+sugestão, não diff.
-- status: pronta
+- status: **executada 2026-08-31** (rotina matinal) — **zero linhas de diff**, relatório na seção "🔒 las-06" do `RELATORIO_MATINAL.md`. **3 achados, nenhum 🔴:** (1) 🟠 `src/gemini.js:394` loga 120 chars da resposta bruta do Gemini **no caminho de sucesso** — conteúdo de cupom fiscal indo pro log do Railway em toda leitura (LGPD, minimização); (2) 🟡 `src/index.js:416-417` — `/cron/monthly-summary` não valida `phone`/`mes`, ao contrário do `/admin/ativar-pro` 50 linhas acima, que valida com regex; (3) 🟡 mesmo endpoint devolve o telefone **sem `maskPhone`** no corpo da resposta. Telefone em log: limpo (só `maskPhone` ou booleano). Catch engolido em silêncio: 1 ocorrência, documentada e correta.
+- 🔁 **reexecutável** — vale rerodar quando `src/` mudar bastante. Se os 3 achados virarem correção, cada um é tarefa própria (mexem em código de produção, fora do escopo do lastro).
+- ✅ **DECISÃO 2026-09-03: os 3 achados aprovados pelo Gabriel** e promovidos pra Fila pronta, como esta própria nota mandava (achado em código de produção não é lastro): **cod-0077** (achado 1, log de cupom) e **cod-0078** (achados 2+3, unidos por serem o mesmo endpoint no mesmo arquivo). O las-06 em si continua sendo a *revisão*, não a correção.
+- status-fila: pausada (item de revisão — rerodar quando `src/` mudar bastante; as correções viraram cod-0077/cod-0078)
 
 ---
 
@@ -390,11 +462,20 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 
 | # | Leva | Tarefa | Criada em | Linhas novas | Migration? | Idade |
 |---|---|---|---|---|---|---|
-| — | *(estoque vazio)* | — | — | — | — | — |
+| 0001 | `0001_2026-08-31_las-05` | **las-05** — cobertura de testes do `scheduler.js` | 2026-08-31 | ~326 | não | 🟡 3d (🔴 em 05/09) |
+| 0002 | `0002_2026-09-02_las-04` | **las-04** (resto) — cobertura de testes do `metrics.js` | 2026-09-02 | ~371 | não | 🟢 1d |
 
-**Estoque: 0/4.** As 3 levas (0001 cod-0071, 0002 lote `cobertura-jobs`, 0003 las-04 parcial) foram aplicadas, commitadas e pushadas — ver "✅ Concluído". Última reconciliação: **2026-08-30 (`/entregar`)**, `origin/main` = `7ec39a6`.
+> ⚠️ **Antes da próxima run autônoma, entregue as 2 levas.** Com a fila destravada em 2026-09-03, a Fila pronta tem **4 tarefas porte P no topo** — o teto por run permite pegar **3 de uma vez**, o que criaria 3 levas novas em cima das 2 existentes (**5/4, acima da REGRA 2**). A guarda do passo 2 só mede o estoque **antes** de produzir, então ela não pega esse caso. Entregar as duas primeiro resolve; enquanto não entregar, prefira `/tarefa` manual com 1 leva.
 
-> ⚠️ **Achado ainda sem correção (4ª vez seguida):** `node scripts/estoque.mjs aplicar <n>` (TRAVA 1) exige que a leva `<n-1>` já não esteja mais em `estoque/` — mas o `/entregar` (Etapa 6, passo 17) só manda `limpar` DEPOIS do push, pra manter as pastas como rede de segurança do `reset --hard` caso o `npm run check` venha vermelho. Com 2+ levas na mesma sessão, isso trava: o `aplicar` da leva seguinte recusa enquanto a anterior não for limpa. Contornado de novo nesta sessão (4ª vez seguida) limpando cada leva assim que commitada — seguro porque o conteúdo já está no git, mas **script ou doc precisam de ajuste** antes da próxima sessão com 2+ levas, senão o mesmo contorno manual se repete pra sempre.
+**Estoque: 2/4** (~697 de ~1200 linhas — 2 levas de folga). Base: `origin/main` = HEAD = **`a4589ea`** (verificado na run de 02/09; nada pendente no working tree além de `.md`/`PAINEL.html`). `node scripts/estoque.mjs status` → **✅ estoque íntegro** (sintaxe OK, zona proibida limpa, cadeia preservada). **Nenhuma das duas levas toca `src/`** — só adicionam `test/scheduler.test.js` e `test/metrics.test.js`. Suíte com as 2 aplicadas: **754 testes, 753 pass, 0 fail, 1 `todo`** (o `todo` é o defeito do `charts.js`, de 30/08). Última reconciliação: **2026-08-30 (`/entregar`)**.
+
+> ✅ **TRAVA 1 CORRIGIDA em 2026-09-03 (sessão Cowork) — o contorno manual das 4 vezes anteriores acabou.** Causa-raiz: a trava usava um **proxy errado**. Perguntava *"a pasta da leva anterior sumiu?"* (ciclo de vida) quando a pergunta certa é *"o conteúdo da leva anterior já está no repositório?"* (estado). As duas metades estavam certas isoladamente — o `/entregar` só limpa depois do push **de propósito**, porque a Etapa 3 e a Etapa 4 usam `git reset --hard origin/main` como desfazer, e isso apaga os commits da sessão: a pasta intacta é literalmente a rede.
+>
+> **O que mudou** (`scripts/estoque.mjs`, ~40 linhas): nasce `conteudoJaEntregue()` — a leva anterior conta como satisfeita se o arquivo bate com o working tree **ou** se o blob é alcançável pelo **histórico de HEAD** naquele caminho. A TRAVA 1 e o `limpar` passam a usar a mesma função. **O doc do `/entregar` não muda** — a sequência que ele descreve (aplicar → commit → aplicar → commit → push → limpar) agora funciona literalmente.
+>
+> **Bug irmão consertado junto (nunca tinha disparado porque a TRAVA 1 o mascarava):** `limpar N` comparava só com o **working tree**. Numa cadeia real — duas levas tocando o MESMO arquivo, que é o caso que a REGRA 1 existe pra suportar — depois de aplicar as duas o disco tem a versão da leva 2, e `limpar 1` teria recusado. As levas de hoje são arquivos disjuntos, então só morderia na próxima cadeia.
+>
+> **Verificado, não deduzido:** 5 cenários em repositórios descartáveis (leva anterior não aplicada → recusa · aplicada e depois desfeita por `reset --hard` → recusa · aplicada e commitada com a pasta presente → **passa** · `limpar` de arquivo já superado → limpa · arquivo editado à mão → recusa) + a sessão inteira do `/entregar` rodada num clone com as 2 levas reais: **41/41 testes verdes, estoque esvaziado, sem contorno nenhum**. A 1ª versão da correção tinha um furo (blob órfão no object DB passava como entregue); o teste pegou, e por isso a versão final exige alcançabilidade a partir de HEAD.
 
 > ⚠️ **Pendência aberta desta entrega (não bloqueia):** (1) o padrão `deps` opcional (3º parâmetro de injeção de dependência pra teste, usado no cod-0071 e no las-03) segue **sem ratificação sua** — `metrics.js` (resto do las-04) vai pedir o mesmo; (2) o defeito "Total: R$ 1,00" em `src/charts.js:56` (mês de soma zero) não foi corrigido — fica marcado como teste `todo`, decisão de corrigir é sua.
 
@@ -403,7 +484,11 @@ Quando o Gabriel roda o Claude Code local (comando `/tarefa`), ele:
 ## 🔧 Em revisão
 *(a máquina move pra cá ao commitar numa branch — esperando o Gabriel mergear via `/entregar`)*
 
-> **📦 Estoque: vazio (0/4)** — as 3 levas pendentes foram todas aplicadas/commitadas/pushadas nesta sessão. Ver "📦 Estoque" acima e "✅ Concluído" abaixo.
+> **🌅 ROTINA MATINAL 2026-09-03 — ZERO produção: a fila secou, como a run de 02/09 previu.** Nenhuma leva nova; estoque segue **2/4** (~697 linhas), íntegro (`estoque.mjs status` ✅). **Fila pronta 100% inelegível** (mesmos 5 motivos) e **lastro sem nenhum item `pronta`** (las-01/03/04/05 entregues ou no estoque; las-02 e las-06 `pausada`). **Achado verificado no código (corrige o motivo registrado da cod-0049):** o que trava a cod-0049 **não é o S3** — é o **cooldown**, que não tem onde ser gravado. As 11 tabelas em uso não têm nenhum lugar genérico pra "insight X enviado ao usuário Y em tal data" (`acompanhamentos.alertado_em` é por alvo do teto; `resumos_mensais_enviados` é do fim de mês; `mensagens_processadas` é dedup com TTL de 7 dias), e `usuarios` não tem coluna de data de insight → **tabela nova = migration = sua mão**, e o próprio critério anti-A9 da tarefa manda parar aí. Enquanto isso não for decidido, a cod-0049 **nunca** será elegível pra run autônoma, mesmo com o S3 fechado. ⚠️ **Também:** a TRAVA 1 do `estoque.mjs` (linha 303) continua igual — com 2 levas no estoque, o próximo `/entregar` bate nela pela **5ª vez** (contorno: `limpar 1` logo após commitar a leva 1, antes do `aplicar 2`). Detalhe e menu de destravamento: `RELATORIO_MATINAL.md`.
+
+> **🌅 ROTINA MATINAL 2026-09-02 — 1 tarefa produzida (`las-04`, resto), leva 0002 no estoque. Estoque 2/4 (~697 de ~1200 linhas).** Fila pronta continua **100% inelegível pelos mesmos 5 motivos de 31/08** (cod-0075 `aguardando-decisao` · cod-0062/0065/0072 porte G/coração · cod-0049 travada pelo bloco Supabase S3 · cod-0069/0070 `bloqueada-humano`) → caiu no **lastro** de novo. O `las-04` estava travado pela sua decisão sobre o padrão `deps`; a máquina **não decidiu por você** — usou a segunda alternativa que a própria AGENDA lista (`require.cache`), a mesma da leva 0001, sem tocar `src/` e sem criar a 3ª ocorrência do `deps`. **Com esta leva o lote `cobertura-obs` fecha e o lastro fica sem item elegível** (las-02 e las-06 `pausada`) — na próxima run, se a Fila pronta não destravar, a máquina não terá o que produzir. Detalhe: `RELATORIO_MATINAL.md`.
+
+> **🌅 ROTINA MATINAL 2026-08-31 — 1 tarefa produzida (`las-05`), leva 0001 no estoque.** Estoque **1/4**. **Fila pronta ficou 100% inelegível** (cod-0075 `aguardando-decisao` · cod-0062/0065/0072 porte G/coração · cod-0049 com a condição "só depois do bloco Supabase S0–S4" **não satisfeita — o S3/RPC segue aberto** · cod-0069/0070 `bloqueada-humano`) → caiu no **lastro**, onde o `las-04` também está travado pela sua decisão sobre o padrão `deps`. Sobrou o `las-05`. Rodado também o **`las-06`** (revisão de segurança só-leitura, **zero linhas de diff**) — 3 achados no `RELATORIO_MATINAL.md`, nenhum 🔴. Detalhe: `RELATORIO_MATINAL.md`.
 
 > **✅ RECONCILIADO em 2026-08-30 (comando `/entregar`):** **cod-0071 + lote `cobertura-jobs` (las-03+las-01) + las-04 parcial (`charts.js`)** commitados e pushados em 4 commits (`origin/main` sincronizado em `7ec39a6`, 712/713 testes verdes nesta máquina — o 713º é o `todo` que documenta o defeito abaixo, sem SIGBUS, `sharp` funciona local —, `npm run check` verde antes de cada commit e no pre-push): cod-0071 `dcc0be1` · lote cobertura-jobs `646460b` · las-04 parcial `656d3fc` · docs/skills (mesa: remoção do Beta Fundador vencido nas skills de copy) `7ec39a6`. Estoque parado **5 dias** (desde 08-25) antes desta entrega. **Achado (4ª vez seguida):** a mesma contradição da TRAVA 1 do `estoque.mjs` se repetiu — contornada limpando cada leva logo após o commit dela. Ainda sem correção no script/doc. **2 pendências abertas, não-bloqueantes:** (a) padrão `deps` opcional (injeção de dependência pra teste, cod-0071+las-03) sem ratificação sua; (b) defeito "Total: R$ 1,00" em `src/charts.js:56` (mês de soma zero) não corrigido, registrado como teste `todo`. **`metrics.js` do las-04 segue aberto** (`pronta`, ver bloco do las-04). Detalhe em "✅ Concluído". Seção esvaziada.
 

@@ -50,6 +50,8 @@ Sem memória, o senso crítico não aprende — só repete. Este log fecha o cic
 
 | 2026-08-18 | D6 | "Tudo foi feito, vamos confirmar e finalizar a sessão" | Antes de confirmar, verificado o estado real: **"tudo" era o RLS** — S3, S5, migration PIX e DROP MP seguiam abertos na AGENDA, e a **cod-0073 estava no working tree há 2 dias**, com a esteira entupida de novo (guarda (a) = toda rotina matinal encerra sem produzir). Registrar "sessão fechada" sem isso deixaria a memória mentindo pela 3ª vez em 3 semanas | ✅ Sim | Ele confirmou o escopo real (só RLS) e mandou entregar a cod-0073. **Padrão que se repete:** o custo de não perguntar não é o erro em si — é a AGENDA virar ficção e a próxima sessão partir de um estado falso (foi o que aconteceu em 07-28 → 08-01 e de novo em 08-07 → 08-15) |
 
+| 2026-09-03 | D4 | Executar a Fase 0 do `PROMPT_MAQUINA_CONTEUDO.md` (decisão 8: "scripts Node no repo + scheduled task no Cowork"; estágio 5 = Remotion) | Antes de escrever qualquer arquivo, verificado o sandbox: **sem Chromium** (Remotion não renderiza) e **sem rede por script** (`curl` → IBGE/fonts = bloqueado; só o browser do Claude alcança o SIDRA). A premissa de que a esteira roda inteira em `.mjs` no Cowork não se sustentava. Também: o piloto não podia usar clone de voz (ElevenLabs não contratado) | ✅ Sim | Gabriel escolheu **híbrido** (ffmpeg+PIL agora, Remotion só se a revisão das 10 peças pedir) e **rota B** (ele grava o piloto). Achado colateral que virou aviso na AGENDA_CONTEUDO: o `verificar.mjs` precisa ignorar a marca "Economizei" no scan de "economize" (falso positivo medido no piloto) |
+
 ---
 
 ## Placar dos detectores (atualizar ao registrar)
@@ -59,7 +61,7 @@ Sem memória, o senso crítico não aprende — só repete. Este log fecha o cic
 | D1 | 2 | 1 | 1 | ativo — **atenção à calibração:** a recusa de 08-05 foi contra uma recomendação de "aceitar a restrição de tempo". O Gabriel prefere atacar o contra a aceitar o limite. Enquadrar recomendações como "aqui estão as defesas necessárias", não como "aceite o teto" |
 | D2 | 0 | 0 | 0 | ativo |
 | D3 | 0 | 0 | 0 | ativo |
-| D4 | 1 | 1 | 0 | ativo |
+| D4 | 2 | 2 | 0 | ativo — 2º disparo (09-03): premissa de infraestrutura (sandbox) não verificada antes do desenho. Padrão: **checar o ambiente de execução antes de aceitar a arquitetura escrita no prompt** |
 | D5 | 1 | 1 | 0 | ativo — 1º disparo (08-05): esteira otimizando o que não move W2 |
 | D6 | 4 | 4 | 0 | ativo — **4/4 acatados. Promover a regra permanente na §11.** Padrão consolidado: o gargalo do Economizei quase nunca é produzir, é **consumir e registrar o que já foi produzido** (checkpoint sem leitura, relatório sem ação, lock reportado sem causa-raiz, contradição sem árbitro, "tudo feito" sem verificação). Regra proposta: **antes de gerar diagnóstico novo ou fechar sessão, verificar o ESTADO REAL (git + banco + working tree) em vez de aceitar o resumo** — inclusive o meu próprio da sessão anterior |
 | OBS | 2 | 2 | 0 | ativo — 2/2. Ambos vieram de **olhar o código/evidência em vez de confiar no doc** (08-05: chave anon × RLS; 08-07: leituras agregadas sem filtro de `tipo`) |
