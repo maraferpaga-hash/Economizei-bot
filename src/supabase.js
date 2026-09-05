@@ -1578,67 +1578,82 @@ async function purgarPerguntasLog(dias = 90) {
 //     propagado (tratar cobrança recorrente ativa é passo humano, fora daqui).
 //   • precos_mercado — base ANÔNIMA (não guarda telefone), não é dado pessoal.
 //
-// Retorna um resumo simples para log. Lança em erro de banco.
-async function apagarDadosUsuario(phoneNumber) {
-  const resumo = { phone: phoneNumber };
+// Retorna um resumo simples para log. Lança se QUALQUER passo falhar — mas só
+// depois de tentar todos (ver PASSOS_APAGAR abaixo).
+//
+// 🔴 Correção 2026-09-04 (cod-0076). Até aqui esta função tinha um passo em
+// `lembretes_enviados`, tabela que NUNCA foi criada (o reengajamento foi
+// desligado na cod-0068 e a linha saiu até do schemaGuard). O DELETE devolvia
+// 42P01, o `if (error) throw error` abortava a função, e os passos seguintes —
+// inclusive o de `usuarios` — nunca rodavam. Como `usuarios` sobrevivia, o
+// ON DELETE CASCADE de `acompanhamentos` e `perguntas_log` também não
+// disparava: na prática, um pedido de exclusão LGPD não apagava NADA.
+//
+// Duas mudanças, e o motivo de cada uma:
+//   1. A lista de passos virou dado (PASSOS_APAGAR), não código solto. Assim a
+//      ordem de FK é visível de uma olhada e acrescentar tabela é uma linha.
+//   2. Um passo que falha NÃO aborta os outros: os erros são acumulados, todos
+//      os DELETEs são tentados, e a função lança no fim se algum falhou.
+//      Exclusão parcial SILENCIOSA seria pior que erro — o usuário não pode
+//      ouvir "apagado" sobre dado que ficou. Como a função continua lançando,
+//      o `/apagar` no index.js segue caindo no montarApagarErro().
 
-  // 1. Compras (itens_compra caem em cascata via ON DELETE CASCADE)
-  {
-    // filtro-gasto: nao-se-aplica — DELETE do /apagar (LGPD): tem de levar TUDO,
-    // inclusive tipos que não contam como gasto. Filtrar aqui deixaria rastro.
-    const { error } = await supabase
-      .from('compras')
-      .delete()
-      .eq('phone_number', phoneNumber);
-    if (error) throw error;
+// Ordem de FK: histórico primeiro, `usuarios` SEMPRE por último (é a FK de
+// `compras` que ele protege). `itens_compra` cai em cascata com `compras`.
+// `acompanhamentos` e `perguntas_log` também cairiam por cascata de `usuarios`,
+// mas estão explícitos de propósito: dado pessoal não pode depender de uma FK
+// que alguém pode alterar sem perceber.
+const PASSOS_APAGAR = [
+  // filtro-gasto: nao-se-aplica — DELETE do /apagar (LGPD): tem de levar TUDO,
+  // inclusive tipos que não contam como gasto. Filtrar aqui deixaria rastro.
+  { tabela: 'compras', coluna: 'phone_number' },
+  // Indicações — como indicador OU como indicado (duas colunas, daí o `or`).
+  { tabela: 'indicacoes', ou: (p) => `indicador_phone.eq.${p},indicado_phone.eq.${p}` },
+  { tabela: 'acompanhamentos', coluna: 'phone_number' },
+  { tabela: 'perguntas_log', coluna: 'phone_number' },
+  { tabela: 'resumos_mensais_enviados', coluna: 'phone_number' },
+  { tabela: 'mensagens_processadas', coluna: 'phone_number' },
+  { tabela: 'usuarios', coluna: 'phone_number' }, // SEMPRE o último
+];
+
+async function apagarDadosUsuario(phoneNumber, cliente = supabase) {
+  const apagadas = [];
+  const falhas = [];
+
+  for (const passo of PASSOS_APAGAR) {
+    try {
+      const consulta = cliente.from(passo.tabela).delete();
+      const { error } = passo.ou
+        ? await consulta.or(passo.ou(phoneNumber))
+        : await consulta.eq(passo.coluna, phoneNumber);
+      if (error) throw error;
+      apagadas.push(passo.tabela);
+    } catch (err) {
+      falhas.push({ tabela: passo.tabela, erro: err.message });
+      log('apagar_passo_falhou', {
+        phone: maskPhone(phoneNumber),
+        tabela: passo.tabela,
+        erro: err.message,
+      });
+    }
   }
 
-  // 2. Indicações — como indicador OU como indicado
-  {
-    const { error } = await supabase
-      .from('indicacoes')
-      .delete()
-      .or(`indicador_phone.eq.${phoneNumber},indicado_phone.eq.${phoneNumber}`);
-    if (error) throw error;
+  const resumo = { phone: phoneNumber, apagadas, falhas };
+
+  if (falhas.length > 0) {
+    log('apagar_dados_usuario_parcial', {
+      phone: maskPhone(phoneNumber),
+      apagadas,
+      falharam: falhas.map((f) => f.tabela),
+    });
+    const erro = new Error(
+      `/apagar nao concluiu: falhou em ${falhas.map((f) => f.tabela).join(', ')}`
+    );
+    erro.resumo = resumo;
+    throw erro;
   }
 
-  // 3. Lembretes de reengajamento
-  {
-    const { error } = await supabase
-      .from('lembretes_enviados')
-      .delete()
-      .eq('phone_number', phoneNumber);
-    if (error) throw error;
-  }
-
-  // 4. Marcadores de resumo mensal
-  {
-    const { error } = await supabase
-      .from('resumos_mensais_enviados')
-      .delete()
-      .eq('phone_number', phoneNumber);
-    if (error) throw error;
-  }
-
-  // 5. Dedup de mensagens
-  {
-    const { error } = await supabase
-      .from('mensagens_processadas')
-      .delete()
-      .eq('phone_number', phoneNumber);
-    if (error) throw error;
-  }
-
-  // 6. Registro do usuário (por último — respeita a FK de compras)
-  {
-    const { error } = await supabase
-      .from('usuarios')
-      .delete()
-      .eq('phone_number', phoneNumber);
-    if (error) throw error;
-  }
-
-  log('apagar_dados_usuario', { phone: maskPhone(phoneNumber) });
+  log('apagar_dados_usuario', { phone: maskPhone(phoneNumber), tabelas: apagadas.length });
   return resumo;
 }
 
