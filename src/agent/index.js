@@ -125,7 +125,13 @@ async function responderPergunta(phone, texto, deps = {}) {
 
     // [4] EXECUTOR — código determinístico busca o dado e faz a conta
     // (Camada 0: o número nunca nasce no LLM).
-    const fato = await def.executar(phone, cls.params || {});
+    // deps repassados às intents (cod-0075): números JÁ decididos pelo chamador
+    // (ex.: quantos comparativos o perfil pode ver). O orquestrador não calcula
+    // nada de plano — só carrega o que o src/index.js entregou.
+    const fato = await def.executar(phone, cls.params || {}, {
+      maxComparativos: d.maxComparativos,
+      maxNarrados: d.maxNarrados,
+    });
 
     // [5] RENDER/ENTREGA — dois caminhos:
     //   • intent de imagem (cod-0048, `entregaImagem:true`) COM dados → envia a

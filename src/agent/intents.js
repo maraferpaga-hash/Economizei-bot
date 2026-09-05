@@ -588,12 +588,17 @@ const comparativoMercados = {
 
   async executar(phone, params = {}, deps = {}) {
     const buscar = deps.buscarObservacoesComparativo || _supabase().buscarObservacoesComparativo;
-    // MESMO teaser por env do /comparar (cod-0020): limite único pra todos,
-    // nenhuma decisão de plano aqui. deps.maxComparativos existe pra o wiring
-    // futuro do limite por perfil ser 1 linha no chamador, sem tocar esta função.
+    // Dois números, dois trabalhos — e NENHUMA decisão de plano aqui (cod-0075):
+    //   • maxComparativos → quantos comparativos o insights.js devolve (mesmo
+    //     teto do /comparar; o chamador calcula pelo perfil).
+    //   • maxNarrados     → quantos entram no TEXTO. Default 1 = exatamente o
+    //     comportamento de sempre (só o destaque), que é o do Free.
+    // A intent não sabe quem é Pro: ela recebe o número já pronto. Quem decide
+    // é o src/index.js, onde a regra de plano já mora (mostrarComparativo).
     const maxComparativos = deps.maxComparativos != null
       ? deps.maxComparativos
       : (Number(process.env.COMPARATIVO_AMOSTRAS_FREE) || 3);
+    const maxNarrados = deps.maxNarrados != null ? Number(deps.maxNarrados) : 1;
 
     const { observacoes, produtosDoUsuario, lojaDoUsuario } = await buscar(phone);
     const resultado = compararPrecosMercado(observacoes, {
@@ -618,9 +623,28 @@ const comparativoMercados = {
       fmt.economiaUsuario = `R$ ${brl(destaque.economiaUsuario)}`;
     }
 
+    // Linhas extras (cod-0075): do 2º comparativo em diante, até maxNarrados.
+    // Free recebe maxNarrados=1 → slice(1,1) → lista vazia → texto idêntico ao
+    // de hoje. Mesmo brl() do destaque, pra formatação não divergir.
+    const extras = resultado.comparativos.slice(1, Math.max(1, maxNarrados));
+    const linhasExtras = extras.map(
+      (c) =>
+        `• ${c.produto}: R$ ${brl(c.menor.preco)} no ${c.menor.loja} ` +
+        `(vs R$ ${brl(c.maior.preco)} no ${c.maior.loja}) — R$ ${brl(c.economia)} de diferença`
+    );
+    // 🔴 Fidelidade (Camada 5): todo número do texto tem de estar autorizado.
+    // A allowlist do render.js sai de fato.fmt + do texto do template, então as
+    // linhas extras entram no fmt também — senão a narração do LLM cairia no
+    // airbag sem motivo assim que o Pro visse mais de um comparativo.
+    if (linhasExtras.length > 0) fmt.extras = linhasExtras.join(' ');
+
     return {
       temDados: true,
       destaque,
+      linhasExtras,
+      // Com lista, o render usa o template e pula a narração (ver render.js):
+      // o LLM tem ordem de responder em até 2 frases e comeria as linhas extras.
+      semNarracao: linhasExtras.length > 0,
       totalComparaveis: resultado.totalComparaveis,
       mostrados: resultado.mostrados,
       temMais: resultado.temMais,
@@ -642,6 +666,11 @@ const comparativoMercados = {
     }
     if (fato.totalComparaveis > 1) {
       txt += ` Tenho ${fato.fmt.nComparaveis} produtos comparáveis — pra lista completa: /comparar.`;
+    }
+    // Só chega aqui com lista quando o chamador autorizou narrar mais de um
+    // (Pro). No Free, linhasExtras é sempre vazio e o texto acima é o final.
+    if (Array.isArray(fato.linhasExtras) && fato.linhasExtras.length > 0) {
+      txt += `\n\nOutros que valem o olho:\n${fato.linhasExtras.join('\n')}`;
     }
     return txt;
   },

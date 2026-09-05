@@ -182,7 +182,14 @@ async function responder(fato, intent, modo, opts = {}) {
   // Opção 1 explícita, ou Camada 3: sem dado não há narração — só a resposta
   // honesta de ausência, que o template já dá. (Sem dado também não há
   // sugestão — montarSugestao devolve null com temDados !== true.)
-  if (modoPedido !== 'llm' || !fato || fato.temDados !== true) {
+  //
+  // + `fato.semNarracao` (cod-0075): quando a resposta É uma LISTA, o template
+  // manda. O prompt de narração pede "no máximo 2 frases" — o LLM resumiria a
+  // lista de comparativos do Pro de volta pra um item só, desfazendo em
+  // silêncio o que a intent montou. Mesmo princípio do entregaImagem: quando o
+  // formato faz parte da resposta, não se reescreve. É opt-in por fato: nenhuma
+  // outra intent muda de comportamento.
+  if (modoPedido !== 'llm' || !fato || fato.temDados !== true || fato.semNarracao === true) {
     return _anexarSugestao(
       { texto: textoTemplate, modoUsado: 'template', fidelidadeOk: null, caiuNoAirbag: false },
       intent, fato, registro

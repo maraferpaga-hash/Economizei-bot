@@ -676,7 +676,18 @@ async function processarTexto(phone, texto) {
     // narrar com firewall de fidelidade (Desenho_Tecnico_Agente_Perguntas §2).
     // O agente responde com honestidade em qualquer falha (fora de escopo /
     // erro técnico), então substitui o antigo "Não consegui entender".
-    await responderPergunta(phone, texto);
+    //
+    // GATE PRO no Agente (cod-0075): o /comparar já mostrava até
+    // COMPARATIVO_MAX_PRO pro assinante, mas a MESMA pergunta em texto livre
+    // devolvia só um comparativo pra todo mundo — o comando entregava mais que
+    // a conversa. Aqui o teto é calculado pelo perfil (mesma função do
+    // /comparar) e entregue pronto; o Agente não conhece plano de ninguém.
+    // Free: maxNarrados=1, exatamente o texto de hoje.
+    const ehProAgente = temFeaturesProAtivas(usuario);
+    await responderPergunta(phone, texto, {
+      maxComparativos: tetoComparativos(ehProAgente),
+      maxNarrados: ehProAgente ? tetoComparativos(true) : 1,
+    });
   }
 }
 
@@ -840,13 +851,21 @@ async function mostrarCortar(phone) {
 //        sem upsell.
 // O gate NÃO cobra nada e não decide preço: só escolhe quantos itens mostrar.
 // ---------------------------------------------------------------
+// Teto de comparativos por perfil — FONTE ÚNICA. Nasceu dentro do
+// mostrarComparativo (cod-0073) e virou função em 2026-09-04 (cod-0075), quando
+// o Agente passou a precisar do MESMO número: duas cópias da regra de plano
+// divergiriam no primeiro ajuste de env. Pura e sem I/O de propósito.
+function tetoComparativos(ehPro) {
+  return ehPro
+    ? (Number(process.env.COMPARATIVO_MAX_PRO) || 10)
+    : (Number(process.env.COMPARATIVO_AMOSTRAS_FREE) || 3);
+}
+
 async function mostrarComparativo(phone, usuario) {
   try {
     const { observacoes, produtosDoUsuario, lojaDoUsuario } = await buscarObservacoesComparativo(phone);
     const ehPro = temFeaturesProAtivas(usuario);
-    const maxComparativos = ehPro
-      ? (Number(process.env.COMPARATIVO_MAX_PRO) || 10)
-      : (Number(process.env.COMPARATIVO_AMOSTRAS_FREE) || 3);
+    const maxComparativos = tetoComparativos(ehPro);
     const resultado = compararPrecosMercado(observacoes, {
       produtosDoUsuario,
       lojaDoUsuario,
