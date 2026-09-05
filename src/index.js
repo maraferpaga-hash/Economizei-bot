@@ -359,14 +359,51 @@ app.get('/admin/metrics', async (req, res) => {
 // Uso: curl -X POST -H "X-Admin-Secret: SEU_SECRET" \
 //        "https://seu-bot.up.railway.app/admin/ativar-pro?phone=5517999999999"
 // ---------------------------------------------------------------
+// Validação de entrada compartilhada pelos endpoints administrativos
+// (cod-0078). Era literal só no /admin/ativar-pro; virou função porque o
+// /cron/monthly-summary, 50 linhas abaixo, não validava NADA — e duas cópias da
+// mesma regra divergem no primeiro ajuste. Puras, exportadas test-only.
+const ERRO_PHONE = 'phone inválido (use DDI+DDD+numero, ex: 5517999999999)';
+const ERRO_MES = 'mes inválido (use AAAA-MM, ex: 2026-09)';
+
+// '+55…' → '55…'; qualquer outra coisa → null. Não decide se é obrigatório.
+function normalizarPhoneQuery(valor) {
+  if (typeof valor !== 'string') return null;
+  const limpo = valor.replace(/^\+/, '').trim();
+  return /^\d{10,15}$/.test(limpo) ? limpo : null;
+}
+
+// AAAA-MM, com mês entre 01 e 12 (2026-13 não é mês).
+function mesRefValido(valor) {
+  return typeof valor === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(valor);
+}
+
+// Entrada do /cron/monthly-summary. `phone` é OPCIONAL (ausente = todos os
+// usuários, que é como o cron roda); presente, tem de ser válido — senão o
+// resumo sairia pra ninguém e o erro só apareceria no log.
+function validarEntradaResumoMensal(query = {}) {
+  const temPhone = query.phone !== undefined && query.phone !== null && query.phone !== '';
+  let phone = null;
+  if (temPhone) {
+    phone = normalizarPhoneQuery(query.phone);
+    if (!phone) return { ok: false, erro: ERRO_PHONE };
+  }
+
+  const temMes = query.mes !== undefined && query.mes !== null && query.mes !== '';
+  const mesRef = temMes ? query.mes : new Date().toISOString().slice(0, 7);
+  if (temMes && !mesRefValido(mesRef)) return { ok: false, erro: ERRO_MES };
+
+  return { ok: true, phone, mesRef };
+}
+
 app.post('/admin/ativar-pro', async (req, res) => {
   const secret = req.header('X-Admin-Secret');
   if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ erro: 'unauthorized' });
   }
-  const phone = typeof req.query.phone === 'string' ? req.query.phone.replace(/^\+/, '') : null;
-  if (!phone || !/^\d{10,15}$/.test(phone)) {
-    return res.status(400).json({ erro: 'phone inválido (use DDI+DDD+numero, ex: 5517999999999)' });
+  const phone = normalizarPhoneQuery(req.query.phone);
+  if (!phone) {
+    return res.status(400).json({ erro: ERRO_PHONE });
   }
 
   try {
@@ -413,9 +450,20 @@ app.post('/cron/monthly-summary', async (req, res) => {
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return res.status(401).json({ erro: 'unauthorized' });
   }
-  const phone = req.query.phone || null;
-  const mesRef = req.query.mes || new Date().toISOString().slice(0, 7);
-  res.json({ aceito: true, mes: mesRef, phone_especifico: phone });
+  // cod-0078: entrada validada no MESMO padrão do /admin/ativar-pro (acima) e
+  // telefone MASCARADO na resposta — o corpo devolvia o número inteiro, e um
+  // log de proxy/cliente guardaria dado pessoal sem necessidade nenhuma.
+  // Entrada inválida → 400 sem tocar o banco (o executarResumoMensal nem roda).
+  const entrada = validarEntradaResumoMensal(req.query || {});
+  if (!entrada.ok) {
+    return res.status(400).json({ erro: entrada.erro });
+  }
+  const { phone, mesRef } = entrada;
+  res.json({
+    aceito: true,
+    mes: mesRef,
+    phone_especifico: phone ? maskPhone(phone) : null,
+  });
   executarResumoMensal(mesRef, phone).catch(err =>
     log('cron_endpoint_erro', { erro: err.message })
   );
@@ -1324,5 +1372,9 @@ module.exports = {
   // cod-0071: o adaptador de canal (traduz as ações do núcleo em mensagem Z-API).
   // Exportado para teste — prova que o contrato núcleo↔canal é respeitado.
   executarAcoesDoRecibo,
+  // cod-0078: validação de entrada dos endpoints administrativos (funções puras).
+  normalizarPhoneQuery,
+  mesRefValido,
+  validarEntradaResumoMensal,
 };
 // fim do arquivo
